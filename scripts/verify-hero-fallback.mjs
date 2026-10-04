@@ -79,6 +79,24 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert.equal(result.mode, 'canvas');
           const timing = await page.evaluate(async () => {
             const media = document.querySelector('canvas.hero-fallback');
+            const renderer = window.__liquidGLRenderer__;
+            const costs = {};
+            const instrument = (object, prefix) => {
+              for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(object))) {
+                if (key === 'constructor' || typeof object[key] !== 'function') continue;
+                const fn = object[key];
+                object[key] = function (...args) {
+                  const start = performance.now();
+                  try { return fn.apply(this, args); }
+                  finally {
+                    const duration = performance.now() - start;
+                    const cost = costs[prefix + key] ||= { calls: 0, ms: 0, max: 0 };
+                    cost.calls++; cost.ms += duration; cost.max = Math.max(cost.max, duration);
+                  }
+                };
+              }
+            };
+            instrument(renderer, 'renderer.'); instrument(renderer.backend, 'backend.');
             const times = [];
             const walls = [];
             const initialFrame = Number(media.dataset.frame);
@@ -93,6 +111,8 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
                 const gaps = walls.slice(1).map((t, i) => t - walls[i]).sort((a, b) => a - b);
                 resolve({ loop: Number(media.dataset.loop), frame: Number(media.dataset.frame), initialFrame, initialTime,
                   decodeWaitMs: Number(media.dataset.decodeWaitMs), drawMs: Number(media.dataset.drawMs),
+                  backend: renderer.backend.kind, texture: [renderer.textureWidth, renderer.textureHeight],
+                  costs: Object.fromEntries(Object.entries(costs).filter(([, c]) => c.ms > 20).sort((a, b) => b[1].ms - a[1].ms)),
                   elapsed: performance.now() - start, sourceTimes: times,
                   medianMs: gaps[Math.floor(gaps.length * .5)], p95Ms: gaps[Math.floor(gaps.length * .95)] });
               };
