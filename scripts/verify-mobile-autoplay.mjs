@@ -119,7 +119,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         console.error(`${label}: ${error.message}`);
       } finally { await context.close(); }
     }
-    for (const scenario of ['bridge-denied', 'bridge-pending', 'bridge-callback-existing', 'bridge-callback-late']) {
+    for (const scenario of ['bridge-denied', 'bridge-pending', 'bridge-callback-existing', 'bridge-callback-late', 'bridge-callback-offscreen', 'bridge-callback-hidden']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
         userAgent: 'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 MicroMessenger/8.0' });
       try {
@@ -131,19 +131,36 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           };
           const play = HTMLMediaElement.prototype.play;
           const callbackOnly = scenario.startsWith('bridge-callback-');
+          const interrupted = ['bridge-callback-offscreen', 'bridge-callback-hidden'].includes(scenario);
           let bridgeReady = false, inHostCallback = false, bridgeInvocations = 0, attempts = 0, inputs = 0;
+          let callbackWhileInactive = false, returnedToHome = false;
           const installBridge = () => {
             window.WeixinJSBridge = { invoke(method, options, callback) {
               if (method !== 'getNetworkType') throw new Error('Unexpected host method');
               bridgeInvocations++;
+              const interrupt = interrupted && bridgeInvocations === 1;
+              if (interrupt) setTimeout(() => {
+                if (scenario === 'bridge-callback-hidden') {
+                  Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+                  document.dispatchEvent(new Event('visibilitychange'));
+                } else document.querySelector('#projects').scrollIntoView({ behavior: 'instant' });
+              }, 0);
               setTimeout(() => {
+                if (interrupt) callbackWhileInactive = document.hidden || document.querySelector('.hero').getBoundingClientRect().bottom <= 0;
                 inHostCallback = true;
                 try { callback({ err_msg: 'getNetworkType:wifi' }); }
                 finally { inHostCallback = false; }
-              }, 200);
+                if (interrupt) setTimeout(() => {
+                  returnedToHome = true;
+                  if (scenario === 'bridge-callback-hidden') {
+                    delete document.hidden;
+                    document.dispatchEvent(new Event('visibilitychange'));
+                  } else scrollTo({ top: 0, behavior: 'instant' });
+                }, 250);
+              }, interrupt ? 500 : 200);
             } };
           };
-          if (scenario === 'bridge-callback-existing') { bridgeReady = true; installBridge(); }
+          if (scenario === 'bridge-callback-existing' || interrupted) { bridgeReady = true; installBridge(); }
           for (const kind of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(kind, e => { if (e.isTrusted) inputs++; }, true);
           HTMLMediaElement.prototype.play = function () {
             if (!this.matches('.hero-video')) return play.call(this);
@@ -159,7 +176,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           let scheduled = false;
           const timer = setInterval(() => {
             const video = document.querySelector('.hero-video');
-            if (attempts && !scheduled && scenario !== 'bridge-callback-existing') {
+            if (attempts && !scheduled && scenario !== 'bridge-callback-existing' && !interrupted) {
               scheduled = true;
               setTimeout(() => {
                 bridgeReady = true;
@@ -169,15 +186,19 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             }
             if (!(bridgeReady && video && !video.paused && video.currentTime > .35) && performance.now() - start < 20000) return;
             clearInterval(timer);
-            console.info('WECHAT_BRIDGE_RESULT ' + JSON.stringify({ attempts, bridgeInvocations, inputs, activated: navigator.userActivation?.hasBeenActive,
+            console.info('WECHAT_BRIDGE_RESULT ' + JSON.stringify({ attempts, bridgeInvocations, inputs, callbackWhileInactive, returnedToHome, activated: navigator.userActivation?.hasBeenActive,
               advanced: Boolean(video && !video.paused && video.currentTime > .35), fallback: document.querySelector('.hero')?.dataset.mediaFallback }));
           }, 100);
         }, scenario);
         const recording = page.waitForEvent('console', { predicate: m => m.text().startsWith('WECHAT_BRIDGE_RESULT '), timeout: 30000 });
         await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
         const result = JSON.parse((await recording).text().slice('WECHAT_BRIDGE_RESULT '.length));
+        console.log(`BRIDGE ${name} ${scenario}: ${JSON.stringify(result)}`);
         assert(result.advanced && result.attempts >= 2);
-        if (scenario.startsWith('bridge-callback-')) assert.equal(result.bridgeInvocations, 1, 'Use the host callback without repeatedly querying the bridge');
+        if (['bridge-callback-offscreen', 'bridge-callback-hidden'].includes(scenario)) {
+          assert(result.callbackWhileInactive && result.returnedToHome, 'The first host callback must arrive while inactive before returning');
+          assert.equal(result.bridgeInvocations, 2, 'An unused offscreen callback must allow one new request on return');
+        } else if (scenario.startsWith('bridge-callback-')) assert.equal(result.bridgeInvocations, 1, 'Use the host callback without repeatedly querying the bridge');
         assert.equal(result.inputs, 0); assert.equal(result.activated, false); assert.equal(result.fallback, undefined);
         report.cases.push({ label: name, mode: scenario, ...result });
         console.log(`PASS ${name} ${scenario}: host-event retry without input`);

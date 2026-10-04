@@ -74,8 +74,12 @@ export function Hero() {
         // The bridge may already exist before React mounts. Keep play() in its callback.
         bridge.invoke('getNetworkType', {}, () => {
           bridgePending = false;
-          if (!shouldPlay()) return;
           clearTimeout(bridgeTimer);
+          if (!shouldPlay()) {
+            // A callback received offscreen has not spent the playback attempt.
+            bridgeInvoked = false;
+            return;
+          }
           startPlayback(true, true);
         });
       } catch {
