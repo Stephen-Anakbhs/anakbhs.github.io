@@ -31,7 +31,7 @@ export function PublicationList({ publications, headingLevel = 3 }: { publicatio
         const primaryLink = publication.links?.find((link) => link.label === "Website" || link.label === "Paper");
 
         return (
-          <article className="publication-item" key={publication.id}>
+          <article className="publication-item" key={publication.id} data-publication-id={publication.id}>
             <GlassSurface material="media" className="publication-media">
               <button
                 className="publication-thumbnail"

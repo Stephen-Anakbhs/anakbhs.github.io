@@ -153,3 +153,66 @@ browser back-forward-cache restoration.
 frame timings, idle callbacks, video state, DOM counters and resources. The
 final argument is desktop viewport width; height is 900 and DPR is 1.
 Run one profiling browser at a time. Reports and screenshots are in `output/`.
+
+## Responsive navigation and publication assets (2026-10-04)
+
+The compact navigation now remains the fixed containing element for the
+`liquid-gl` canvas and shadows. Previously the renderer attached to the header,
+so hiding the menu and suspending rendering left its last pixels visible.
+The optical parameters, retained renderer and opening/closing motion are unchanged.
+
+The local maintenance script `scripts/prepare-publication-assets.py` creates derived assets without changing
+the originals. The supplied LEGO/gear logo uses near-white color-range selection,
+feathered alpha and white-edge dematting, not generative editing. FULLBRICK uses
+red-foreground selection to clear both exterior and internal whites. The new
+PNG favicons and ICO are derived from the same transparent site logo.
+
+Publication images are mapped in `src/content/site.ts`:
+
+| Entry | Source | Display asset |
+| --- | --- | --- |
+| TOG high-order polynomials | User-supplied motorcycle figure; TOG under review per user correction | `pub-high-order-tog.png` |
+| P1 Lagrange multiplier | `Gao_NarrowVolumeReconstruction_LagrangeMultiplier_CAMWA_2026_Published.pdf`, page 16, Fig. 9 | `pub-lagrange-reconstruction.png` |
+| P2 Two lower boundedness | User-supplied reconstruction comparison | `pub-two-lower-bounds.png` |
+| P3 Shape transformation | User-supplied flow figure | `pub-shape-transformation-flow.png` |
+| P4 BDF2 | `Gao_NarrowVolumeReconstruction_BDF2_CAMWA_2025_Published.pdf`, page 11, Fig. 4 | `pub-shell-bdf2.png` |
+| P5 Leap-frog | `leapfrog.pdf`, page 8, Fig. 3 | `pub-leapfrog-reconstruction.png` |
+
+The three supplied figures are copied byte-for-byte. The other figures are
+cropped from their respective local PDFs; no submission PDF is added to public
+assets. Existing thumbnail `object-fit: contain` and image lightboxes are retained.
+
+`npm run build` and `node scripts/verify-responsive-assets.mjs http://127.0.0.1:4173`
+passed against this revision. Checks cover direct compact entry, opening/closing,
+320/390/600px and desktop breakpoint roundtrips, no residual optical pixels,
+all six image mappings/lightboxes, TOG status and favicon loading, with no page
+errors. Screenshots and `responsive-assets.json` are in `output/asset-review/`.
+Logo checkerboards, compact About/Publications and the three PDF-derived figures
+were also visually inspected. These are local build/UI results, not deployment
+or new performance measurements.
+
+## Single-row mobile navigation (2026-10-04)
+
+Home omits the duplicate header name. The existing subpage name remains visible
+when the compact menu is closed. Navigation and its toggle share one fixed row
+at every breakpoint; compact controls are 48px high with 44px link targets.
+All mobile content sections share 20px side margins. Materials, lens parameters,
+the opening/closing animation and the full-screen video are unchanged.
+
+Desktop native-scrollbar styling is limited to fine pointers. Applying those
+pseudo-element dimensions to mobile WebKit created a real 10px horizontal scroll
+range even though `scrollWidth` and `clientWidth` were equal. Coarse pointers
+retain native overlay indicators without a reserved gutter. Desktop glass
+scrollbars retain their existing dimensions and idle fading.
+
+`node scripts/verify-responsive-layout.mjs http://127.0.0.1:4173` passed 30 cases
+across Chrome/WebKit, 320-2560px widths and 844x390 landscape. Checks include
+single-row navigation, actual horizontal scrolling, aligned content, touch
+targets, project dialogs and publication lightboxes. Results/screenshots are in
+`output/responsive-review/`. The 390px Chrome scroll sample had a 16.7ms median,
+16.8ms p95 and no frames above 50ms; static reading generated no application RAF
+callbacks. These are local emulations, not measurements from a physical phone.
+
+The build emits index files for the existing publications/about/research/portfolio
+routes, so direct requests do not depend on the 404 fallback. Publication route
+selection accepts the trailing slash used by directory-based hosting.

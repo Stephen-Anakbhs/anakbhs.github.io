@@ -45,19 +45,25 @@ html {
 html:has(dialog[open]) { overflow: hidden; }
 
 /* Keep native dragging and keyboard scrolling; only change the chrome. */
-@supports selector(::-webkit-scrollbar) {
-  html { scrollbar-width: auto; scrollbar-color: auto; }
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    min-height: 44px;
-    border: 3px solid transparent;
-    border-radius: 10px;
-    background: #9a9ea5;
+@media (pointer: fine) {
+  @supports selector(::-webkit-scrollbar) {
+    html { scrollbar-width: auto; scrollbar-color: auto; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      min-height: 44px;
+      border: 3px solid transparent;
+      border-radius: 10px;
+      background: #9a9ea5;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #6b717a; }
+    ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+    ::-webkit-scrollbar-corner { background: var(--bg); }
   }
-  ::-webkit-scrollbar-thumb:hover { background: #6b717a; }
-  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-  ::-webkit-scrollbar-corner { background: var(--bg); }
+}
+
+@media (pointer: coarse) {
+  html { scrollbar-width: auto; scrollbar-color: auto; scrollbar-gutter: auto; }
 }
 
 body {
@@ -125,18 +131,10 @@ textarea {
   --navigation-height: 52px;
   --navigation-inset: 4px;
   --navigation-radius: calc(var(--navigation-height) / 2);
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  z-index: 20;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  width: min(1320px, calc(100% - 88px));
-  height: var(--navigation-height);
-  padding: 0;
-  background: transparent;
-  transform: translateX(-50%);
+  --navigation-edge: max(44px, calc((100vw - 1320px) / 2));
+  --navigation-start: var(--navigation-edge);
+  --navigation-top: 20px;
+  display: contents;
   pointer-events: none;
 }
 
@@ -167,31 +165,24 @@ textarea {
   .header-navigation, .header-navigation[data-open="false"], .menu-glyph svg { transition: none; transform: none; }
 }
 
-/* Fixed glass must own its backdrop layer in Chrome, not sit inside a fixed wrapper. */
-@media (min-width: 641px) {
-  .site-header {
-    display: contents;
-    --navigation-edge: max(44px, calc((100vw - 1320px) / 2));
-    --navigation-top: 20px;
-  }
-  .site-header .brand,
-  .site-header .header-navigation,
-  .site-header .header-toggle {
-    position: fixed;
-    top: var(--navigation-top);
-    z-index: 20;
-  }
-  .site-header .brand { left: var(--navigation-edge); }
-  .site-header .header-toggle { right: var(--navigation-edge); }
-  .site-header .header-navigation { right: calc(var(--navigation-edge) + var(--navigation-height) + 12px); }
-  .site-header :is(.header-navigation, .header-toggle)[data-glass-enabled="true"] {
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  }
-  .site-header :is(.header-navigation, .header-toggle) > .liquid-engine > .glass > .glass__warp {
-    -webkit-backdrop-filter: blur(0px) !important;
-    backdrop-filter: blur(0px) !important;
-  }
+/* Each fixed surface owns its backdrop, shader canvas and shadow at every width. */
+.site-header .brand,
+.site-header .header-navigation,
+.site-header .header-toggle {
+  position: fixed;
+  top: var(--navigation-top);
+  z-index: 20;
+}
+.site-header .brand { left: var(--navigation-start); }
+.site-header .header-toggle { right: var(--navigation-edge); }
+.site-header .header-navigation { right: calc(var(--navigation-edge) + var(--navigation-height) + 12px); }
+.site-header :is(.header-navigation, .header-toggle)[data-glass-enabled="true"] {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+}
+.site-header :is(.header-navigation, .header-toggle) > .liquid-engine > .glass > .glass__warp {
+  -webkit-backdrop-filter: blur(0px) !important;
+  backdrop-filter: blur(0px) !important;
 }
 
 @media (min-width: 641px) and (max-width: 920px) {
@@ -1430,11 +1421,6 @@ textarea {
   .showcase-image { aspect-ratio: 1; }
   .showcase-overlay-content { padding: 14px; gap: 10px; }
 
-  .site-header {
-    top: 14px;
-    width: calc(100% - 40px);
-  }
-
   .hero-content {
     width: min(760px, calc(100vw - 48px));
   }
@@ -1529,16 +1515,19 @@ textarea {
   }
 
   .site-header {
-    top: 12px;
-    width: calc(100% - 32px);
+    --navigation-height: 48px;
+    --navigation-inset: 2px;
+    --navigation-edge: max(12px, env(safe-area-inset-right));
+    --navigation-start: max(12px, env(safe-area-inset-left));
+    --navigation-top: max(12px, env(safe-area-inset-top));
   }
 
   .site-header .brand { font-size: 14px; }
-  .site-header.is-scrolled .brand { visibility: hidden; }
-  .nav-reveal { position: absolute; top: 58px; right: 0; width: 100%; }
+  .site-header[data-menu-open="true"] .brand { visibility: hidden; }
 
   .liquid-surface.header-navigation {
-    width: 100%;
+    right: calc(var(--navigation-edge) + var(--navigation-height) + 8px);
+    width: calc(100% - var(--navigation-start) - var(--navigation-edge) - var(--navigation-height) - 8px);
   }
 
   .nav-links {
@@ -1548,9 +1537,9 @@ textarea {
   }
 
   .nav-links a {
-    flex: 1 0 auto;
-    min-width: max-content;
-    padding: 0 6px;
+    flex: 1 1 auto;
+    min-width: 44px;
+    padding: 0 4px;
   }
 
   .awards-list li {
@@ -1607,6 +1596,12 @@ textarea {
 
   .page-section {
     padding: 64px 0;
+  }
+
+  .page-section,
+  .subpage,
+  .site-footer {
+    width: calc(100% - 40px);
   }
 
   .page-section.publication-section {

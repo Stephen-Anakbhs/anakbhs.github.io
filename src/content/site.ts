@@ -271,6 +271,13 @@ export const site = {
   ],
   publications: [
     {
+      id: "TOG",
+      title: "3D volume reconstruction based on a phase-field model with high-order polynomials free energy",
+      authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
+      venue: "ACM Transactions on Graphics (TOG), under review",
+      image: "/media/pub-high-order-tog.png"
+    },
+    {
       id: "BBA",
       title: "Brick But Agile: A Compact, Modular Anthropomorphic LEGO\u00ae Dexterous Hand for Education and Research",
       authors: [
@@ -337,7 +344,7 @@ export const site = {
       authors: [{ name: "Renjun Gao" }, { name: "Xiangjie Kong" }, { name: "Dongting Cai" }, { name: "Boyi Fu" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Computers & Mathematics with Applications (CAMWA), vol. 202, pp. 88-112",
       year: "2026",
-      image: "/media/pub-narrow-volume.png",
+      image: "/media/pub-lagrange-reconstruction.png",
       selected: true,
       links: [
         { label: "Code", href: "https://github.com/cfdyang521/C-3PO/tree/main" },
@@ -350,7 +357,7 @@ export const site = {
       authors: [{ name: "Xiangjie Kong" }, { name: "Renjun Gao" }, { name: "Boyi Fu" }, { name: "Dongting Cai" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Communications in Nonlinear Science and Numerical Simulation (CNSNS), vol. 143, 108649",
       year: "2025",
-      image: "/media/pf-reconstruction.png",
+      image: "/media/pub-two-lower-bounds.png",
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.108649" }]
     },
     {
@@ -359,7 +366,7 @@ export const site = {
       authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Engineering with Computers",
       year: "2025",
-      image: "/media/pub-shape-transformation.png",
+      image: "/media/pub-shape-transformation-flow.png",
       selected: true,
       links: [{ label: "Paper", href: "https://doi.org/10.1007/s00366-025-02215-y" }]
     },
@@ -369,7 +376,7 @@ export const site = {
       authors: [{ name: "Dongting Cai" }, { name: "Boyi Fu" }, { name: "Renjun Gao" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Computers & Mathematics with Applications (CAMWA), vol. 189, pp. 1-23",
       year: "2025",
-      image: "/media/pf-reconstruction.png",
+      image: "/media/pub-shell-bdf2.png",
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.camwa.2025.03.022" }]
     },
     {
@@ -378,7 +385,7 @@ export const site = {
       authors: [{ name: "Boyi Fu" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Renjun Gao" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Communications in Nonlinear Science and Numerical Simulation (CNSNS), vol. 151, 109104",
       year: "2025",
-      image: "/media/pf-reconstruction.png",
+      image: "/media/pub-leapfrog-reconstruction.png",
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.109104" }]
     },
     {
@@ -470,7 +477,7 @@ export const site = {
     },
     {
       title: "福乐方块 / FULLBRICK LUG",
-      logo: "/media/logos/fullbrick-cutout.png",
+      logo: "/media/logos/fullbrick-transparent.png",
       subtitle: "Recognized LEGO User Group, Fujian",
       period: "Dec. 2021 - Present",
       links: [{ label: "LEGO community directory", href: "https://fancolab.lego.com/communities" }],

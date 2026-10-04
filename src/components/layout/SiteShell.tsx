@@ -61,7 +61,7 @@ export function SiteShell({ children }: PropsWithChildren) {
         });
         setActiveSection(current);
       } else {
-        setActiveSection(location.pathname === "/publications" ? "publications" : "");
+        setActiveSection(location.pathname.replace(/\/+$/, "") === "/publications" ? "publications" : "");
       }
       frame = 0;
     };
@@ -131,16 +131,18 @@ export function SiteShell({ children }: PropsWithChildren) {
         <img src="/media/cold-stone.webp" alt="" />
       </div>
       <GlassScrollbar tone="dark" />
-      <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={tone} data-liquid-ignore="" aria-label="Primary navigation"
+      <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"
         onKeyDown={(event) => {
           if (event.key === "Escape" && menuOpen) {
             setMenuOpen(false);
             menuButton.current?.focus();
           }
         }}>
-        <Link className="brand" to="/#home" aria-label={`${site.name} home`}>
-          {site.shortName}
-        </Link>
+        {location.pathname !== "/" && (
+          <Link className="brand" to="/#home" aria-label={`${site.name} home`}>
+            {site.shortName}
+          </Link>
+        )}
         <div id="site-navigation" className="nav-reveal" inert={!menuOpen} aria-hidden={!menuOpen}>
           <GlassSurface material="navigation" className="header-navigation" tone={tone} data-open={menuOpen}>
             <LiquidNavigation tone={tone} activeSection={activeSection} onSelect={selectSection} open={menuOpen} />
