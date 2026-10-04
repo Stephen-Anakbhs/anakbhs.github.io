@@ -148,7 +148,7 @@ export function SiteShell({ children }: PropsWithChildren) {
             <LiquidNavigation tone={tone} activeSection={activeSection} onSelect={selectSection} open={menuOpen} />
           </GlassSurface>
         </div>
-        <GlassSurface material="navigation" className="header-toggle" tone={tone}>
+        <GlassSurface material="navigation" glassType="toggle" className="header-toggle" tone={tone}>
           <button ref={menuButton} className="glass-action glass-icon" type="button" aria-controls="site-navigation"
             aria-expanded={menuOpen} aria-label={menuOpen ? "Collapse menu" : "Expand menu"}
             title={menuOpen ? "Collapse menu" : "Expand menu"} onClick={() => setMenuOpen((open) => !open)}>

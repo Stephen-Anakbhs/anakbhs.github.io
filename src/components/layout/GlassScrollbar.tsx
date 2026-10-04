@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef } from "react";
 import { OverlayScrollbars, type OverlayScrollbars as ScrollbarsInstance } from "overlayscrollbars";
 import "overlayscrollbars/styles/overlayscrollbars.css";
 import "../../styles/glass-scrollbar.css";
+import { useGlassProfile } from '../../content/glassStore';
+import { rgba } from '../../content/glassSchema';
 
 function makeLensMap() {
   const canvas = document.createElement("canvas");
@@ -24,6 +26,7 @@ function makeLensMap() {
 }
 
 export function GlassScrollbar({ tone }: { tone: "light" | "dark" }) {
+  const profile = useGlassProfile('scrollbar');
   const id = `scrollbar-lens-${useId().replace(/:/g, "")}`;
   const map = useMemo(makeLensMap, []);
   const instance = useRef<ScrollbarsInstance | null>(null);
@@ -44,6 +47,7 @@ export function GlassScrollbar({ tone }: { tone: "light" | "dark" }) {
     instance.current = scrollbar;
     const { scrollbar: bar, handle } = scrollbar.elements().scrollbarVertical;
     bar.setAttribute("data-liquid-ignore", "");
+    bar.dataset.glassType = 'scrollbar';
     bar.style.setProperty("--scrollbar-optics", `url("#${id}")`);
     handle.tabIndex = 0;
     handle.setAttribute("role", "scrollbar");
@@ -85,11 +89,23 @@ export function GlassScrollbar({ tone }: { tone: "light" | "dark" }) {
     if (bar) bar.dataset.tone = tone;
   }, [tone]);
 
+  useEffect(() => {
+    const scrollbar = instance.current;
+    if (!scrollbar) return;
+    scrollbar.options({ scrollbars: { autoHideDelay: Number(profile.idleDelay) } });
+    const bar = scrollbar.elements().scrollbarVertical.scrollbar;
+    const vars = { '--os-padding-perpendicular': `${(18 - Number(profile.width)) / 2}px`,
+      '--scrollbar-blur': `${profile.blurPx}px`, '--scrollbar-saturation': `${profile.saturation}%`,
+      '--scrollbar-tint': rgba(String(profile.fillColor), Number(profile.fillOpacity)),
+      '--scrollbar-shadow': rgba('#000000', Number(profile.shadowOpacity)), '--scrollbar-fade': `${profile.fadeMs}ms` };
+    Object.entries(vars).forEach(([key, value]) => bar.style.setProperty(key, value));
+  }, [profile]);
+
   return <svg className="scrollbar-filter" aria-hidden="true" data-liquid-ignore="">
     <defs>
       <filter id={id} x="-30%" y="-5%" width="160%" height="110%" colorInterpolationFilters="sRGB">
         <feImage href={map} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="lens-map" />
-        <feDisplacementMap in="SourceGraphic" in2="lens-map" scale="3" xChannelSelector="R" yChannelSelector="B" />
+        <feDisplacementMap in="SourceGraphic" in2="lens-map" scale={Number(profile.displacementScale)} xChannelSelector="R" yChannelSelector="B" />
       </filter>
     </defs>
   </svg>;

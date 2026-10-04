@@ -87,6 +87,53 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         console.error(`${label}: ${error.message}`);
       } finally { await context.close(); }
     }
+    for (const scenario of ['bridge-denied', 'bridge-pending']) {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+        userAgent: 'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 MicroMessenger/8.0' });
+      try {
+        await page.addInitScript(scenario => {
+          const set = Element.prototype.setAttribute;
+          Element.prototype.setAttribute = function (key, value) {
+            if (this instanceof HTMLVideoElement && key.toLowerCase() === 'autoplay') return;
+            return set.call(this, key, value);
+          };
+          const play = HTMLMediaElement.prototype.play;
+          let bridgeReady = false, attempts = 0, inputs = 0;
+          for (const kind of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(kind, e => { if (e.isTrusted) inputs++; }, true);
+          HTMLMediaElement.prototype.play = function () {
+            if (!this.matches('.hero-video')) return play.call(this);
+            attempts++;
+            if (bridgeReady) { delete this.paused; return play.call(this); }
+            if (scenario === 'bridge-pending') {
+              Object.defineProperty(this, 'paused', { value: false, configurable: true });
+              return new Promise(() => {});
+            }
+            return Promise.reject(new DOMException('Waiting for host bridge', 'NotAllowedError'));
+          };
+          const start = performance.now();
+          let scheduled = false;
+          const timer = setInterval(() => {
+            const video = document.querySelector('.hero-video');
+            if (attempts && !scheduled) {
+              scheduled = true;
+              setTimeout(() => { bridgeReady = true; document.dispatchEvent(new Event('WeixinJSBridgeReady')); }, 300);
+            }
+            if (!(bridgeReady && video && !video.paused && video.currentTime > .35) && performance.now() - start < 20000) return;
+            clearInterval(timer);
+            console.info('WECHAT_BRIDGE_RESULT ' + JSON.stringify({ attempts, inputs, activated: navigator.userActivation?.hasBeenActive,
+              advanced: Boolean(video && !video.paused && video.currentTime > .35), fallback: document.querySelector('.hero')?.dataset.mediaFallback }));
+          }, 100);
+        }, scenario);
+        const recording = page.waitForEvent('console', { predicate: m => m.text().startsWith('WECHAT_BRIDGE_RESULT '), timeout: 30000 });
+        await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
+        const result = JSON.parse((await recording).text().slice('WECHAT_BRIDGE_RESULT '.length));
+        assert(result.advanced && result.attempts >= 2);
+        assert.equal(result.inputs, 0); assert.equal(result.activated, false); assert.equal(result.fallback, undefined);
+        report.cases.push({ label: name, mode: scenario, ...result });
+        console.log(`PASS ${name} ${scenario}: host-event retry without input`);
+      } catch (error) { report.cases.push({ label: name, mode: scenario, failure: error.stack }); process.exitCode = 1; }
+      finally { await page.close(); }
+    }
   } finally { await browser.close(); }
 }
 report.passed = !report.cases.some(c => c.failure) && report.errors.length === 0;

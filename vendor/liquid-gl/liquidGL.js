@@ -2908,8 +2908,8 @@ const liquidGL = (() => {
     rect,
     source = video,
   ) {
-    const videoWidth = source.displayWidth || video.videoWidth;
-    const videoHeight = source.displayHeight || video.videoHeight;
+    const videoWidth = source.displayWidth || video.videoWidth || source.naturalWidth || source.width;
+    const videoHeight = source.displayHeight || video.videoHeight || source.naturalHeight || source.height;
     if (
       videoWidth * videoHeight <=
       (rect.fullWidth ?? width) * (rect.fullHeight ?? height) * 4
@@ -4619,8 +4619,8 @@ fn fs() -> @location(0) vec4<f32> {
       }
       if (uploadScaledVideo(this, vid, dstX, dstY, dstW, dstH, srcRect, source))
         return true;
-      const vw = source.displayWidth || vid.videoWidth;
-      const vh = source.displayHeight || vid.videoHeight;
+      const vw = source.displayWidth || vid.videoWidth || source.naturalWidth || source.width;
+      const vh = source.displayHeight || vid.videoHeight || source.naturalHeight || source.height;
       if (!vw || !vh) return false;
 
       try {
@@ -6840,6 +6840,7 @@ fn fs() -> @location(0) vec4<f32> {
     }
 
     _videoIsOpaque(vid) {
+      if (vid instanceof HTMLCanvasElement) return vid.getContext('2d')?.getContextAttributes?.().alpha === false;
       if (!vid.videoWidth || !vid.videoHeight) return false;
 
       const key = vid.videoWidth + "x" + vid.videoHeight;

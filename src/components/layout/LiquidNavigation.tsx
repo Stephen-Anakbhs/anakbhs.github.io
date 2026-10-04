@@ -3,6 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import { site } from "../../content/site";
 import type { LiquidLens } from "liquid-gl";
+import { useGlassProfile } from '../../content/glassStore';
+import { rgba, type GlassProfile } from '../../content/glassSchema';
+
+function lensSettings(p: GlassProfile) {
+  return { refraction: Number(p.refraction), frost: Number(p.frost), aberration: Number(p.aberration),
+    bevelDepth: Number(p.bevelDepth), bevelWidth: Number(p.bevelWidth), magnify: Number(p.magnify),
+    interactionStrength: Number(p.interactionStrength), interactionRadius: Number(p.interactionRadius),
+    interactionViscosity: Number(p.interactionViscosity), shadow: Boolean(p.shadow), specular: Boolean(p.specular) };
+}
 
 export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   tone: "light" | "dark";
@@ -19,6 +28,9 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   const destination = useRef<{ left: number; width: number } | null>(null);
   const { pathname } = useLocation();
   const reduceMotion = useReducedMotion();
+  const profile = useGlassProfile('selection');
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
   const [simpleMaterial, setSimpleMaterial] = useState(false);
   const left = useMotionValue(4);
   const width = useMotionValue(0);
@@ -130,15 +142,13 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       // Keep the original navigation shader and its fluid interaction intact.
       const instance = liquidGL({
         target: `#${id}`, snapshot: "body", content: false, resolution: 0.85, frameloop: "demand",
-        refraction: 0.012, aberration: Number(material.getPropertyValue("--navigation-lens-aberration")),
-        bevelDepth: 0.01, bevelWidth: 0.055,
-        frost: Number(material.getPropertyValue("--navigation-lens-frost")),
-        shadow: true, specular: !reduceMotion, reveal: "none", tilt: false,
+        ...lensSettings(profileRef.current),
+        specular: !reduceMotion && Boolean(profileRef.current.specular), reveal: "none", tilt: false,
         interaction: reduceMotion ? "none" : "fluid",
-        interactionStrength: 0.22, interactionRadius: 1.5, interactionViscosity: 0.35,
-        magnify: 1.035, tint: material.getPropertyValue("--navigation-lens-tint").trim(), zIndex: 40,
+        tint: rgba(String(profileRef.current.tintColor), Number(profileRef.current.tintOpacity)), zIndex: 40,
       });
       lens.current = Array.isArray(instance) ? instance[0] : instance ?? null;
+      lens.current?.setTint(rgba(String(profileRef.current.tintColor), Number(profileRef.current.tintOpacity)));
       lens.current?.renderer?.setSuspended(!openState.current);
       wake();
     };
@@ -169,13 +179,11 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
 
   useEffect(() => {
     if (nav.current && lens.current) {
-      const material = getComputedStyle(nav.current);
-      lens.current.setTint(material.getPropertyValue("--navigation-lens-tint").trim());
-      lens.current.options.frost = Number(material.getPropertyValue("--navigation-lens-frost"));
-      lens.current.options.aberration = Number(material.getPropertyValue("--navigation-lens-aberration"));
+      lens.current.setTint(rgba(String(profile.tintColor), Number(profile.tintOpacity)));
+      Object.assign(lens.current.options, lensSettings(profile), { specular: !reduceMotion && Boolean(profile.specular) });
     }
     wakeRenderer.current();
-  }, [tone]);
+  }, [tone, profile, reduceMotion]);
 
   useEffect(() => {
     wakeRenderer.current();
@@ -196,7 +204,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
           <span className="nav-label" data-liquid-ignore="">{item.label}</span>
         </Link>
       ))}
-      <motion.span id={id} className="nav-lens" style={{ left, width }} aria-hidden="true" data-liquid-ignore="" />
+      <motion.span id={id} className="nav-lens" style={{ left, width }} aria-hidden="true" data-liquid-ignore="" data-glass-type="selection" />
     </nav>
   );
 }

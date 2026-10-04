@@ -30,25 +30,35 @@ export function Hero() {
     let inView = false;
     let disposed = false;
     let pending = false;
+    let playAttempt = 0;
     let retryFrame = 0;
+    let bridgeTimer = 0;
+    const wechat = /MicroMessenger/i.test(navigator.userAgent);
+    let bridgeReady = !wechat || 'WeixinJSBridge' in window;
     let lastTime = video.currentTime;
     let lastProgress = performance.now();
     const shouldPlay = () => !disposed && inView && !document.hidden;
-    const startPlayback = (retryOnce = true) => {
-      if (!shouldPlay() || pending || video.error || !video.paused) return;
+    const startPlayback = (retryOnce = true, fromBridge = false) => {
+      if (!shouldPlay() || video.error || (!fromBridge && (pending || !video.paused))) return;
       video.muted = true;
       video.defaultMuted = true;
       pending = true;
+      const attempt = ++playAttempt;
       // A play promise can be interrupted by leaving Home before decoding finishes.
       void video.play().then(() => {
         if (!shouldPlay()) video.pause();
       }).catch((error: DOMException) => {
+        if (disposed || attempt !== playAttempt) return;
         if (error.name === 'NotAllowedError' && shouldPlay()) {
-          setFallbackReason('autoplay-denied');
+          // WeChat can initialize its host bridge after the page has mounted.
+          if (!bridgeReady) {
+            clearTimeout(bridgeTimer);
+            bridgeTimer = window.setTimeout(() => { if (shouldPlay() && video.paused) setFallbackReason('autoplay-denied'); }, 1500);
+          } else setFallbackReason('autoplay-denied');
         } else if (retryOnce && error.name === 'AbortError' && shouldPlay()) {
           retryFrame = requestAnimationFrame(() => startPlayback(false));
         }
-      }).finally(() => { pending = false; });
+      }).finally(() => { if (attempt === playAttempt) pending = false; });
     };
     const syncPlayback = () => {
       if (shouldPlay()) startPlayback();
@@ -65,6 +75,15 @@ export function Hero() {
       }
       syncPlayback();
     };
+    const onBridgeReady = () => {
+      bridgeReady = true;
+      clearTimeout(bridgeTimer);
+      const rect = hero.getBoundingClientRect();
+      inView = rect.bottom > 0 && rect.top < window.innerHeight;
+      // Keep play() on the host-event stack, even if its earlier promise is pending.
+      startPlayback(true, true);
+    };
+    const onPlaying = () => { clearTimeout(bridgeTimer); syncPlayback(); };
     refreshVisibility();
     const observer = new IntersectionObserver(([entry]) => {
       const wasInView = inView;
@@ -75,9 +94,10 @@ export function Hero() {
     observer.observe(hero);
     video.addEventListener('canplay', syncPlayback);
     video.addEventListener('loadeddata', syncPlayback);
-    video.addEventListener('playing', syncPlayback);
+    video.addEventListener('playing', onPlaying);
     video.addEventListener('pause', syncPlayback);
     document.addEventListener('visibilitychange', refreshVisibility);
+    document.addEventListener('WeixinJSBridgeReady', onBridgeReady);
     window.addEventListener('pageshow', refreshVisibility);
     window.addEventListener('pointerdown', refreshVisibility, { passive: true });
     // Some mobile hosts never settle play(); measure progress, not just a resolved promise.
@@ -90,13 +110,15 @@ export function Hero() {
     return () => {
       disposed = true;
       clearInterval(watchdog);
+      clearTimeout(bridgeTimer);
       cancelAnimationFrame(retryFrame);
       observer.disconnect();
       video.removeEventListener('canplay', syncPlayback);
       video.removeEventListener('loadeddata', syncPlayback);
-      video.removeEventListener('playing', syncPlayback);
+      video.removeEventListener('playing', onPlaying);
       video.removeEventListener('pause', syncPlayback);
       document.removeEventListener('visibilitychange', refreshVisibility);
+      document.removeEventListener('WeixinJSBridgeReady', onBridgeReady);
       window.removeEventListener('pageshow', refreshVisibility);
       window.removeEventListener('pointerdown', refreshVisibility);
       video.pause();

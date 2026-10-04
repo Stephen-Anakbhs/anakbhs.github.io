@@ -15,7 +15,7 @@ export function AboutIntro() {
           {site.socials.map((item) => <GlassIconLink key={item.label} {...item} />)}
         </div>
       </div>
-      <GlassSurface material="media" className="about-portrait">
+      <GlassSurface material="media" glassType="portrait" className="about-portrait">
         <img src="/media/profile-lego-exhibition.jpg" alt="Renjun Gao at a LEGO exhibition" loading="lazy" decoding="async" width={481} height={571} />
       </GlassSurface>
     </>

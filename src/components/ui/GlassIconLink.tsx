@@ -11,7 +11,7 @@ type GlassIconLinkProps = {
 export function GlassIconLink({ href, label, icon: Icon, tone = "light" }: GlassIconLinkProps) {
   return (
     <span className="icon-control">
-      <GlassSurface className="social-glass" tone={tone} cornerRadius={22} displacementScale={12}>
+      <GlassSurface className="social-glass" tone={tone} glassType="social">
         <a className="glass-action glass-icon" href={href} aria-label={label}
           {...(href.startsWith("mailto:") ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
           {typeof Icon === "string"
