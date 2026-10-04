@@ -34,7 +34,9 @@ async function decode(src: string, start: number) {
   try {
     const track = await input.getPrimaryVideoTrack();
     if (!track || !await track.canDecode()) throw new Error('Original H.264 cannot be decoded');
-    const sink = new VideoSampleSink(track, { optimizeForLatency: true });
+    // WebKit's default decoder produced bursty frames in the fallback regression.
+    // This decoder is used only after native muted playback has been blocked.
+    const sink = new VideoSampleSink(track, { optimizeForLatency: true, hardwareAcceleration: 'prefer-software' });
     let loop = 0;
     let offset = 0;
     let decodeWaitMs = 0;
