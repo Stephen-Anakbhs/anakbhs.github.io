@@ -2908,6 +2908,8 @@ const liquidGL = (() => {
     rect,
     source = video,
   ) {
+    // Keep decoded frames on the GPU; an intermediate 2D canvas stalls WebKit readback.
+    if (typeof VideoFrame !== "undefined" && source instanceof VideoFrame) return false;
     const videoWidth = source.displayWidth || video.videoWidth || source.naturalWidth || source.width;
     const videoHeight = source.displayHeight || video.videoHeight || source.naturalHeight || source.height;
     if (

@@ -13,6 +13,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
   try {
     for (const scenario of ['denied', 'pending', 'resolved-but-stalled', 'full-loop']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+      if (process.env.FALLBACK_BACKEND === 'webgl') await page.addInitScript(() => Object.defineProperty(navigator, 'gpu', { value: undefined }));
       page.on('pageerror', e => report.errors.push({ name, scenario, message: e.message }));
       await page.addInitScript((scenario) => {
         const originalSet = Element.prototype.setAttribute;
@@ -124,6 +125,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           const { sourceTimes, ...frameTiming } = timing;
           report.cases.push({ name, scenario, fullLoop: frameTiming });
           console.log(`TIMING ${name}: ${JSON.stringify(frameTiming)}`);
+          if (process.env.FALLBACK_BACKEND === 'webgl') assert.equal(timing.backend, 'webgl');
           assert(!timing.timeout, 'Full-length fallback must loop');
           assert.equal(timing.frame, 1331, 'Every original frame must be drawn before the next loop');
           assert(sourceTimes.slice(0, -1).every((t, i, a) => !i || Math.abs(t - a[i - 1] - 1 / 30) < .001));
