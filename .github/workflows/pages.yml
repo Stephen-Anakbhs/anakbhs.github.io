@@ -52,6 +52,7 @@ jobs:
       - name: Verify unactivated mobile video playback
         env:
           AUTOPLAY_ENGINES: webkit
+          FALLBACK_HEADED: '1'
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/autoplay-preview.log" 2>&1 &
           server_pid=$!

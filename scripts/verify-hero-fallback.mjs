@@ -6,13 +6,14 @@ const base = (process.argv[2] || 'http://127.0.0.1:5173').replace(/\/$/, '');
 const engines = (process.env.AUTOPLAY_ENGINES || 'chrome').split(',');
 const output = 'output/verification';
 await mkdir(output, { recursive: true });
-const report = { base, cases: [], errors: [] };
+const report = { base, headed: process.env.FALLBACK_HEADED === '1', cases: [], errors: [] };
 for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
   if (!engines.includes(name)) continue;
-  const browser = await engine.launch({ headless: true, ...(name === 'chrome' ? { channel: 'chrome' } : {}) });
+  const browser = await engine.launch({ headless: process.env.FALLBACK_HEADED !== '1', ...(name === 'chrome' ? { channel: 'chrome' } : {}) });
   try {
     for (const scenario of ['denied', 'pending', 'resolved-but-stalled', 'full-loop']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+      await page.bringToFront();
       if (process.env.FALLBACK_BACKEND === 'webgl') await page.addInitScript(() => Object.defineProperty(navigator, 'gpu', { value: undefined }));
       page.on('pageerror', e => report.errors.push({ name, scenario, message: e.message }));
       await page.addInitScript((scenario) => {
@@ -99,6 +100,18 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
               }
             };
             instrument(renderer, 'renderer.'); instrument(renderer.backend, 'backend.');
+            for (const key of ['clone', 'close']) {
+              const fn = VideoFrame.prototype[key];
+              VideoFrame.prototype[key] = function (...args) {
+                const start = performance.now();
+                try { return fn.apply(this, args); }
+                finally {
+                  const duration = performance.now() - start;
+                  const cost = costs['frame.' + key] ||= { calls: 0, ms: 0, max: 0 };
+                  cost.calls++; cost.ms += duration; cost.max = Math.max(cost.max, duration);
+                }
+              };
+            }
             const times = [];
             const walls = [];
             const initialFrame = Number(media.dataset.frame);
@@ -114,6 +127,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
                 resolve({ loop: Number(media.dataset.loop), frame: Number(media.dataset.frame), initialFrame, initialTime,
                   decodeWaitMs: Number(media.dataset.decodeWaitMs), drawMs: Number(media.dataset.drawMs),
                   backend: renderer.backend.kind, texture: [renderer.textureWidth, renderer.textureHeight],
+                  visible: document.visibilityState, focused: document.hasFocus(),
                   costs: Object.fromEntries(Object.entries(costs).filter(([, c]) => c.ms > 20).sort((a, b) => b[1].ms - a[1].ms)),
                   elapsed: performance.now() - start, sourceTimes: times,
                   medianMs: gaps[Math.floor(gaps.length * .5)], p95Ms: gaps[Math.floor(gaps.length * .95)] });
