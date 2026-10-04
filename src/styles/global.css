@@ -842,6 +842,10 @@ textarea {
   cursor: zoom-in;
 }
 
+:is([data-publication-id="P1"], [data-publication-id="BBA"], [data-publication-id="GF"], [data-publication-id="MC"], [data-publication-id="RSC"], [data-publication-id="P7"]) .publication-thumbnail {
+  background: transparent;
+}
+
 .publication-zoom {
   position: absolute;
   right: 6px;
@@ -1070,6 +1074,15 @@ textarea {
   margin: 14px 48px 0 0;
   color: #d0d4d9;
   font-size: 14px;
+}
+
+.image-lightbox:has(img[src$="pub-lagrange-rotation.gif"], img[src*="/media/pub-"][src$="-transparent.png"]) {
+  background: rgba(234, 238, 241, 0.84);
+  backdrop-filter: blur(18px);
+}
+
+.image-lightbox:has(img[src$="pub-lagrange-rotation.gif"], img[src*="/media/pub-"][src$="-transparent.png"]) p {
+  color: #434d55;
 }
 
 .lightbox-close {

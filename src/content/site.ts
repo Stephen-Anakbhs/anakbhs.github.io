@@ -288,7 +288,7 @@ export const site = {
         { name: "Guyue Zhou", corresponding: true }
       ],
       venue: "In submission",
-      image: "/media/pub-brick-but-agile.png",
+      image: "/media/pub-brick-but-agile-transparent.png",
       selected: true
     },
     {
@@ -302,7 +302,7 @@ export const site = {
         { name: "Xiaolei Ren" }
       ],
       venue: "In submission",
-      image: "/media/pub-gesturefuse.png",
+      image: "/media/pub-gesturefuse-transparent.png",
       selected: true
     },
     {
@@ -316,7 +316,7 @@ export const site = {
         { name: "Xiaolei Ren" }
       ],
       venue: "In submission",
-      image: "/media/pub-marscanon.png",
+      image: "/media/pub-marscanon-transparent.png",
       selected: true
     },
     {
@@ -330,7 +330,7 @@ export const site = {
       venue: "Chinese Conference on Pattern Recognition and Computer Vision (PRCV), oral presentation",
       year: "2026",
       award: "Outstanding Student Paper",
-      image: "/media/pub-rsc-gesturenet.png",
+      image: "/media/pub-rsc-gesturenet-transparent.png",
       selected: true,
       links: [
         { label: "Paper", href: "https://arxiv.org/pdf/2608.02200" },
@@ -344,7 +344,7 @@ export const site = {
       authors: [{ name: "Renjun Gao" }, { name: "Xiangjie Kong" }, { name: "Dongting Cai" }, { name: "Boyi Fu" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Computers & Mathematics with Applications (CAMWA), vol. 202, pp. 88-112",
       year: "2026",
-      image: "/media/pub-lagrange-reconstruction.png",
+      image: "/media/pub-lagrange-rotation.gif",
       selected: true,
       links: [
         { label: "Code", href: "https://github.com/cfdyang521/C-3PO/tree/main" },
@@ -422,7 +422,7 @@ export const site = {
       ],
       venue: "IEEE International Geoscience and Remote Sensing Symposium (IGARSS)",
       year: "2026",
-      image: "/media/mvt.png",
+      image: "/media/pub-mvt-transparent.png",
       selected: true,
       links: [
         { label: "Website", href: "https://charlescsyyy.github.io/MVT/" },
