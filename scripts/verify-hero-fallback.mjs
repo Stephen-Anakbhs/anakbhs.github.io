@@ -38,13 +38,17 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           if (scenario === 'resolved-but-stalled') return Promise.resolve();
           return Promise.reject(new DOMException('Test host requires a user gesture', 'NotAllowedError'));
         };
-        let inputs = 0;
+        let inputs = 0, unreadyPlayerExposed = false;
         for (const type of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(type, e => { if (e.isTrusted) inputs++; }, true);
         const sample = document.createElement('canvas'); sample.width = 32; sample.height = 18;
         const ctx = sample.getContext('2d', { willReadFrequently: true });
         let first, frame = 0, differences = 0;
         const started = performance.now();
         const timer = setInterval(() => {
+          const video = document.querySelector('.hero-video');
+          if (video && video.dataset.ready !== 'true') {
+            unreadyPlayerExposed ||= getComputedStyle(video).opacity !== '0';
+          }
           const media = document.querySelector('.hero-fallback[data-media-ready="true"]');
           if (media) {
             try {
@@ -60,7 +64,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           console.info('FALLBACK_RESULT ' + JSON.stringify({
             mode: document.querySelector('.hero-fallback-layer')?.dataset.mode,
             reason: document.querySelector('.hero')?.dataset.mediaFallback,
-            inputs, activated: navigator.userActivation?.hasBeenActive,
+            inputs, activated: navigator.userActivation?.hasBeenActive, unreadyPlayerExposed,
             elapsedMs: performance.now() - started, differences, frame,
             videoElements: document.querySelectorAll('.hero-video').length,
             width: media?.naturalWidth || media?.width, height: media?.naturalHeight || media?.height,
@@ -74,6 +78,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         report.cases.push({ name, scenario, ...result });
         assert(result.differences >= 3, 'Fallback must visibly animate, not just fire load/playing');
         assert.equal(result.inputs, 0); assert.equal(result.activated, false);
+        assert.equal(result.unreadyPlayerExposed, false, 'The waiting native player must stay hidden before fallback');
         assert.equal(result.videoElements, 0, 'No blocked native player or start button may remain');
         assert.equal(result.width, 1920); assert.equal(result.height, 1080);
         assert.equal(result.reason, ['denied', 'full-loop'].includes(scenario) ? 'autoplay-denied' : 'no-frame-progress');

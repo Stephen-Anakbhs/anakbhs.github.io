@@ -3,7 +3,8 @@
   object-position: center;
 }
 
-/* Keep the poster-bearing video visible while the browser starts native autoplay. */
+/* Keep its layout box for autoplay; show the separate poster until playback starts. */
+.hero-video:not([data-ready="true"]),
 .hero-video[data-failed="true"] { opacity: 0; }
 
 /* This silent background is decorative; a denied player is replaced, not left clickable. */

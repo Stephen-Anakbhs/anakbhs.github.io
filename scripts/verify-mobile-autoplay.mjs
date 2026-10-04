@@ -27,11 +27,16 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         const start = performance.now();
         let firstTime = null;
         let inputs = 0;
+        let unreadySamples = 0, unreadyPlayerExposed = false;
         for (const event of ['pointerdown', 'touchend', 'keydown']) {
           document.addEventListener(event, e => { if (e.isTrusted) inputs++; }, true);
         }
         const timer = setInterval(() => {
           const v = document.querySelector('.hero-video');
+          if (v && v.dataset.ready !== 'true') {
+            unreadySamples++;
+            unreadyPlayerExposed ||= getComputedStyle(v).opacity !== '0';
+          }
           if (v && !v.paused && v.readyState >= 2 && firstTime === null) firstTime = v.currentTime;
           const advanced = firstTime !== null && v && v.currentTime > firstTime + 0.35;
           const decoded = v?.getVideoPlaybackQuality().totalVideoFrames || 0;
@@ -46,6 +51,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             opacity: v ? getComputedStyle(v).opacity : null,
             width: v?.videoWidth, height: v?.videoHeight,
             decoded,
+            unreadySamples, unreadyPlayerExposed,
           }));
         }, 100);
       });
@@ -70,6 +76,10 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert.equal(result.activated, false, 'Startup test must not receive a user activation');
           assert(result.autoplay && result.muted && result.inline && result.loop && !result.controls);
           assert.equal(result.opacity, '1');
+          assert.equal(result.unreadyPlayerExposed, false, 'The poster must cover the unready native player');
+          if (viewport.width === 390 && mode === 'fresh-entry') {
+            assert(result.unreadySamples > 0, 'The delayed-media case must observe the startup waiting state');
+          }
           assert.equal(result.width, 1920); assert.equal(result.height, 1080);
           console.log(`PASS ${label} ${mode}: ${result.elapsedMs.toFixed(0)}ms, no input or activation`);
         }
