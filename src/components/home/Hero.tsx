@@ -1,0 +1,114 @@
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { site } from "../../content/site";
+import { TypewriterLine } from "../hero/TypewriterLine";
+import "../../styles/hero-video.css";
+
+const HeroScene = lazy(() => import("../../scenes/hero/HeroScene").then((module) => ({ default: module.HeroScene })));
+
+export function Hero() {
+  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const heroRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReduceMotion(preference.matches);
+    preference.addEventListener('change', update);
+    update();
+    return () => preference.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const hero = heroRef.current;
+    if (!video || !hero || reduceMotion) return;
+    let inView = false;
+    let disposed = false;
+    let pending = false;
+    let retryFrame = 0;
+    const shouldPlay = () => !disposed && inView && !document.hidden;
+    const startPlayback = (retryAbort = true) => {
+      if (!shouldPlay() || pending || video.error) return;
+      video.muted = true;
+      video.defaultMuted = true;
+      pending = true;
+      // A play promise can be interrupted by leaving Home before decoding finishes.
+      void video.play().then(() => {
+        if (!shouldPlay()) video.pause();
+      }).catch((error: DOMException) => {
+        if (retryAbort && error.name === 'AbortError' && shouldPlay()) {
+          retryFrame = requestAnimationFrame(() => startPlayback(false));
+        }
+        // Autoplay denial waits for a real user gesture; the poster remains visible.
+      }).finally(() => { pending = false; });
+    };
+    const syncPlayback = () => {
+      if (shouldPlay()) startPlayback();
+      else { cancelAnimationFrame(retryFrame); video.pause(); }
+    };
+    const refreshVisibility = () => {
+      const rect = hero.getBoundingClientRect();
+      inView = rect.bottom > 0 && rect.top < window.innerHeight;
+      // Retry a transient media failure only on a new entry, restore, or user gesture.
+      if (shouldPlay() && video.error) {
+        setVideoFailed(false);
+        setVideoReady(false);
+        video.load();
+      }
+      syncPlayback();
+    };
+    refreshVisibility();
+    const observer = new IntersectionObserver(([entry]) => {
+      const wasInView = inView;
+      inView = entry.isIntersecting;
+      if (inView && !wasInView) refreshVisibility();
+      else syncPlayback();
+    }, { threshold: 0 });
+    observer.observe(hero);
+    video.addEventListener('canplay', syncPlayback);
+    video.addEventListener('loadeddata', syncPlayback);
+    video.addEventListener('pause', syncPlayback);
+    document.addEventListener('visibilitychange', refreshVisibility);
+    window.addEventListener('pageshow', refreshVisibility);
+    window.addEventListener('pointerdown', refreshVisibility, { passive: true });
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(retryFrame);
+      observer.disconnect();
+      video.removeEventListener('canplay', syncPlayback);
+      video.removeEventListener('loadeddata', syncPlayback);
+      video.removeEventListener('pause', syncPlayback);
+      document.removeEventListener('visibilitychange', refreshVisibility);
+      window.removeEventListener('pageshow', refreshVisibility);
+      window.removeEventListener('pointerdown', refreshVisibility);
+      video.pause();
+    };
+  }, [reduceMotion]);
+
+  return (
+    <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" aria-label="Homepage introduction">
+      <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true" />
+      {site.hero.media.video && !reduceMotion && (
+        <video ref={videoRef} className="hero-video" muted loop playsInline src={site.hero.media.video}
+          preload="metadata" poster={site.hero.media.poster} disablePictureInPicture tabIndex={-1} aria-hidden="true"
+          data-ready={videoReady && !videoFailed}
+          onPlaying={() => { setVideoReady(true); setVideoFailed(false); }}
+          onError={() => { setVideoFailed(true); setVideoReady(false); }} />
+      )}
+      {!reduceMotion && !site.hero.media.video && <Suspense fallback={null}><HeroScene /></Suspense>}
+      <div className="hero-overlay" aria-hidden="true" />
+      <div className="hero-content">
+        <h1>{site.hero.title}</h1>
+        <p className="hero-specialty">
+          <TypewriterLine prefix={site.hero.prefix} words={site.hero.words} />
+        </p>
+      </div>
+      <a className="scroll-cue" href="#about" aria-label="Scroll to about">
+        <ChevronDown size={42} strokeWidth={2.2} />
+      </a>
+    </section>
+  );
+}

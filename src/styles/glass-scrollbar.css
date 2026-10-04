@@ -1,0 +1,64 @@
+.scrollbar-filter { position: fixed; width: 0; height: 0; pointer-events: none; }
+
+body > .os-theme-glass {
+  z-index: 80;
+  --os-size: 18px;
+  --os-padding-perpendicular: 6px;
+  --os-padding-axis: 8px;
+  --os-track-bg: transparent;
+  --os-track-bg-hover: transparent;
+  --os-track-bg-active: transparent;
+  --os-handle-border-radius: 999px;
+  --os-handle-min-size: 52px;
+  --os-handle-bg: transparent;
+  --os-handle-bg-hover: transparent;
+  --os-handle-bg-active: transparent;
+  --scrollbar-tint: rgba(255, 255, 255, 0.2);
+  --scrollbar-shadow: rgba(0, 0, 0, 0.3);
+}
+
+.os-theme-glass[data-tone="light"] {
+  --scrollbar-tint: rgba(43, 49, 56, 0.18);
+  --scrollbar-shadow: rgba(22, 27, 33, 0.16);
+}
+
+.os-theme-glass .os-scrollbar-handle::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0.38), transparent 38%, transparent 70%, rgba(255, 255, 255, 0.22)), var(--scrollbar-tint);
+  backdrop-filter: var(--scrollbar-optics) blur(0.4px) saturate(125%);
+  -webkit-backdrop-filter: blur(0.4px) saturate(125%);
+  box-shadow: 0 2px 7px var(--scrollbar-shadow), inset 0.6px 0.6px 0.8px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  content: "";
+}
+
+.os-theme-glass .os-scrollbar-handle:hover::after,
+.os-theme-glass .os-scrollbar-handle:active::after {
+  box-shadow: 0 2px 9px var(--scrollbar-shadow), inset 0.7px 0.7px 1px rgba(255, 255, 255, 0.8);
+}
+
+.os-theme-glass .os-scrollbar-handle:focus-visible {
+  outline: 2px solid #687580;
+  outline-offset: 2px;
+}
+
+/* Keep the keyboard target reachable while the idle scrollbar is transparent. */
+body > .os-theme-glass.os-scrollbar-auto-hide {
+  transition: opacity 300ms ease;
+  visibility: visible;
+}
+body > .os-theme-glass:has(.os-scrollbar-handle:focus-visible) { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  body > .os-theme-glass.os-scrollbar-auto-hide { transition: none; }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .os-theme-glass .os-scrollbar-handle::after {
+    background: #606872;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

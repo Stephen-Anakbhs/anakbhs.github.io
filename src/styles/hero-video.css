@@ -1,0 +1,6 @@
+.hero--video .hero-photo,
+.hero--video .hero-video {
+  object-position: center;
+}
+
+.hero-video[data-ready="false"] { opacity: 0; }

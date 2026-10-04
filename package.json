@@ -1,0 +1,41 @@
+{
+  "name": "anakbhs-homepage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/copy-404.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check:ui": "node scripts/verify-site.mjs",
+    "check:video": "node scripts/verify-video-recovery.mjs",
+    "check:visibility": "node scripts/verify-video-visibility.mjs",
+    "profile": "node scripts/profile-site.mjs"
+  },
+  "dependencies": {
+    "@liquid-dom/react": "0.1.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "framer-motion": "^12.40.0",
+    "liquid-gl": "file:vendor/liquid-gl",
+    "liquid-glass-react": "file:vendor/liquid-glass-react",
+    "lucide-react": "^1.16.0",
+    "overlayscrollbars": "2.16.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.15.1",
+    "remark-gfm": "^4.0.1",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "playwright": "1.63.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14"
+  }
+}

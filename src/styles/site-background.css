@@ -1,0 +1,92 @@
+html:has(.site-backdrop) { background: #d2d4d4; }
+html body:has(.site-backdrop) { background: transparent; }
+
+.site-shell {
+  --bg: transparent;
+  --bg-soft: rgba(255, 255, 255, 0.2);
+  --surface: rgba(255, 255, 255, 0.2);
+  --text: #24262b;
+  --muted: #34383f;
+  --dim: #444951;
+  --line: rgba(36, 38, 43, 0.2);
+  --accent: #315e50;
+  color: var(--text);
+}
+
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #d2d4d4;
+}
+
+.site-backdrop img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-shell .publication-section {
+  background: transparent;
+}
+
+.site-shell .career-logo,
+.site-shell .membership-logo {
+  padding: 12px;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.site-shell .publication-info > :is(h2, h3),
+.site-shell .publication-authors strong,
+.site-shell .publication-section .section-link,
+.site-shell .site-header[data-tone="light"] .brand {
+  color: var(--text);
+}
+
+.site-shell .site-header[data-tone="light"] .brand {
+  text-shadow: none;
+}
+
+.site-shell .publication-info p,
+.site-shell .publication-legend {
+  color: var(--muted);
+}
+
+.site-shell .publication-legend span { color: var(--dim); }
+.site-shell .publication-item { border-color: var(--line); }
+.site-shell .publication-info .publication-award { color: #23644d; }
+.site-shell .awards-list .award-gold strong { color: #77540d; }
+.site-shell .publication-section .section-link:hover { background: var(--bg-soft); }
+
+.site-shell .showcase-overlay {
+  --text: #fff;
+  --muted: #fff;
+  color: var(--text);
+  text-shadow: var(--glass-text-shadow);
+}
+
+/* Project details remain dark text on their existing white panel. */
+.site-shell .project-dialog {
+  --text: #242629;
+  --muted: #565b63;
+  --accent: #3f5f55;
+  color: var(--text);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .site-shell .publication-media { backdrop-filter: none; }
+}
+
+@media (forced-colors: active) {
+  .site-backdrop { display: none; }
+  .site-shell { --text: CanvasText; --muted: CanvasText; --dim: CanvasText; --line: CanvasText; --accent: LinkText; color: CanvasText; background: Canvas; }
+  .site-shell .publication-info .publication-award,
+  .site-shell .awards-list .award-gold strong { color: CanvasText; }
+  .site-shell .publication-media { border: 1px solid CanvasText; }
+  .site-shell .showcase-overlay { --text: CanvasText; --muted: CanvasText; }
+}

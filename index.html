@@ -1,86 +1,25 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>anakbhs · 个人主页</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .card {
-      max-width: 720px;
-      width: 90%;
-      background: #020617;
-      border-radius: 18px;
-      padding: 32px 28px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
-      border: 1px solid #1e293b;
-    }
-    h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-    }
-    h2 {
-      margin: 0 0 16px;
-      font-size: 16px;
-      font-weight: 400;
-      color: #94a3b8;
-    }
-    p {
-      line-height: 1.8;
-      color: #cbd5f5;
-    }
-    .links {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .links a {
-      text-decoration: none;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid #334155;
-      color: #e5e7eb;
-      font-size: 14px;
-    }
-    .links a:hover {
-      background: #1d4ed8;
-      border-color: #1d4ed8;
-    }
-    .tagline {
-      margin-top: 6px;
-      font-size: 14px;
-      color: #9ca3af;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Hi，我是 anakbhs 👋</h1>
-    <h2>一句话介绍自己（比如：独立开发者 / 学生 / XXX 行业从业者）</h2>
-    <p>
-      在这里简单写几句自我介绍：你在做什么、对什么感兴趣、目前在折腾什么项目。
-      不用太正式，当成给朋友看的个人名片就好。
-    </p>
-    <p class="tagline">
-      「可以写一句你喜欢的座右铭、slogan 或者最近的状态。」
-    </p>
-
-    <div class="links">
-      <a href="mailto:your@email.com">📧 Email</a>
-      <a href="https://github.com/你的GitHub用户名" target="_blank">🐙 GitHub</a>
-      <a href="https://twitter.com/" target="_blank">🐦 Twitter / X</a>
-      <a href="#projects">📁 我的项目（以后可以加锚点）</a>
-    </div>
-  </div>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Renjun Gao's academic homepage, research profile, blog, portfolio, and interactive personal archive."
+    />
+    <meta property="og:title" content="Renjun Gao · Personal Homepage" />
+    <meta
+      property="og:description"
+      content="Robotics, computational methods, LEGO Technic systems, publications, projects, and writing."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://renjun.one/" />
+    <meta property="og:image" content="https://renjun.one/media/hero-bus.jpg" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Renjun Gao · Personal Homepage</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
