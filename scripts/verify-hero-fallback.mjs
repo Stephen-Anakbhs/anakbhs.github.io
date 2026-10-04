@@ -120,6 +120,39 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.screenshot({ path: `${output}/fallback-${name}-${scenario}-failure.png` }).catch(() => {});
       } finally { await page.close(); }
     }
+    if (name === 'webkit' && process.platform === 'darwin') {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      try {
+        await page.addInitScript(() => {
+          Object.defineProperty(window, 'VideoDecoder', { value: undefined, configurable: true });
+          const set = Element.prototype.setAttribute;
+          Element.prototype.setAttribute = function (key, value) {
+            if (this instanceof HTMLVideoElement && key.toLowerCase() === 'autoplay') return;
+            return set.call(this, key, value);
+          };
+          HTMLMediaElement.prototype.play = function () {
+            return Promise.reject(new DOMException('Test host requires input', 'NotAllowedError'));
+          };
+        });
+        await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
+        await page.locator('img.hero-fallback[data-media-ready="true"]').waitFor();
+        // Observe rendered pixels directly: drawImage(animated img) may return its first frame.
+        const clip = { x: 20, y: 150, width: 300, height: 150 };
+        const before = await page.screenshot({ clip });
+        await page.waitForTimeout(7000);
+        const after = await page.screenshot({ clip, path: `${output}/fallback-webkit-image-only.png` });
+        assert(!before.equals(after), 'MP4 image fallback must visibly animate');
+        assert.equal(await page.locator('.hero-fallback-layer').getAttribute('data-mode'), 'image');
+        assert.equal(await page.locator('.hero-video').count(), 0);
+        assert.equal(await page.evaluate(() => navigator.userActivation.hasBeenActive), false);
+        report.cases.push({ name, scenario: 'image-only', passed: true, activated: false });
+        console.log('PASS webkit image-only: original MP4 animates without VideoDecoder or user input');
+      } catch (error) {
+        report.cases.push({ name, scenario: 'image-only', failure: error.stack });
+        process.exitCode = 1;
+        console.error(error.message);
+      } finally { await page.close(); }
+    }
   } finally { await browser.close(); }
 }
 report.passed = report.errors.length === 0 && !report.cases.some(c => c.failure);

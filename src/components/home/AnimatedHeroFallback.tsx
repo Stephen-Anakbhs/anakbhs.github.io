@@ -5,7 +5,6 @@ const notify = () => document.dispatchEvent(new Event('hero-media-change'));
 /** Reuse the original file without palette conversion or frame removal. */
 export default function AnimatedHeroFallback({ src }: { src: string }) {
   const host = useRef<HTMLDivElement>(null);
-  const image = useRef<HTMLImageElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const resumeTime = useRef(0);
   const [active, setActive] = useState(false);
@@ -29,37 +28,6 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
   }, []);
 
   useEffect(() => {
-    notify();
-    if (mode !== 'image' || !active) return;
-    let previous: Uint8ClampedArray | undefined;
-    const sample = document.createElement('canvas');
-    sample.width = 16; sample.height = 9;
-    const ctx = sample.getContext('2d', { willReadFrequently: true });
-    const started = performance.now();
-    // An image load event is not proof of animation either. Sample only during startup.
-    const timer = window.setInterval(() => {
-      const img = image.current;
-      if (!img || !ctx) return;
-      if (img.complete && img.naturalWidth) {
-        try {
-          ctx.drawImage(img, 0, 0, 16, 9);
-          const pixels = ctx.getImageData(0, 0, 16, 9).data;
-          if (previous && pixels.some((v, i) => Math.abs(v - previous![i]) > 3)) {
-            clearInterval(timer);
-            setReady(true);
-            return;
-          }
-          previous = pixels;
-        } catch { clearInterval(timer); setReady(false); setMode('canvas'); return; }
-      }
-      if (performance.now() - started >= 6000) {
-        clearInterval(timer); setReady(false); setMode('canvas');
-      }
-    }, 250);
-    return () => clearInterval(timer);
-  }, [active, mode]);
-
-  useEffect(() => {
     if (mode !== 'canvas' || !active || !canvas.current) return;
     const controller = new AbortController();
     const target = canvas.current;
@@ -77,7 +45,7 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return;
       console.warn('Animated background unavailable', error);
-      setReady(false); setMode('poster');
+      setReady(false); setMode('image');
     });
     return () => controller.abort();
   }, [active, mode, src]);
@@ -85,9 +53,10 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
   useEffect(() => { if (!active) setReady(false); notify(); }, [ready, active, mode]);
 
   return <div ref={host} className="hero-fallback-layer" data-mode={mode} aria-hidden="true">
-    {active && mode === 'image' && <img ref={image} className="hero-fallback" src={src} alt=""
+    {/* Canvas drawImage may expose only an animated image's default frame; do not use it as an animation watchdog. */}
+    {active && mode === 'image' && <img className="hero-fallback" src={src} alt=""
       data-media-ready={ready} onLoad={() => { setReady(true); notify(); }}
-      onError={() => { setReady(false); setMode('canvas'); }} />}
+      onError={() => { setReady(false); setMode('poster'); }} />}
     {active && mode === 'canvas' && <canvas ref={canvas} className="hero-fallback" width={1920} height={1080}
       data-media-ready={ready} />}
   </div>;

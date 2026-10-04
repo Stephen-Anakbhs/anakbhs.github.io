@@ -34,7 +34,8 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           const v = document.querySelector('.hero-video');
           if (v && !v.paused && v.readyState >= 2 && firstTime === null) firstTime = v.currentTime;
           const advanced = firstTime !== null && v && v.currentTime > firstTime + 0.35;
-          if (!advanced && performance.now() - start < 20000) return;
+          const decoded = v?.getVideoPlaybackQuality().totalVideoFrames || 0;
+          if ((!advanced || decoded === 0) && performance.now() - start < 20000) return;
           clearInterval(timer);
           console.info('MOBILE_AUTOPLAY_RESULT ' + JSON.stringify({
             advanced, elapsedMs: performance.now() - start, inputs,
@@ -44,7 +45,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             inline: v?.playsInline, loop: v?.loop, controls: v?.controls,
             opacity: v ? getComputedStyle(v).opacity : null,
             width: v?.videoWidth, height: v?.videoHeight,
-            decoded: v?.getVideoPlaybackQuality().totalVideoFrames,
+            decoded,
           }));
         }, 100);
       });
