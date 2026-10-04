@@ -2,7 +2,7 @@ declare module "liquid-gl" {
   export interface LiquidLens {
     options: { frost: number; aberration: number };
     renderer: {
-      _videoNodes: HTMLVideoElement[];
+      _videoNodes: (HTMLVideoElement | HTMLImageElement | HTMLCanvasElement)[];
       suspended: boolean;
       invalidate(duration?: number): void;
       setSuspended(value: boolean): void;

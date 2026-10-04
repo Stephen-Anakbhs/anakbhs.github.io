@@ -227,3 +227,58 @@ Reference source files are kept outside the runtime in
 The reusable API and all visual settings are in [glass-interface.md](glass-interface.md).
 Visual acceptance on the user's devices and any public hosting/network checks
 remain distinct from these local implementation tests. Mobile was not redesigned.
+
+## Autoplay-denial recovery (2026-10-04)
+
+The later mobile work supersedes the historical mobile scope above. Native
+muted inline playback is still the first choice. A rejected `play()` promise
+or four seconds without advancing video time replaces the native player with
+`AnimatedHeroFallback`; a rejected player is not left over the background.
+The fallback first tries WebKit's MP4-as-image support, then lazily decodes the
+same H.264 file with WebCodecs/Mediabunny and draws it on a canvas. The navigation
+uses that image/canvas in its existing live-refraction path. The material,
+wallpaper, typography and navigation geometry are unchanged by this patch.
+
+No GIF conversion is shipped. Ordinary GIF uses a 256-entry color table and
+cannot preserve this video's full-color decoded frames. Both implemented
+dynamic paths reuse the original 1920x1080, 30 fps, 44.333333-second MP4 without
+rescaling, re-encoding, shortening the loop or intentionally removing frames.
+Canvas drawing follows source timestamps; actual delivery speed still depends
+on the device. Offscreen/hidden playback is stopped, and reduced-motion mode
+retains the static poster. A host with neither working image-video nor video
+decoding also keeps the poster; universal animation is not claimed.
+
+Current Windows Chrome production-preview checks (`http://127.0.0.1:4173`):
+
+- Typecheck and production build pass. The decoder is a separate lazy chunk.
+- `verify-mobile-autoplay.mjs`: seven checks pass, covering 320px/390px portrait,
+  landscape, fresh entry/reload, delayed media and offscreen return.
+- `verify-hero-fallback.mjs`: denial, pending promise, resolved-but-stalled
+  playback and unavailable image-video all animate before trusted input or
+  user activation. No native hero player remains. Glass updates and offscreen
+  return also pass.
+- The full-loop canvas check draws all 1,330 original frames before frame 1,331
+  starts loop two. From source time 2.0s to that boundary takes 42.329s; observed
+  median frame spacing is 33.3ms and p95 is 33.9ms on this host.
+- `verify-responsive-assets.mjs`: compact-menu pixel checks, breakpoint
+  roundtrips, six corrected publication mappings/lightboxes, TOG review status,
+  transparent logos and supplied-figure byte identity pass.
+
+These results do not establish physical iPhone/low-power-mode acceptance.
+The existing macOS WebKit deployment check now also runs the fallback suite;
+its actual result must be inspected before claiming WebKit coverage.
+
+Primary references:
+- https://webkit.org/blog/6784/new-video-policies-for-ios/
+- https://webkit.org/blog/8216/new-webkit-features-in-safari-11-1/
+- https://developer.chrome.com/blog/autoplay/
+- https://www.w3.org/2025/Talks/TPAC/PNG-summary/
+
+The mainland network check is `scripts/check-mainland-access.ps1`; its local
+report is `output/verification/mainland-access.json`. It probes HTTP/HTTPS,
+publications, the deployed entry script, a local font and a video byte range
+through Telecom/Unicom/Mobile. An earlier deployment had passing Telecom and
+Unicom probes but intermittent Mobile TCP/TLS timeouts. That is not evidence of
+nationwide blocking or nationwide reliable access. A frontend playback fix
+does not repair an upstream TCP/TLS route; recheck the published version and
+keep network/hosting conclusions separate from browser tests.

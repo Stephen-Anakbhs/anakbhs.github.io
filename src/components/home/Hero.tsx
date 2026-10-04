@@ -5,6 +5,7 @@ import { TypewriterLine } from "../hero/TypewriterLine";
 import "../../styles/hero-video.css";
 
 const HeroScene = lazy(() => import("../../scenes/hero/HeroScene").then((module) => ({ default: module.HeroScene })));
+const AnimatedHeroFallback = lazy(() => import("./AnimatedHeroFallback"));
 
 export function Hero() {
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -12,6 +13,7 @@ export function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
 
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -24,11 +26,13 @@ export function Hero() {
   useEffect(() => {
     const video = videoRef.current;
     const hero = heroRef.current;
-    if (!video || !hero || reduceMotion) return;
+    if (!video || !hero || reduceMotion || fallbackReason) return;
     let inView = false;
     let disposed = false;
     let pending = false;
     let retryFrame = 0;
+    let lastTime = video.currentTime;
+    let lastProgress = performance.now();
     const shouldPlay = () => !disposed && inView && !document.hidden;
     const startPlayback = (retryOnce = true) => {
       if (!shouldPlay() || pending || video.error || !video.paused) return;
@@ -39,15 +43,16 @@ export function Hero() {
       void video.play().then(() => {
         if (!shouldPlay()) video.pause();
       }).catch((error: DOMException) => {
-        if (retryOnce && (error.name === 'AbortError' || error.name === 'NotAllowedError') && shouldPlay()) {
+        if (error.name === 'NotAllowedError' && shouldPlay()) {
+          setFallbackReason('autoplay-denied');
+        } else if (retryOnce && error.name === 'AbortError' && shouldPlay()) {
           retryFrame = requestAnimationFrame(() => startPlayback(false));
         }
-        // Retry once after layout; persistent browser policy is not a polling loop.
       }).finally(() => { pending = false; });
     };
     const syncPlayback = () => {
       if (shouldPlay()) startPlayback();
-      else { cancelAnimationFrame(retryFrame); video.pause(); }
+      else { cancelAnimationFrame(retryFrame); video.pause(); lastProgress = performance.now(); }
     };
     const refreshVisibility = () => {
       const rect = hero.getBoundingClientRect();
@@ -75,8 +80,16 @@ export function Hero() {
     document.addEventListener('visibilitychange', refreshVisibility);
     window.addEventListener('pageshow', refreshVisibility);
     window.addEventListener('pointerdown', refreshVisibility, { passive: true });
+    // Some mobile hosts never settle play(); measure progress, not just a resolved promise.
+    const watchdog = window.setInterval(() => {
+      const now = performance.now();
+      if (!shouldPlay() || Math.abs(video.currentTime - lastTime) > 0.01) lastProgress = now;
+      lastTime = video.currentTime;
+      if (shouldPlay() && now - lastProgress >= 4000) setFallbackReason('no-frame-progress');
+    }, 500);
     return () => {
       disposed = true;
+      clearInterval(watchdog);
       cancelAnimationFrame(retryFrame);
       observer.disconnect();
       video.removeEventListener('canplay', syncPlayback);
@@ -88,18 +101,21 @@ export function Hero() {
       window.removeEventListener('pointerdown', refreshVisibility);
       video.pause();
     };
-  }, [reduceMotion]);
+  }, [reduceMotion, fallbackReason]);
 
   return (
-    <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" aria-label="Homepage introduction">
+    <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" data-media-fallback={fallbackReason || undefined} aria-label="Homepage introduction">
       <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true" />
-      {site.hero.media.video && !reduceMotion && (
+      {site.hero.media.video && !reduceMotion && !fallbackReason && (
         <video ref={videoRef} className="hero-video" autoPlay muted loop playsInline src={site.hero.media.video}
           preload="auto" poster={site.hero.media.poster} disablePictureInPicture tabIndex={-1} aria-hidden="true"
           data-ready={videoReady && !videoFailed}
           data-failed={videoFailed}
           onPlaying={() => { setVideoReady(true); setVideoFailed(false); }}
           onError={() => { setVideoFailed(true); setVideoReady(false); }} />
+      )}
+      {site.hero.media.video && !reduceMotion && fallbackReason && (
+        <Suspense fallback={null}><AnimatedHeroFallback src={site.hero.media.video} /></Suspense>
       )}
       {!reduceMotion && !site.hero.media.video && <Suspense fallback={null}><HeroScene /></Suspense>}
       <div className="hero-overlay" aria-hidden="true" />

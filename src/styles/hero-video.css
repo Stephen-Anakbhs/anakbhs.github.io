@@ -5,3 +5,11 @@
 
 /* Keep the poster-bearing video visible while the browser starts native autoplay. */
 .hero-video[data-failed="true"] { opacity: 0; }
+
+/* This silent background is decorative; a denied player is replaced, not left clickable. */
+.hero-video::-webkit-media-controls,
+.hero-video::-webkit-media-controls-start-playback-button { display: none !important; }
+
+.hero-fallback-layer { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
+.hero-fallback { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hero-fallback[data-media-ready="false"] { opacity: 0; }

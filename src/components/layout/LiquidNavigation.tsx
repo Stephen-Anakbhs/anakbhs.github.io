@@ -71,30 +71,33 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   useEffect(() => {
     let disposed = false;
     if (simpleMaterial) return;
-    let video: HTMLVideoElement | null = null;
+    let video: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | null = null;
     let videoFrame = 0;
     let animationFrame = 0;
     let captureTimer = 0;
     const stopVideo = () => {
-      if (videoFrame) video?.cancelVideoFrameCallback(videoFrame);
+      if (videoFrame && video instanceof HTMLVideoElement) video.cancelVideoFrameCallback(videoFrame);
       cancelAnimationFrame(animationFrame);
       videoFrame = animationFrame = 0;
     };
     const drawVideo = () => {
       videoFrame = animationFrame = 0;
-      if (disposed || !openState.current || document.hidden || !video || video.paused) return;
+      if (disposed || !openState.current || document.hidden || !video) return;
+      if (video instanceof HTMLVideoElement && video.paused) return;
+      const rect = video.getBoundingClientRect();
+      if (rect.bottom <= 0 || rect.top >= innerHeight) return;
       lens.current?.renderer?.invalidate();
-      if ('requestVideoFrameCallback' in video) videoFrame = video.requestVideoFrameCallback(drawVideo);
-      else animationFrame = requestAnimationFrame(drawVideo);
+      if (video instanceof HTMLVideoElement && 'requestVideoFrameCallback' in video) videoFrame = video.requestVideoFrameCallback(drawVideo);
+      else if (!(video instanceof HTMLCanvasElement)) animationFrame = requestAnimationFrame(drawVideo);
     };
     const watchVideo = () => {
       stopVideo();
-      video = document.querySelector<HTMLVideoElement>(".hero-video");
+      video = document.querySelector<HTMLVideoElement | HTMLImageElement | HTMLCanvasElement>('.hero-video, .hero-fallback[data-media-ready="true"]');
       const renderer = lens.current?.renderer;
       if (renderer && (renderer._videoNodes.length !== (video ? 1 : 0) || renderer._videoNodes[0] !== video)) {
         renderer._videoNodes = video ? [video] : [];
       }
-      if (renderer && video && !video.paused && openState.current && !document.hidden) drawVideo();
+      if (renderer && video && openState.current && !document.hidden) drawVideo();
     };
     const wake = () => {
       watchVideo();
@@ -107,8 +110,12 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       clearTimeout(captureTimer);
       captureTimer = window.setTimeout(() => { void lens.current?.renderer?.captureSnapshot(); }, 300);
     };
-    const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange'];
+    const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange', 'hero-media-change'];
     videoEvents.forEach(name => document.addEventListener(name, wake, true));
+    const onMediaFrame = () => { if (openState.current) lens.current?.renderer?.invalidate(); };
+    const onMediaScroll = () => { if (video && !(video instanceof HTMLVideoElement)) watchVideo(); };
+    document.addEventListener('hero-media-frame', onMediaFrame);
+    window.addEventListener('scroll', onMediaScroll, { passive: true });
     document.addEventListener('load', onImageLoad, true);
     const header = nav.current?.closest('.site-header');
     header?.addEventListener('pointermove', onPointer, { passive: true });
@@ -141,6 +148,8 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       stopVideo();
       clearTimeout(captureTimer);
       videoEvents.forEach(name => document.removeEventListener(name, wake, true));
+      document.removeEventListener('hero-media-frame', onMediaFrame);
+      window.removeEventListener('scroll', onMediaScroll);
       document.removeEventListener('load', onImageLoad, true);
       header?.removeEventListener('pointermove', onPointer);
       header?.removeEventListener('pointerleave', onPointer);

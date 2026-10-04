@@ -112,6 +112,8 @@ const liquidGL = (() => {
   };
   const videoFrames = new Map();
   const videoFrame = (video) => {
+    if (video instanceof HTMLCanvasElement) return Number(video.dataset.frame || 0);
+    if (video instanceof HTMLImageElement) return Math.floor(performance.now() * 0.03);
     if (!video.requestVideoFrameCallback) return video.currentTime;
     let state = videoFrames.get(video);
     if (!state) {
@@ -149,6 +151,13 @@ const liquidGL = (() => {
   };
   const videoImages = new Map();
   const videoImage = (video) => {
+    // Animated image/canvas fallback uses the same cropped live-backdrop path and optics.
+    if (video instanceof HTMLImageElement || video instanceof HTMLCanvasElement) {
+      const width = video instanceof HTMLImageElement ? video.naturalWidth : video.width;
+      const height = video instanceof HTMLImageElement ? video.naturalHeight : video.height;
+      if (!width || !height || video.dataset.mediaReady !== 'true') return null;
+      return { source: video, width, height, version: videoFrame(video), retained: false };
+    }
     const previous = videoImages.get(video);
     if (video.seeking || video.readyState < 2) {
       if (previous) previous.waiting = true;
