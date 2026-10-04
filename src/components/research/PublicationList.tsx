@@ -38,7 +38,7 @@ export function PublicationList({ publications, headingLevel = 3 }: { publicatio
                 type="button"
                 aria-label={`Enlarge image: ${publication.title}`}
                 title="Enlarge image"
-                onClick={() => setPreview({ src: publication.image, alt: publication.title })}
+                onClick={(event) => setPreview({ src: publication.image, alt: publication.title, origin: event.currentTarget.closest<HTMLElement>(".publication-media") })}
               >
                 <img src={publication.image} alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" />
                 <span className="publication-zoom"><Maximize2 size={17} aria-hidden="true" /></span>

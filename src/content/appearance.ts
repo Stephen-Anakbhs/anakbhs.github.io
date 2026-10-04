@@ -10,7 +10,8 @@ export interface GlassAppearance {
   aberrationIntensity: number;
   elasticity: number;
   cornerRadius: number;
-  mode: 'standard' | 'polar' | 'prominent' | 'shader';
+  /** `lens` keeps the centre clear and refracts only the convex bezel. */
+  mode: 'standard' | 'polar' | 'prominent' | 'shader' | 'lens';
   overLight: boolean;
   fill: string;
   ink: string;

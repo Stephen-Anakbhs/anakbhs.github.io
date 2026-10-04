@@ -123,6 +123,9 @@ var getMap = (mode, shaderMapUrl) => {
       throw new Error(`Invalid mode: ${mode}`);
   }
 };
+// A caller-supplied map is drawn for the measured size, so it must not be cropped or flipped.
+var mapGeometry = (mapUrl, width, height) => mapUrl ? { x: 0, y: 0, width, height, preserveAspectRatio: "none" } : { x: "0", y: "0", width: "100%", height: "100%", preserveAspectRatio: "xMidYMid slice" };
+var mapSign = (mode, mapUrl) => mapUrl || mode === "shader" ? 1 : -1;
 var GlassFilter = ({
   id,
   displacementScale,
@@ -130,7 +133,8 @@ var GlassFilter = ({
   width,
   height,
   mode,
-  shaderMapUrl
+  shaderMapUrl,
+  mapUrl
 }) => /* @__PURE__ */ jsx("svg", { style: { position: "absolute", width, height }, "aria-hidden": "true", children: /* @__PURE__ */ jsxs("defs", { children: [
   /* @__PURE__ */ jsxs("radialGradient", { id: `${id}-edge-mask`, cx: "50%", cy: "50%", r: "50%", children: [
     /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "black", stopOpacity: "0" }),
@@ -138,10 +142,10 @@ var GlassFilter = ({
     /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "white", stopOpacity: "1" })
   ] }),
   /* @__PURE__ */ jsxs("filter", { id, x: "-35%", y: "-35%", width: "170%", height: "170%", colorInterpolationFilters: "sRGB", children: aberrationIntensity === 0 ? [
-    jsx("feImage", { x: "0", y: "0", width: "100%", height: "100%", result: "DISPLACEMENT_MAP", href: getMap(mode, shaderMapUrl), preserveAspectRatio: "xMidYMid slice" }),
-    jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * (mode === "shader" ? 1 : -1), xChannelSelector: "R", yChannelSelector: "B" })
+    jsx("feImage", { ...mapGeometry(mapUrl, width, height), result: "DISPLACEMENT_MAP", href: mapUrl || getMap(mode, shaderMapUrl) }),
+    jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * mapSign(mode, mapUrl), xChannelSelector: "R", yChannelSelector: "B" })
   ] : [
-    /* @__PURE__ */ jsx("feImage", { id: "feimage", x: "0", y: "0", width: "100%", height: "100%", result: "DISPLACEMENT_MAP", href: getMap(mode, shaderMapUrl), preserveAspectRatio: "xMidYMid slice" }),
+    /* @__PURE__ */ jsx("feImage", { id: "feimage", ...mapGeometry(mapUrl, width, height), result: "DISPLACEMENT_MAP", href: mapUrl || getMap(mode, shaderMapUrl) }),
     /* @__PURE__ */ jsx(
       "feColorMatrix",
       {
@@ -153,7 +157,7 @@ var GlassFilter = ({
     ),
     /* @__PURE__ */ jsx("feComponentTransfer", { in: "EDGE_INTENSITY", result: "EDGE_MASK", children: /* @__PURE__ */ jsx("feFuncA", { type: "discrete", tableValues: `0 ${aberrationIntensity * 0.05} 1` }) }),
     /* @__PURE__ */ jsx("feOffset", { in: "SourceGraphic", dx: "0", dy: "0", result: "CENTER_ORIGINAL" }),
-    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * (mode === "shader" ? 1 : -1), xChannelSelector: "R", yChannelSelector: "B", result: "RED_DISPLACED" }),
+    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * mapSign(mode, mapUrl), xChannelSelector: "R", yChannelSelector: "B", result: "RED_DISPLACED" }),
     /* @__PURE__ */ jsx(
       "feColorMatrix",
       {
@@ -163,7 +167,7 @@ var GlassFilter = ({
         result: "RED_CHANNEL"
       }
     ),
-    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * ((mode === "shader" ? 1 : -1) - aberrationIntensity * 0.05), xChannelSelector: "R", yChannelSelector: "B", result: "GREEN_DISPLACED" }),
+    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * (mapSign(mode, mapUrl) - aberrationIntensity * 0.05), xChannelSelector: "R", yChannelSelector: "B", result: "GREEN_DISPLACED" }),
     /* @__PURE__ */ jsx(
       "feColorMatrix",
       {
@@ -173,7 +177,7 @@ var GlassFilter = ({
         result: "GREEN_CHANNEL"
       }
     ),
-    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * ((mode === "shader" ? 1 : -1) - aberrationIntensity * 0.1), xChannelSelector: "R", yChannelSelector: "B", result: "BLUE_DISPLACED" }),
+    /* @__PURE__ */ jsx("feDisplacementMap", { in: "SourceGraphic", in2: "DISPLACEMENT_MAP", scale: displacementScale * (mapSign(mode, mapUrl) - aberrationIntensity * 0.1), xChannelSelector: "R", yChannelSelector: "B", result: "BLUE_DISPLACED" }),
     /* @__PURE__ */ jsx(
       "feColorMatrix",
       {
@@ -211,13 +215,15 @@ var GlassContainer = forwardRef(
     padding = "24px 32px",
     glassSize = { width: 270, height: 69 },
     onClick,
-    mode = "standard"
+    mode = "standard",
+    displacementMap
   }, ref) => {
     const filterId = useId();
+    const mapUrl = displacementMap ? displacementMap(glassSize.width, glassSize.height) : void 0;
     const [shaderMapUrl, setShaderMapUrl] = useState("");
     const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
     useEffect(() => {
-      if (mode === "shader") {
+      if (mode === "shader" && !displacementMap) {
         const url = generateShaderDisplacementMap(glassSize.width, glassSize.height);
         setShaderMapUrl(url);
       }
@@ -227,7 +233,7 @@ var GlassContainer = forwardRef(
       backdropFilter: `blur(${(overLight ? 12 : 4) + blurAmount * 32}px) saturate(${saturation}%)`
     };
     return /* @__PURE__ */ jsxs("div", { ref, className: `relative ${className} ${active ? "active" : ""} ${Boolean(onClick) ? "cursor-pointer" : ""}`, style, onClick, children: [
-      /* @__PURE__ */ jsx(GlassFilter, { mode, id: filterId, displacementScale, aberrationIntensity, width: glassSize.width, height: glassSize.height, shaderMapUrl }),
+      /* @__PURE__ */ jsx(GlassFilter, { mode, id: filterId, displacementScale, aberrationIntensity, width: glassSize.width, height: glassSize.height, shaderMapUrl, mapUrl }),
       /* @__PURE__ */ jsxs(
         "div",
         {
@@ -295,6 +301,7 @@ function LiquidGlass({
   overLight = false,
   style = {},
   mode = "standard",
+  displacementMap,
   onClick
 }) {
   const glassRef = useRef(null);
@@ -476,6 +483,7 @@ function LiquidGlass({
         overLight,
         onClick,
         mode,
+        displacementMap,
         children
       }
     ),

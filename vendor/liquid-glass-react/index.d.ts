@@ -20,7 +20,9 @@ interface LiquidGlassProps {
     style?: React.CSSProperties;
     overLight?: boolean;
     mode?: "standard" | "polar" | "prominent" | "shader";
+    /** Returns a displacement map URL for the measured glass size; overrides `mode`. */
+    displacementMap?: (width: number, height: number) => string;
     onClick?: () => void;
 }
-export default function LiquidGlass({ children, displacementScale, blurAmount, saturation, aberrationIntensity, elasticity, cornerRadius, globalMousePos: externalGlobalMousePos, mouseOffset: externalMouseOffset, mouseContainer, className, padding, overLight, style, mode, onClick, }: LiquidGlassProps): import("react/jsx-runtime").JSX.Element;
+export default function LiquidGlass({ children, displacementScale, blurAmount, saturation, aberrationIntensity, elasticity, cornerRadius, globalMousePos: externalGlobalMousePos, mouseOffset: externalMouseOffset, mouseContainer, className, padding, overLight, style, mode, displacementMap, onClick, }: LiquidGlassProps): import("react/jsx-runtime").JSX.Element;
 export {};

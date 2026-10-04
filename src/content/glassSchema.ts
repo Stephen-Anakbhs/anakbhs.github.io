@@ -21,7 +21,7 @@ const color = (key: string, label: string): GlassField => ({ key, label, type: '
 const surfaceFields: GlassField[] = [
   number('blurPx', '背景模糊', 0, 30, 0.1, 'px'), number('displacementScale', '折射位移', 0, 80, 1),
   number('aberrationIntensity', '色散', 0, 5, 0.05), number('saturation', '背景饱和度', 0, 200, 1, '%'),
-  { key: 'mode', label: '透镜模式', type: 'select', options: ['standard', 'polar', 'prominent', 'shader'] },
+  { key: 'mode', label: '透镜模式', type: 'select', options: ['lens', 'standard', 'polar', 'prominent', 'shader'] },
   number('fillOpacity', '底色不透明度', 0, 1, 0.005), color('fillColor', '玻璃底色'),
   number('highlightOpacity', '边缘高光', 0, 1, 0.01),
   number('hoverOpacity', '悬停底色不透明度', 0, 1, 0.005), color('hoverColor', '悬停底色'),

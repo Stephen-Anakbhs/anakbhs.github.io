@@ -34,15 +34,17 @@ is a layout wrapper, not a replacement for a button.
 
 ## Presets and precedence
 
-`src/content/appearance.ts` owns all visual defaults. Values resolve in this
-order: global `glassAppearance`, material `glassPresets`, tone adjustment,
-explicit component props. An omitted prop does not erase a preset value.
+Defaults live in `src/content/glass-settings.json`, edited through Glass Studio
+(`docs/glass-studio.md`); `src/content/appearance.ts` only declares the types.
+Values resolve as: the component type's profile, its tone (light/dark ink),
+then explicit component props. An omitted prop does not erase a profile value.
 
 Materials: `control`, `navigation`, `selection`, `overlay`, `logo`, `media`.
 `tone="dark"` selects a fixed white foreground; it does not paint a dark
-button or change navigation transparency. Controls use 1.5px blur, media/logo
-frames 0.5px, and project introductions 7px for local readability. `media`
-reserves 12px of frame padding. Explicit `ink` overrides the tone's foreground.
+button or change navigation transparency. Controls and social icons use 0.8px
+blur, media/logo frames 0.5px, and project introductions 7px for local
+readability. `media` reserves 12px of frame padding. Explicit `ink` overrides
+the tone's foreground.
 
 Backdrop sampling was removed at the user's request. Home navigation is white;
 content navigation, publication buttons and social icons are dark neutral. Only
@@ -50,11 +52,56 @@ crossing the Home/content boundary changes the navigation tone. Project captions
 are authored once: white for the bus photo, dark for the two white-background
 robot images. Scrolling and changing video frames never recolor individual items.
 
-Control hover changes only the subtle highlight, with no lift or enlargement.
-The restrained press response and navigation opening/closing spring remain.
+Control hover still has no lift or enlargement; see "Liquid lens" below for
+the light and refraction response. The press response (now spring-released) and
+the navigation opening/closing spring remain.
 The scrollbar is 6px wide visually, with an 18px interaction track; the existing
 OverlayScrollbars auto-hide waits 1000ms then fades over 300ms. Dragging and visible
 keyboard focus keep it accessible. Reduced-motion users have no fade transition.
+
+## Liquid lens (2026-10-05, branch `liquid-glass-ui`)
+
+Every glass type except the navigation shell and toggle now uses `mode: "lens"`.
+`src/components/ui/lensMap.ts` draws a displacement map for the measured size:
+the centre is neutral (clear glass) and only a convex bezel (24% of the short
+side, 4-28px) refracts, sampling the backdrop from further inside like a lens
+edge. Maps are cached by size and radius; large maps are drawn at most 512px
+per side. The vendor engine accepts it through `displacementMap(width, height)`
+(see `vendor/liquid-glass-react/README.md`); stock maps are unchanged.
+Displacement stays near half the bezel width so marble veins bend instead of
+smearing. The library's double rim is replaced by one specular rim
+(`.liquid-surface[data-glass-optics="lens"]::after`).
+
+Hover on buttons and social icons (`data-glass-pressable`, fine pointers only):
+the rim light turns toward the pointer, a soft glow follows it, and the bezel
+refraction eases up 1.8x, then relaxes on leave. All of this runs through CSS
+variables and one filter attribute, with no React renders and no size change.
+The existing `--glass-hover` tint on `.glass-action` is kept. Press scales to
+0.96 and releases on a spring (`--glass-spring`).
+
+Social tooltips are centred glass pills with their own lens map, nudged back
+inside the viewport when needed (`--tooltip-shift`). The figure expand badge is
+a small glass chip.
+
+The publication lightbox (`ImageLightbox.tsx`, `styles/lightbox.css`) morphs a
+glass sheet out of the clicked thumbnail frame and back into it on close, over
+a light frosted veil instead of a black backdrop. Springs follow the Liquid DOM
+demo's menu morph (open: stiffness 240 / damping 24, about 1.6% overshoot;
+close: 380 / 38). The sheet's lens map is drawn once for the final size and
+stretched during the morph. The caption and close button materialise late with
+a short blur. Focus returns to the thumbnail; Escape, the veil and the close
+button all animate closed. Reduced motion uses a plain fade. `@liquid-dom/react`
+itself is still not used at runtime (it needs experimental HTML-in-Canvas).
+
+Section headings are translucent blue glass lettering:
+a gradient clipped to the glyphs, plus the `#liquid-heading` SVG filter installed once by
+`liquidHeadingFilter.ts` (top rim, glint, inner shade, small lift). High
+contrast and forced colours fall back to plain text.
+
+Cost notes: maps are generated once per size; hover work is limited to the
+hovered element; the headings' filter is static and repainted only with its
+tiles. In Chrome, the first lightbox open after load drops about two frames
+while GPU filters warm up; later opens and every close held 16.7ms per frame.
 
 ## Background
 
@@ -82,7 +129,7 @@ only; they are not imported into the live application. The footer contains only
 | `aberrationIntensity` | 0 uses one displacement pass; nonzero restores upstream RGB dispersion. |
 | `elasticity` | Pointer-driven deformation; 0 avoids per-mousemove state updates. |
 | `cornerRadius` | Radius in CSS pixels, shared by fill, optics and rim. |
-| `mode` | `standard`, `polar`, `prominent`, or upstream `shader` map. |
+| `mode` | `lens` (convex bezel, clear centre), `standard`, `polar`, `prominent`, or upstream `shader` map. |
 | `overLight` | Optional additional contrast layer for very bright content. |
 | `fill` | CSS background color, including alpha. |
 | `ink` | Shared CSS foreground color. |

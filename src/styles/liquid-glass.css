@@ -144,9 +144,53 @@
 .nav-label, .showcase-overlay-content, .glass-action { text-shadow: var(--glass-text-shadow); }
 .glass-action svg, .showcase-overlay-content > svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
 
+/* Lens optics: the bezel refracts (lensMap.ts), the centre stays clear, and a
+   specular rim faces the light. Hovering moves that light toward the pointer. */
+@property --glass-light-angle { syntax: "<angle>"; inherits: true; initial-value: -45deg; }
+@property --glass-glow { syntax: "<number>"; inherits: true; initial-value: 0; }
+:root { --glass-spring: linear(0, 0.2 3.5%, 0.6 9%, 0.97 17%, 1.07 24%, 1.06 30%, 1.01 40%, 0.99 50%, 1 64%, 1); }
+
+.liquid-surface[data-glass-optics="lens"] {
+  isolation: isolate;
+  transition: --glass-light-angle 200ms ease-out, --glass-glow 260ms ease;
+}
+.liquid-surface[data-glass-optics="lens"] > span { display: none !important; }
+.liquid-surface[data-glass-optics="lens"]::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 1.25px;
+  border-radius: inherit;
+  background: conic-gradient(from calc(var(--glass-light-angle) - 70deg),
+    rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.95) 70deg, rgba(255, 255, 255, 0.1) 140deg,
+    rgba(255, 255, 255, 0.05) 180deg, rgba(255, 255, 255, 0.5) 250deg, rgba(255, 255, 255, 0.06) 320deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: calc(0.4 + var(--glass-highlight-opacity) + 0.3 * var(--glass-glow));
+  pointer-events: none;
+  content: "";
+}
+.liquid-surface[data-glass-optics="lens"] .liquid-engine > .glass::after {
+  background:
+    radial-gradient(circle at var(--glass-pointer-x, 50%) var(--glass-pointer-y, 0%), rgba(255, 255, 255, calc(0.4 * var(--glass-glow))), rgba(255, 255, 255, 0) 72px),
+    linear-gradient(160deg, rgba(255, 255, 255, calc(0.26 * var(--glass-highlight-opacity))), rgba(255, 255, 255, 0) 36%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, calc(0.12 * var(--glass-highlight-opacity)))),
+    var(--glass-fill);
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.42),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.14),
+    inset 0 0 16px rgba(255, 255, 255, calc(0.08 + 0.14 * var(--glass-glow)));
+}
+
+@media (hover: hover) {
+  .liquid-surface[data-glass-pressable]:hover { --glass-glow: 1; }
+}
+.liquid-surface[data-glass-pressable]:has(:active) { --glass-glow: 1.35; }
+
 @media (prefers-reduced-motion: no-preference) and (hover: hover) {
-  .liquid-surface[data-material="control"], .header-toggle { transition: transform 160ms ease, box-shadow 160ms ease; }
-  .liquid-surface[data-material="control"]:has(:active) { transform: scale(0.97); }
+  .liquid-surface[data-glass-pressable] { transition: transform 560ms var(--glass-spring), --glass-light-angle 200ms ease-out, --glass-glow 260ms ease; }
+  .liquid-surface[data-glass-pressable]:has(:active) { transform: scale(0.96); transition-duration: 140ms, 200ms, 120ms; transition-timing-function: ease-out; }
+  .header-toggle { transition: transform 160ms ease, box-shadow 160ms ease; }
   .header-toggle:has(:active) { transform: scale(0.95); }
   .nav-label { transition: transform 180ms ease; }
   .nav-links a:active .nav-label { transform: scale(0.97); }
@@ -189,28 +233,63 @@
 
 .icon-control { position: relative; display: inline-grid; }
 .icon-control:hover, .icon-control:focus-within { z-index: 2; }
+/* A small glass pill that grows out of its icon; --tooltip-shift keeps it on screen.
+   The pill's own opacity never changes, so its backdrop always sees the page. */
 .icon-tooltip {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   left: 50%;
   z-index: 4;
-  padding: 6px 9px;
-  border-radius: 6px;
-  background: #292d32;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.35;
+  isolation: isolate;
+  padding: 7px 13px 8px;
+  border-radius: 999px;
+  color: rgba(27, 31, 36, 0);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
   visibility: hidden;
-  transform: translateX(-50%);
-  transition: opacity 120ms ease;
+  transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -8px) scale(0.6);
+  transform-origin: calc(50% - var(--tooltip-shift, 0px)) 0;
+  transition: color 140ms ease, transform 200ms ease-in, visibility 0s 200ms;
 }
-.icon-control:hover .icon-tooltip,
-.icon-control:focus-within .icon-tooltip { opacity: 1; visibility: visible; }
-.icon-control:first-child .icon-tooltip { left: 0; transform: none; }
+.icon-tooltip::before,
+.icon-tooltip::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  content: "";
+}
+.icon-tooltip::before {
+  -webkit-backdrop-filter: blur(4px) saturate(1.8) brightness(1.08);
+  backdrop-filter: blur(4px) saturate(1.8) brightness(1.08);
+  filter: var(--tooltip-lens, none);
+}
+.icon-tooltip::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.4),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.45),
+    0 8px 22px rgba(18, 24, 32, 0.16),
+    0 1px 3px rgba(18, 24, 32, 0.12);
+}
+.icon-tooltip > svg { position: absolute; width: 0; height: 0; }
+.icon-control:is(:hover, :focus-within) .icon-tooltip {
+  color: #1b1f24;
+  visibility: visible;
+  transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0) scale(1);
+  transition: color 160ms ease, transform 560ms var(--glass-spring), visibility 0s;
+}
+.icon-control:is(:hover, :focus-within) .icon-tooltip::before,
+.icon-control:is(:hover, :focus-within) .icon-tooltip::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .icon-tooltip, .icon-control:is(:hover, :focus-within) .icon-tooltip { transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0); transition: color 120ms ease, visibility 0s; }
+}
 
 .about-copy .social-row {
   display: grid;
@@ -228,7 +307,18 @@
 .membership-logo-glass { width: 160px; }
 .publication-links { gap: 12px; }
 .publication-links .glass-action > svg { width: 1.125rem; height: 1.125rem; }
-.publication-zoom { color: #fff; background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(8px); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+/* The expand badge on figures is a small glass chip that springs in on hover. */
+.publication-thumbnail .publication-zoom {
+  color: #1d2126;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.32));
+  -webkit-backdrop-filter: blur(6px) saturate(1.6);
+  backdrop-filter: blur(6px) saturate(1.6);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -1px 0.5px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(18, 24, 32, 0.16);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .publication-thumbnail .publication-zoom { transform: scale(0.7); transition: opacity 160ms ease, transform 480ms var(--glass-spring); }
+  .publication-thumbnail:is(:hover, :focus-visible) .publication-zoom { transform: none; }
+}
 
 .showcase-overlay .showcase-glass {
   width: 100%;
@@ -257,15 +347,25 @@
     display: none !important;
   }
 
-  .liquid-engine > .glass::after {
+  .liquid-engine > .glass::after,
+  .liquid-surface[data-glass-optics="lens"] .liquid-engine > .glass::after {
     background: var(--glass-fill);
+    box-shadow: none;
   }
+  .liquid-surface[data-glass-optics="lens"]::after,
+  .icon-tooltip::before { display: none; }
+  .icon-tooltip::after { background: #30353a; box-shadow: 0 0 0 1px #fff; }
+  .icon-control:is(:hover, :focus-within) .icon-tooltip { color: #fff; }
 }
 
 @media (forced-colors: active) {
   .nav-lens, .liquid-engine .glass__warp { display: none; }
   .liquid-surface > span { display: none !important; }
-  .liquid-engine > .glass::after { background: Canvas; }
+  .liquid-engine > .glass::after,
+  .liquid-surface[data-glass-optics="lens"] .liquid-engine > .glass::after { background: Canvas; box-shadow: none; }
+  .liquid-surface[data-glass-optics="lens"]::after, .icon-tooltip::before { display: none; }
+  .icon-tooltip::after { background: Canvas; border: 1px solid CanvasText; box-shadow: none; }
+  .icon-control:is(:hover, :focus-within) .icon-tooltip { color: CanvasText; }
   .liquid-surface { color: ButtonText; box-shadow: none; border: 1px solid ButtonText; }
   .nav-links a, .glass-action { color: LinkText; }
   .nav-links a.active { color: Highlight; outline: 2px solid Highlight; }
