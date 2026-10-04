@@ -43,7 +43,6 @@ html body:has(.site-backdrop) { background: transparent; }
 
 .site-shell .publication-info > :is(h2, h3),
 .site-shell .publication-authors strong,
-.site-shell .publication-section .section-link,
 .site-shell .site-header[data-tone="light"] .brand {
   color: var(--text);
 }
@@ -61,7 +60,6 @@ html body:has(.site-backdrop) { background: transparent; }
 .site-shell .publication-item { border-color: var(--line); }
 .site-shell .publication-info .publication-award { color: #23644d; }
 .site-shell .awards-list .award-gold strong { color: #77540d; }
-.site-shell .publication-section .section-link:hover { background: var(--bg-soft); }
 
 .site-shell .showcase-overlay {
   --text: #fff;
