@@ -35,6 +35,8 @@ export function Hero() {
     let bridgeTimer = 0;
     const wechat = /MicroMessenger/i.test(navigator.userAgent);
     let bridgeReady = !wechat || 'WeixinJSBridge' in window;
+    let bridgeInvoked = false;
+    let bridgePending = false;
     let lastTime = video.currentTime;
     let lastProgress = performance.now();
     const shouldPlay = () => !disposed && inView && !document.hidden;
@@ -51,7 +53,7 @@ export function Hero() {
         if (disposed || attempt !== playAttempt) return;
         if (error.name === 'NotAllowedError' && shouldPlay()) {
           // WeChat can initialize its host bridge after the page has mounted.
-          if (!bridgeReady) {
+          if (!bridgeReady || bridgePending) {
             clearTimeout(bridgeTimer);
             bridgeTimer = window.setTimeout(() => { if (shouldPlay() && video.paused) setFallbackReason('autoplay-denied'); }, 1500);
           } else setFallbackReason('autoplay-denied');
@@ -60,8 +62,29 @@ export function Hero() {
         }
       }).finally(() => { if (attempt === playAttempt) pending = false; });
     };
+    const requestBridgePlayback = () => {
+      if (!wechat || bridgeInvoked || !shouldPlay()) return;
+      const bridge = (window as Window & { WeixinJSBridge?: {
+        invoke(method: string, options: Record<string, never>, callback: () => void): void;
+      } }).WeixinJSBridge;
+      if (typeof bridge?.invoke !== 'function') return;
+      bridgeInvoked = true;
+      bridgePending = true;
+      try {
+        // The bridge may already exist before React mounts. Keep play() in its callback.
+        bridge.invoke('getNetworkType', {}, () => {
+          bridgePending = false;
+          if (!shouldPlay()) return;
+          clearTimeout(bridgeTimer);
+          startPlayback(true, true);
+        });
+      } catch {
+        bridgePending = false;
+        // A missing host method must not break normal playback or the progress watchdog.
+      }
+    };
     const syncPlayback = () => {
-      if (shouldPlay()) startPlayback();
+      if (shouldPlay()) { requestBridgePlayback(); startPlayback(); }
       else { cancelAnimationFrame(retryFrame); video.pause(); lastProgress = performance.now(); }
     };
     const refreshVisibility = () => {
@@ -82,6 +105,7 @@ export function Hero() {
       inView = rect.bottom > 0 && rect.top < window.innerHeight;
       // Keep play() on the host-event stack, even if its earlier promise is pending.
       startPlayback(true, true);
+      requestBridgePlayback();
     };
     const onPlaying = () => { clearTimeout(bridgeTimer); syncPlayback(); };
     refreshVisibility();

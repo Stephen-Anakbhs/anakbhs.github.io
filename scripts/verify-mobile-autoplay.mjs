@@ -119,7 +119,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         console.error(`${label}: ${error.message}`);
       } finally { await context.close(); }
     }
-    for (const scenario of ['bridge-denied', 'bridge-pending']) {
+    for (const scenario of ['bridge-denied', 'bridge-pending', 'bridge-callback-existing', 'bridge-callback-late']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
         userAgent: 'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 MicroMessenger/8.0' });
       try {
@@ -130,12 +130,25 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             return set.call(this, key, value);
           };
           const play = HTMLMediaElement.prototype.play;
-          let bridgeReady = false, attempts = 0, inputs = 0;
+          const callbackOnly = scenario.startsWith('bridge-callback-');
+          let bridgeReady = false, inHostCallback = false, bridgeInvocations = 0, attempts = 0, inputs = 0;
+          const installBridge = () => {
+            window.WeixinJSBridge = { invoke(method, options, callback) {
+              if (method !== 'getNetworkType') throw new Error('Unexpected host method');
+              bridgeInvocations++;
+              setTimeout(() => {
+                inHostCallback = true;
+                try { callback({ err_msg: 'getNetworkType:wifi' }); }
+                finally { inHostCallback = false; }
+              }, 200);
+            } };
+          };
+          if (scenario === 'bridge-callback-existing') { bridgeReady = true; installBridge(); }
           for (const kind of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(kind, e => { if (e.isTrusted) inputs++; }, true);
           HTMLMediaElement.prototype.play = function () {
             if (!this.matches('.hero-video')) return play.call(this);
             attempts++;
-            if (bridgeReady) { delete this.paused; return play.call(this); }
+            if (callbackOnly ? inHostCallback : bridgeReady) { delete this.paused; return play.call(this); }
             if (scenario === 'bridge-pending') {
               Object.defineProperty(this, 'paused', { value: false, configurable: true });
               return new Promise(() => {});
@@ -146,13 +159,17 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           let scheduled = false;
           const timer = setInterval(() => {
             const video = document.querySelector('.hero-video');
-            if (attempts && !scheduled) {
+            if (attempts && !scheduled && scenario !== 'bridge-callback-existing') {
               scheduled = true;
-              setTimeout(() => { bridgeReady = true; document.dispatchEvent(new Event('WeixinJSBridgeReady')); }, 300);
+              setTimeout(() => {
+                bridgeReady = true;
+                if (callbackOnly) installBridge();
+                document.dispatchEvent(new Event('WeixinJSBridgeReady'));
+              }, 300);
             }
             if (!(bridgeReady && video && !video.paused && video.currentTime > .35) && performance.now() - start < 20000) return;
             clearInterval(timer);
-            console.info('WECHAT_BRIDGE_RESULT ' + JSON.stringify({ attempts, inputs, activated: navigator.userActivation?.hasBeenActive,
+            console.info('WECHAT_BRIDGE_RESULT ' + JSON.stringify({ attempts, bridgeInvocations, inputs, activated: navigator.userActivation?.hasBeenActive,
               advanced: Boolean(video && !video.paused && video.currentTime > .35), fallback: document.querySelector('.hero')?.dataset.mediaFallback }));
           }, 100);
         }, scenario);
@@ -160,6 +177,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
         const result = JSON.parse((await recording).text().slice('WECHAT_BRIDGE_RESULT '.length));
         assert(result.advanced && result.attempts >= 2);
+        if (scenario.startsWith('bridge-callback-')) assert.equal(result.bridgeInvocations, 1, 'Use the host callback without repeatedly querying the bridge');
         assert.equal(result.inputs, 0); assert.equal(result.activated, false); assert.equal(result.fallback, undefined);
         report.cases.push({ label: name, mode: scenario, ...result });
         console.log(`PASS ${name} ${scenario}: host-event retry without input`);
