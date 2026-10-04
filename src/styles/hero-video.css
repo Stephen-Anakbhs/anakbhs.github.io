@@ -3,8 +3,8 @@
   object-position: center;
 }
 
-/* Keep its layout box for autoplay; show the separate poster until playback starts. */
-.hero-video:not([data-ready="true"]),
+/* Cover the waiting player without changing WebKit's video visibility state. */
+.hero-photo[data-cover-player="true"] { z-index: -1; }
 .hero-video[data-failed="true"] { opacity: 0; }
 
 /* This silent background is decorative; a denied player is replaced, not left clickable. */

@@ -33,9 +33,14 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         }
         const timer = setInterval(() => {
           const v = document.querySelector('.hero-video');
+          const poster = document.querySelector('.hero-photo');
+          const vr = v?.getBoundingClientRect(), pr = poster?.getBoundingClientRect();
+          const coveredByPoster = Boolean(v && poster && getComputedStyle(poster).opacity === '1'
+            && Number(getComputedStyle(poster).zIndex) > Number(getComputedStyle(v).zIndex)
+            && pr.left <= vr.left && pr.right >= vr.right && pr.top <= vr.top && pr.bottom >= vr.bottom);
           if (v && v.dataset.ready !== 'true') {
             unreadySamples++;
-            unreadyPlayerExposed ||= getComputedStyle(v).opacity !== '0';
+            unreadyPlayerExposed ||= getComputedStyle(v).opacity !== '0' && !coveredByPoster;
           }
           if (v && !v.paused && v.readyState >= 2 && firstTime === null) firstTime = v.currentTime;
           const advanced = firstTime !== null && v && v.currentTime > firstTime + 0.35;
@@ -51,7 +56,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             opacity: v ? getComputedStyle(v).opacity : null,
             width: v?.videoWidth, height: v?.videoHeight,
             decoded,
-            unreadySamples, unreadyPlayerExposed,
+            unreadySamples, unreadyPlayerExposed, coveredByPoster,
             droppedPlayingEvents: window.heroDroppedPlayingEvents || 0,
           }));
         }, 100);
@@ -86,6 +91,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert.equal(result.activated, false, 'Startup test must not receive a user activation');
           assert(result.autoplay && result.muted && result.inline && result.loop && !result.controls);
           assert.equal(result.opacity, '1');
+          assert.equal(result.coveredByPoster, false, 'Decoded playback must not remain covered by the poster');
           assert.equal(result.unreadyPlayerExposed, false, 'The poster must cover the unready native player');
           if (viewport.width === 390 && mode === 'fresh-entry') {
             assert(result.unreadySamples > 0, 'The delayed-media case must observe the startup waiting state');

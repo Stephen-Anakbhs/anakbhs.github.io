@@ -127,7 +127,8 @@ export function Hero() {
 
   return (
     <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" data-media-fallback={fallbackReason || undefined} aria-label="Homepage introduction">
-      <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true" />
+      <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true"
+        data-cover-player={Boolean(site.hero.media.video && !reduceMotion && !fallbackReason && !videoReady)} />
       {site.hero.media.video && !reduceMotion && !fallbackReason && (
         <video ref={videoRef} className="hero-video" autoPlay muted loop playsInline src={site.hero.media.video}
           preload="auto" poster={site.hero.media.poster} disablePictureInPicture tabIndex={-1} aria-hidden="true"

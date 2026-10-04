@@ -47,7 +47,12 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         const timer = setInterval(() => {
           const video = document.querySelector('.hero-video');
           if (video && video.dataset.ready !== 'true') {
-            unreadyPlayerExposed ||= getComputedStyle(video).opacity !== '0';
+            const poster = document.querySelector('.hero-photo');
+            const vr = video.getBoundingClientRect(), pr = poster?.getBoundingClientRect();
+            const covered = poster && getComputedStyle(poster).opacity === '1'
+              && Number(getComputedStyle(poster).zIndex) > Number(getComputedStyle(video).zIndex)
+              && pr.left <= vr.left && pr.right >= vr.right && pr.top <= vr.top && pr.bottom >= vr.bottom;
+            unreadyPlayerExposed ||= getComputedStyle(video).opacity !== '0' && !covered;
           }
           const media = document.querySelector('.hero-fallback[data-media-ready="true"]');
           if (media) {
