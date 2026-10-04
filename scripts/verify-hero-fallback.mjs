@@ -91,11 +91,6 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.waitForFunction(() => window.__liquidGLRenderer__?.hasTexture && window.__liquidGLRenderer__._videoNodes.some(e => e.classList.contains('hero-fallback')));
         assert(await page.evaluate(() => window.__liquidGLRenderer__._videoIsOpaque(document.querySelector('.hero-fallback'))), 'Opaque video canvas must use the cropped live backdrop path');
         assert(await page.evaluate(() => document.querySelector('.hero-fallback').liquidVideoFrame instanceof VideoFrame), 'Glass must sample a decoded frame without reading back the displayed canvas');
-        await page.screenshot({ path: `${output}/fallback-${name}-${scenario}.png` });
-        const first = await page.locator('.header-navigation').screenshot();
-        await page.waitForTimeout(750);
-        const second = await page.locator('.header-navigation').screenshot();
-        assert(!first.equals(second), 'Glass must continue reflecting the animated background');
         if (scenario === 'full-loop') {
           assert.equal(result.mode, 'canvas');
           const timing = await page.evaluate(async () => {
@@ -187,6 +182,12 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             && frame.width === 1920 && frame.height === 1080), 'Resume at the original end timestamp must restart at frame zero');
           report.cases.push({ name, scenario: 'resume-at-end', frames: boundary, passed: true });
         }
+        // Keep visual capture work outside the timed playback interval.
+        await page.screenshot({ path: `${output}/fallback-${name}-${scenario}.png` });
+        const first = await page.locator('.header-navigation').screenshot();
+        await page.waitForTimeout(750);
+        const second = await page.locator('.header-navigation').screenshot();
+        assert(!first.equals(second), 'Glass must continue reflecting the animated background');
         await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
         await page.waitForFunction(() => !document.querySelector('.hero-fallback'));
         await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
