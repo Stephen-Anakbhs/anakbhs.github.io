@@ -8,6 +8,8 @@ export async function playCanvasHero(
   if (signal.aborted) return;
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) throw new Error('Canvas is not supported');
+  // WebKit omits alpha from getContextAttributes(); this full-frame H.264 canvas is opaque.
+  canvas.dataset.mediaOpaque = 'true';
   const worker = new Worker(new URL('./heroFrameWorker.ts', import.meta.url), { type: 'module' });
   const capacity = 12;
   const queue: HeroFrameMessage[] = [];

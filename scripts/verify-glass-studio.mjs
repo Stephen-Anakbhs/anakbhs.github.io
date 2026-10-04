@@ -87,6 +87,11 @@ try {
   const iframe = page.frames().find(f => f !== page.mainFrame());
   await iframe.waitForFunction(() => window.__liquidGLRenderer__?.lenses[0]?.options.refraction === 0.02);
   report.checks.push('navigation-shader-live-parameter-update');
+  await page.getByRole('checkbox', { name: '投影', exact: true }).uncheck();
+  await iframe.waitForFunction(() => !window.__liquidGLRenderer__?.lenses[0]?._shadowEl);
+  await page.getByRole('checkbox', { name: '投影', exact: true }).check();
+  await iframe.waitForFunction(() => window.__liquidGLRenderer__?.lenses[0]?._shadowEl?.isConnected);
+  report.checks.push('lens-shadow-toggle-removes-and-restores-actual-shadow');
   await page.getByLabel('组件类型', { exact: true }).selectOption('control');
   await page.getByLabel('预览页面', { exact: true }).selectOption('/publications');
   await page.getByLabel('预设', { exact: true }).selectOption('clear-controls');

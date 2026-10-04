@@ -180,7 +180,9 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   useEffect(() => {
     if (nav.current && lens.current) {
       lens.current.setTint(rgba(String(profile.tintColor), Number(profile.tintOpacity)));
+      const shadowChanged = lens.current.options.shadow !== Boolean(profile.shadow);
       Object.assign(lens.current.options, lensSettings(profile), { specular: !reduceMotion && Boolean(profile.specular) });
+      if (shadowChanged) lens.current.setShadow(Boolean(profile.shadow));
     }
     wakeRenderer.current();
   }, [tone, profile, reduceMotion]);

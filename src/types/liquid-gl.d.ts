@@ -1,6 +1,6 @@
 declare module "liquid-gl" {
   export interface LiquidLens {
-    options: { frost: number; aberration: number };
+    options: { frost: number; aberration: number; shadow: boolean };
     renderer: {
       _videoNodes: (HTMLVideoElement | HTMLImageElement | HTMLCanvasElement)[];
       suspended: boolean;
@@ -10,6 +10,7 @@ declare module "liquid-gl" {
       captureSnapshot(): Promise<boolean | void>;
     } | null;
     setTint(value: string): void;
+    setShadow(enabled: boolean): void;
     destroy(): void;
   }
   interface LiquidOptions {

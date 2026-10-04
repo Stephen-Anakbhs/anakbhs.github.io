@@ -6840,7 +6840,7 @@ fn fs() -> @location(0) vec4<f32> {
     }
 
     _videoIsOpaque(vid) {
-      if (vid instanceof HTMLCanvasElement) return vid.getContext('2d')?.getContextAttributes?.().alpha === false;
+      if (vid instanceof HTMLCanvasElement) return vid.dataset.mediaOpaque === 'true' || vid.getContext('2d')?.getContextAttributes?.().alpha === false;
       if (!vid.videoWidth || !vid.videoHeight) return false;
 
       const key = vid.videoWidth + "x" + vid.videoHeight;
