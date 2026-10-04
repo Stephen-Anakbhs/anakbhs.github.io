@@ -52,6 +52,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             width: v?.videoWidth, height: v?.videoHeight,
             decoded,
             unreadySamples, unreadyPlayerExposed,
+            droppedPlayingEvents: window.heroDroppedPlayingEvents || 0,
           }));
         }, 100);
       });
@@ -64,6 +65,15 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           });
         }
         for (const mode of ['fresh-entry', 'reload']) {
+          if (viewport.width === 390 && mode === 'reload') {
+            await page.addInitScript(() => {
+              document.addEventListener('playing', event => {
+                if (!(event.target instanceof HTMLVideoElement) || !event.target.matches('.hero-video')) return;
+                window.heroDroppedPlayingEvents = (window.heroDroppedPlayingEvents || 0) + 1;
+                event.stopImmediatePropagation();
+              }, true);
+            });
+          }
           const recording = page.waitForEvent('console', { predicate: m => m.text().startsWith(marker), timeout: 30000 });
           const response = mode === 'fresh-entry'
             ? await page.goto(base + '/', { waitUntil: 'domcontentloaded' })
@@ -79,6 +89,9 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert.equal(result.unreadyPlayerExposed, false, 'The poster must cover the unready native player');
           if (viewport.width === 390 && mode === 'fresh-entry') {
             assert(result.unreadySamples > 0, 'The delayed-media case must observe the startup waiting state');
+          }
+          if (viewport.width === 390 && mode === 'reload') {
+            assert(result.droppedPlayingEvents > 0, 'Playback must become visible even when the playing event is missed');
           }
           assert.equal(result.width, 1920); assert.equal(result.height, 1080);
           console.log(`PASS ${label} ${mode}: ${result.elapsedMs.toFixed(0)}ms, no input or activation`);

@@ -134,6 +134,14 @@ export function Hero() {
           data-ready={videoReady && !videoFailed}
           data-failed={videoFailed}
           onPlaying={() => { setVideoReady(true); setVideoFailed(false); }}
+          onTimeUpdate={(event) => {
+            // Cached WebKit playback can start before the playing handler observes it.
+            const video = event.currentTarget;
+            if (!video.paused && video.readyState >= 2 && video.currentTime > 0) {
+              setVideoReady(true);
+              setVideoFailed(false);
+            }
+          }}
           onError={() => { setVideoFailed(true); setVideoReady(false); }} />
       )}
       {site.hero.media.video && !reduceMotion && fallbackReason && (
