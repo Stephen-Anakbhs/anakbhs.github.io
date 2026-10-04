@@ -1,16 +1,13 @@
-type SectionHeadingProps = {
-  kicker?: string;
-  title: string;
-  body?: string;
-  level?: 1 | 2;
-};
+import { useRef } from "react";
+import { useLiquidHeading } from "./liquidHeading";
 
-export function SectionHeading({ kicker, title, body, level = 2 }: SectionHeadingProps) {
+export function SectionHeading({ title, body, level = 2 }: { title: string; body?: string; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
+  const heading = useRef<HTMLHeadingElement>(null);
+  useLiquidHeading(heading);
   return (
     <div className="section-heading">
-      {kicker && <p>{kicker}</p>}
-      <Heading>{title}</Heading>
+      <Heading ref={heading}>{title}</Heading>
       {body ? <span>{body}</span> : null}
     </div>
   );

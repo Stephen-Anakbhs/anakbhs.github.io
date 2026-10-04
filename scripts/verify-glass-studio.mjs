@@ -40,7 +40,9 @@ try {
   assert.equal(await preview.locator('[data-glass-type="navigation"]').evaluate(e => e.getAttribute('style')), beforeNav);
   await page.getByRole('spinbutton', { name: '折射位移数值', exact: true }).fill('31');
   await page.waitForTimeout(180);
-  assert(await preview.locator('[data-glass-type="control"]').evaluateAll(elements => elements.every(e => e.querySelector('feDisplacementMap')?.getAttribute('scale') === '-31')));
+  // Lens maps displace with a positive scale; the library's stock maps use a negative one.
+  const expectedScale = initial.profiles.control.mode === 'lens' ? '31' : '-31';
+  assert(await preview.locator('[data-glass-type="control"]').evaluateAll((elements, scale) => elements.every(e => e.querySelector('feDisplacementMap')?.getAttribute('scale') === scale), expectedScale));
   report.checks.push('all-matching-buttons-live-update', 'actual-displacement-filter-updates', 'navigation-unchanged-by-button-edits');
   const other = await browser.newPage();
   await other.goto(base + '/publications');
