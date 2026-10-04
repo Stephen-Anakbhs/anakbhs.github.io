@@ -216,3 +216,24 @@ callbacks. These are local emulations, not measurements from a physical phone.
 The build emits index files for the existing publications/about/research/portfolio
 routes, so direct requests do not depend on the 404 fallback. Publication route
 selection accepts the trailing slash used by directory-based hosting.
+
+## Mobile video startup (2026-10-04)
+
+The existing video now declares native `autoplay`, remains muted and inline,
+and uses `preload="auto"`. Its poster-bearing element stays visible while loading;
+only a real media error hides it. Startup no longer depends on first receiving
+`playing` before making the video visible. A rejected initial play request gets
+one layout-frame retry, while actual browser autoplay restrictions remain honored.
+Native `playing` also synchronizes with Home visibility so offscreen/hidden tabs
+do not keep playing. The source MP4, crop, frame rate and glass parameters are unchanged.
+
+`node scripts/verify-mobile-autoplay.mjs http://127.0.0.1:4173` records startup
+inside the page before any test evaluation or input can grant user activation.
+It checks decoded frames, original 1920x1080 video dimensions, clock progress,
+muting, inline playback and zero activation on fresh entry/reload at 320px,
+390px and landscape widths, including a delayed first media request.
+Windows runs Chrome; `AUTOPLAY_ENGINES=webkit` runs the same assertions on macOS.
+The Pages workflow runs macOS WebKit before publishing, since the Windows
+WebKit media backend did not provide valid decoded frames/source dimensions.
+Reports are saved in `output/verification/mobile-autoplay.json`. These tests
+are browser emulations, not physical iPhone or restricted in-app-browser tests.

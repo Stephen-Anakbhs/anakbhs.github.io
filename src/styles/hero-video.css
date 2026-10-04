@@ -3,4 +3,5 @@
   object-position: center;
 }
 
-.hero-video[data-ready="false"] { opacity: 0; }
+/* Keep the poster-bearing video visible while the browser starts native autoplay. */
+.hero-video[data-failed="true"] { opacity: 0; }

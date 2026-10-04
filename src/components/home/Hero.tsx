@@ -30,8 +30,8 @@ export function Hero() {
     let pending = false;
     let retryFrame = 0;
     const shouldPlay = () => !disposed && inView && !document.hidden;
-    const startPlayback = (retryAbort = true) => {
-      if (!shouldPlay() || pending || video.error) return;
+    const startPlayback = (retryOnce = true) => {
+      if (!shouldPlay() || pending || video.error || !video.paused) return;
       video.muted = true;
       video.defaultMuted = true;
       pending = true;
@@ -39,10 +39,10 @@ export function Hero() {
       void video.play().then(() => {
         if (!shouldPlay()) video.pause();
       }).catch((error: DOMException) => {
-        if (retryAbort && error.name === 'AbortError' && shouldPlay()) {
+        if (retryOnce && (error.name === 'AbortError' || error.name === 'NotAllowedError') && shouldPlay()) {
           retryFrame = requestAnimationFrame(() => startPlayback(false));
         }
-        // Autoplay denial waits for a real user gesture; the poster remains visible.
+        // Retry once after layout; persistent browser policy is not a polling loop.
       }).finally(() => { pending = false; });
     };
     const syncPlayback = () => {
@@ -70,6 +70,7 @@ export function Hero() {
     observer.observe(hero);
     video.addEventListener('canplay', syncPlayback);
     video.addEventListener('loadeddata', syncPlayback);
+    video.addEventListener('playing', syncPlayback);
     video.addEventListener('pause', syncPlayback);
     document.addEventListener('visibilitychange', refreshVisibility);
     window.addEventListener('pageshow', refreshVisibility);
@@ -80,6 +81,7 @@ export function Hero() {
       observer.disconnect();
       video.removeEventListener('canplay', syncPlayback);
       video.removeEventListener('loadeddata', syncPlayback);
+      video.removeEventListener('playing', syncPlayback);
       video.removeEventListener('pause', syncPlayback);
       document.removeEventListener('visibilitychange', refreshVisibility);
       window.removeEventListener('pageshow', refreshVisibility);
@@ -92,9 +94,10 @@ export function Hero() {
     <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" aria-label="Homepage introduction">
       <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true" />
       {site.hero.media.video && !reduceMotion && (
-        <video ref={videoRef} className="hero-video" muted loop playsInline src={site.hero.media.video}
-          preload="metadata" poster={site.hero.media.poster} disablePictureInPicture tabIndex={-1} aria-hidden="true"
+        <video ref={videoRef} className="hero-video" autoPlay muted loop playsInline src={site.hero.media.video}
+          preload="auto" poster={site.hero.media.poster} disablePictureInPicture tabIndex={-1} aria-hidden="true"
           data-ready={videoReady && !videoFailed}
+          data-failed={videoFailed}
           onPlaying={() => { setVideoReady(true); setVideoFailed(false); }}
           onError={() => { setVideoFailed(true); setVideoReady(false); }} />
       )}
