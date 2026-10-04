@@ -1,5 +1,5 @@
 import { memo, useCallback, useState } from "react";
-import { Code2, ExternalLink, FileText, Globe, Maximize2, Star } from "lucide-react";
+import { Code2, ExternalLink, FileText, Globe, Star } from "lucide-react";
 import type { Publication, PublicationAuthor } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 import { ImageLightbox, type PreviewImage } from "../ui/ImageLightbox";
@@ -34,11 +34,9 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           className="publication-thumbnail"
           type="button"
           aria-label={`Enlarge image: ${publication.title}`}
-          title="Enlarge image"
           onClick={(event) => onPreview({ src: publication.image, alt: publication.title, origin: event.currentTarget.closest<HTMLElement>(".publication-media") })}
         >
           <img src={publication.image} alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" />
-          <span className="publication-zoom"><Maximize2 size={17} aria-hidden="true" /></span>
         </button>
       </GlassSurface>
       <div className="publication-info">

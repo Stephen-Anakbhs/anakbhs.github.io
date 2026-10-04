@@ -68,7 +68,8 @@ try {
     await page.screenshot({ path: `${output}/projects.png` });
     await button.click(); assert.equal(await page.getByRole('dialog').isVisible(), true);
     await page.getByRole('button', { name: 'Close project', exact: true }).click();
-    assert.equal(await page.getByRole('dialog').isVisible(), false);
+    await page.locator('.project-dialog').waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Open project: LEGO Technic Bus');
     return glass;
   });
   await check('rapid section changes and repeated Home return', async () => {
@@ -79,6 +80,49 @@ try {
       await nav('Projects').click(); await page.waitForTimeout(700);
     }
     await nav('Home').click(); return settledHome();
+  });
+  await check('social labels use frosted glass and stay inside the viewport', async () => {
+    await nav('About').click();
+    const github = page.getByRole('link', { name: 'GitHub', exact: true });
+    await github.scrollIntoViewIfNeeded();
+    await github.hover();
+    const control = page.locator('.icon-control').filter({ has: github });
+    await control.locator('.icon-tooltip').waitFor({ state: 'visible' });
+    await page.waitForTimeout(600);
+    const label = await control.locator('.icon-tooltip').evaluate(element => ({
+      blur: getComputedStyle(element, '::before').backdropFilter,
+      fill: getComputedStyle(element, '::after').backgroundImage,
+      left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right,
+      viewport: innerWidth, text: element.textContent,
+    }));
+    assert.match(label.blur, /blur\(4px\)/);
+    assert.notEqual(label.fill, 'none');
+    assert(label.left >= 0 && label.right <= label.viewport);
+    await page.screenshot({ path: `${output}/social-tooltip.png` });
+    return label;
+  });
+  await check('clean fixed-height figures, glass morph and focus restoration', async () => {
+    await nav('Publications').click();
+    assert.equal(await page.locator('.publication-thumbnail[title], .publication-zoom').count(), 0);
+    const frames = await page.locator('.publication-thumbnail').evaluateAll(elements => elements.map(element => ({
+      width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height,
+    })));
+    assert(frames.every(frame => Math.abs(frame.width / frame.height - 504 / 300) < .01));
+    for (const id of ['BBA', 'P1', 'P7']) {
+      const button = page.locator(`[data-publication-id="${id}"] .publication-thumbnail`);
+      await button.click();
+      const dialog = page.locator('.image-lightbox[open]');
+      await dialog.waitFor();
+      await page.locator('.image-lightbox[data-settled]').waitFor();
+      assert.equal(await dialog.locator('.lightbox-paper').evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+      await page.screenshot({ path: `${output}/figure-${id}.png` });
+      await page.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'hidden' });
+      await page.waitForFunction(id => document.activeElement === document.querySelector(`[data-publication-id="${id}"] .publication-thumbnail`), id, { timeout: 3000 });
+      assert.equal(await button.evaluate(element => getComputedStyle(element).visibility), 'visible');
+    }
+    await nav('Home').click();
+    return settledHome();
   });
   await check('video loop, original dimensions and no pause control', async () => {
     const info = await page.locator('.hero-video').evaluate(v => {

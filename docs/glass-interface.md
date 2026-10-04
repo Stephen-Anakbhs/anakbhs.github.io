@@ -80,10 +80,11 @@ The existing `--glass-hover` tint on `.glass-action` is kept. Press scales to
 0.96 and releases on a spring (`--glass-spring`).
 
 Social tooltips are centred glass pills with their own lens map, nudged back
-inside the viewport when needed (`--tooltip-shift`). The figure expand badge is
-a small glass chip.
+inside the viewport when needed (`--tooltip-shift`). Publication figures remain
+clickable and keyboard accessible, without a visible enlarge badge or native
+title tooltip.
 
-The publication lightbox (`ImageLightbox.tsx`, `styles/lightbox.css`) morphs a
+The publication lightbox (`ImageLightbox.tsx`, `styles/glass-dialog.css`) morphs a
 glass sheet out of the clicked thumbnail frame and back into it on close, over
 a light frosted veil instead of a black backdrop. Springs follow the Liquid DOM
 demo's menu morph (open: stiffness 240 / damping 24, about 1.6% overshoot;
@@ -93,9 +94,9 @@ a short blur. Focus returns to the thumbnail; Escape, the veil and the close
 button all animate closed. Reduced motion uses a plain fade. `@liquid-dom/react`
 itself is still not used at runtime (it needs experimental HTML-in-Canvas).
 
-Section headings are translucent blue glass lettering:
-a gradient clipped to the glyphs, plus the `#liquid-heading` SVG filter installed once by
-`liquidHeadingFilter.ts` (top rim, glint, inner shade, small lift). High
+Section headings retain the rose-red glass lettering from Claude's branch:
+the aligned wallpaper is clipped to the glyphs, plus the `#liquid-heading` SVG filter installed once by
+`liquidHeading.ts` (refraction, rim, glint and inner shade). High
 contrast and forced colours fall back to plain text.
 
 Cost notes: maps are generated once per size; hover work is limited to the
@@ -110,8 +111,26 @@ the user's second reference screenshot. It is restored from `output/cold-stone.w
 with the same clockwise rotation and 2560px output width as the earlier trial.
 The original photo is Scott Webb's Unsplash image, recorded as the cold-gray
 stone candidate in `docs/background-candidates.js`.
-There is no full-page white veil. Headings remain ordinary text, and the existing
-Home video shade is unchanged. The silver-strata asset is no longer selected.
+There is no full-page white veil. The existing Home video shade is unchanged.
+The silver-strata asset is no longer selected.
+
+## Integrated release (2026-10-05)
+
+The `liquid-glass-ui` branch is merged with the transparent publication artwork
+and synchronized four-model reconstruction animation. All figures keep the
+shared 504/300 frame size, including transparent space around the artwork.
+Dialog focus restoration waits for native dialog and React cleanup before
+returning to the opening control. Pending image-driven navigation snapshots
+wait until both scrolling and open dialogs have finished.
+
+The site serves lossless WebP derivatives for BBA, GestureFuse, MarsCanon,
+RSC-GestureNet, MVT and the reconstruction rotation. Original PNGs and the GIF
+remain available. `scripts/optimize-publication-media.py` preserves dimensions,
+alpha and decoded pixels; all 150 animation frames retain 40ms duration and
+infinite looping. Five static figures fall from 8,712,116 to 4,192,240 bytes;
+the animation falls from 8,514,976 to 7,346,780 bytes. Inter's used Latin subset
+is 101004 bytes, down from 351132, with its variable weight/optical-size axes
+retained and early font preload. The full font and license remain in source.
 
 ## Publication scope
 

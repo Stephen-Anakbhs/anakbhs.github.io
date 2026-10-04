@@ -120,15 +120,24 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     // A snapshot rasterises the whole page (hundreds of ms on slow CPUs), so lazy images
     // arriving mid-scroll wait until scrolling settles; dialog images never change the page.
     let lastScroll = 0;
+    let needsCapture = false;
     const recapture = () => {
+      if (!needsCapture || disposed || document.querySelector('dialog[open]')) return;
       const quiet = performance.now() - lastScroll;
       if (quiet < 400) { captureTimer = window.setTimeout(recapture, 400 - quiet); return; }
+      needsCapture = false;
       void lens.current?.renderer?.captureSnapshot();
     };
     const onImageLoad = (event: Event) => {
       if (!(event.target instanceof HTMLImageElement) || event.target.closest('dialog')) return;
+      needsCapture = true;
       clearTimeout(captureTimer);
       captureTimer = window.setTimeout(recapture, 300);
+    };
+    const onDialogClose = () => {
+      if (!needsCapture) return;
+      clearTimeout(captureTimer);
+      captureTimer = window.setTimeout(recapture, 400);
     };
     const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange', 'hero-media-change'];
     videoEvents.forEach(name => document.addEventListener(name, wake, true));
@@ -140,6 +149,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     document.addEventListener('hero-media-frame', onMediaFrame);
     window.addEventListener('scroll', onMediaScroll, { passive: true });
     document.addEventListener('load', onImageLoad, true);
+    document.addEventListener('close', onDialogClose, true);
     const header = nav.current?.closest('.site-header');
     header?.addEventListener('pointermove', onPointer, { passive: true });
     header?.addEventListener('pointerleave', onPointer, { passive: true });
@@ -172,6 +182,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       document.removeEventListener('hero-media-frame', onMediaFrame);
       window.removeEventListener('scroll', onMediaScroll);
       document.removeEventListener('load', onImageLoad, true);
+      document.removeEventListener('close', onDialogClose, true);
       header?.removeEventListener('pointermove', onPointer);
       header?.removeEventListener('pointerleave', onPointer);
       stopLeft(); stopWidth();

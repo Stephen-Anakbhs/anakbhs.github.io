@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 // Shared motion for glass sheets that grow out of the element that opened them.
 // Everything animates transform/opacity through Web Animations with a sampled
@@ -62,6 +62,7 @@ const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.
  */
 export function useMorphDialog(onClosed: () => void) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const focusFrame = useRef(0);
   const state = useRef<{ origin?: HTMLElement | null; returnFocus?: HTMLElement | null; closing: boolean; running: Animation[] }>({ closing: false, running: [] });
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
@@ -70,9 +71,12 @@ export function useMorphDialog(onClosed: () => void) {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (!dialog.open) {
-      state.current.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      state.current.returnFocus = origin?.matches("button, a[href], [tabindex]") ? origin
+        : origin?.querySelector<HTMLElement>("button, a[href], [tabindex]")
+          ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
       dialog.showModal();
     }
+    delete dialog.dataset.settled;
     state.current.origin = origin;
     state.current.closing = false;
     if (origin) origin.style.visibility = "hidden";
@@ -101,9 +105,20 @@ export function useMorphDialog(onClosed: () => void) {
     const current = state.current;
     current.running.forEach(a => a.cancel());
     if (current.origin) current.origin.style.visibility = "";
-    if (current.returnFocus?.isConnected) current.returnFocus.focus({ preventScroll: true });
+    const target = current.returnFocus;
     state.current = { closing: false, running: [] };
     onClosedRef.current();
+    // Native dialog focus cleanup and React's unmount must finish before restoring focus.
+    cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = requestAnimationFrame(() => {
+      if (target?.isConnected && !dialogRef.current?.open) target.focus({ preventScroll: true });
+    });
+  }, []);
+
+  useEffect(() => () => {
+    cancelAnimationFrame(focusFrame.current);
+    state.current.running.forEach(animation => animation.cancel());
+    if (state.current.origin) state.current.origin.style.visibility = "";
   }, []);
 
   return { dialogRef, state, show, run, close, handleClose };
