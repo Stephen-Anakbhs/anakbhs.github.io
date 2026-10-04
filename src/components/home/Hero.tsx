@@ -32,6 +32,8 @@ export function Hero() {
     let pending = false;
     let playAttempt = 0;
     let retryFrame = 0;
+    let readinessFrame = 0;
+    let frameObserved = false;
     let bridgeTimer = 0;
     const wechat = /MicroMessenger/i.test(navigator.userAgent);
     let bridgeReady = !wechat || 'WeixinJSBridge' in window;
@@ -40,8 +42,21 @@ export function Hero() {
     let lastTime = video.currentTime;
     let lastProgress = performance.now();
     const shouldPlay = () => !disposed && inView && !document.hidden;
+    const observePlaybackFrame = () => {
+      if (frameObserved || readinessFrame || typeof video.requestVideoFrameCallback !== 'function') return;
+      readinessFrame = video.requestVideoFrameCallback(() => {
+        readinessFrame = 0;
+        if (!disposed && !video.paused && !video.error && video.readyState >= 2) {
+          frameObserved = true;
+          setVideoReady(true);
+          setVideoFailed(false);
+        }
+      });
+    };
     const startPlayback = (retryOnce = true, fromBridge = false) => {
-      if (!shouldPlay() || video.error || (!fromBridge && (pending || !video.paused))) return;
+      if (!shouldPlay() || video.error) return;
+      observePlaybackFrame();
+      if (!fromBridge && (pending || !video.paused)) return;
       video.muted = true;
       video.defaultMuted = true;
       pending = true;
@@ -75,6 +90,8 @@ export function Hero() {
         bridge.invoke('getNetworkType', {}, () => {
           bridgePending = false;
           clearTimeout(bridgeTimer);
+          const rect = hero.getBoundingClientRect();
+          inView = rect.bottom > 0 && rect.top < window.innerHeight;
           if (!shouldPlay()) {
             // A callback received offscreen has not spent the playback attempt.
             bridgeInvoked = false;
@@ -98,6 +115,7 @@ export function Hero() {
       if (shouldPlay() && video.error) {
         setVideoFailed(false);
         setVideoReady(false);
+        frameObserved = false;
         video.load();
       }
       syncPlayback();
@@ -140,6 +158,7 @@ export function Hero() {
       clearInterval(watchdog);
       clearTimeout(bridgeTimer);
       cancelAnimationFrame(retryFrame);
+      if (readinessFrame) video.cancelVideoFrameCallback(readinessFrame);
       observer.disconnect();
       video.removeEventListener('canplay', syncPlayback);
       video.removeEventListener('loadeddata', syncPlayback);

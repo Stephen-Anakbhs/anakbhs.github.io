@@ -59,6 +59,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             unreadySamples, unreadyPlayerExposed, coveredByPoster,
             droppedPlayingEvents: window.heroDroppedPlayingEvents || 0,
             playingSuppressionInstalled: window.heroPlayingSuppressionInstalled === true,
+            timeUpdateSuppressionInstalled: window.heroTimeUpdateSuppressionInstalled === true,
           }));
         }, 100);
       });
@@ -71,15 +72,21 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           });
         }
         for (const mode of ['fresh-entry', 'reload']) {
-          if (viewport.width === 390 && mode === 'reload') {
-            await page.addInitScript(() => {
+          if ([390, 844].includes(viewport.width) && mode === 'reload') {
+            await page.addInitScript(suppressTimeUpdate => {
               window.heroPlayingSuppressionInstalled = true;
               document.addEventListener('playing', event => {
                 if (!(event.target instanceof HTMLVideoElement) || !event.target.matches('.hero-video')) return;
                 window.heroDroppedPlayingEvents = (window.heroDroppedPlayingEvents || 0) + 1;
                 event.stopImmediatePropagation();
               }, true);
-            });
+              if (suppressTimeUpdate) {
+                window.heroTimeUpdateSuppressionInstalled = true;
+                document.addEventListener('timeupdate', event => {
+                  if (event.target instanceof HTMLVideoElement && event.target.matches('.hero-video')) event.stopImmediatePropagation();
+                }, true);
+              }
+            }, viewport.width === 844);
           }
           const recording = page.waitForEvent('console', { predicate: m => m.text().startsWith(marker), timeout: 30000 });
           const response = mode === 'fresh-entry'
@@ -101,6 +108,9 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           if (viewport.width === 390 && mode === 'reload') {
             // A cached WebKit reload may emit no playing event at all.
             assert.equal(result.playingSuppressionInstalled, true, 'Playing-event suppression must be installed before reload');
+          }
+          if (viewport.width === 844 && mode === 'reload') {
+            assert(result.playingSuppressionInstalled && result.timeUpdateSuppressionInstalled, 'Frame readiness must work without playing or timeupdate events');
           }
           assert.equal(result.width, 1920); assert.equal(result.height, 1080);
           console.log(`PASS ${label} ${mode}: ${result.elapsedMs.toFixed(0)}ms, no input or activation`);
