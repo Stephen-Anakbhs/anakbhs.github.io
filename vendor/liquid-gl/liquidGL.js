@@ -156,7 +156,7 @@ const liquidGL = (() => {
       const width = video instanceof HTMLImageElement ? video.naturalWidth : video.width;
       const height = video instanceof HTMLImageElement ? video.naturalHeight : video.height;
       if (!width || !height || video.dataset.mediaReady !== 'true') return null;
-      return { source: video, width, height, version: videoFrame(video), retained: false };
+      return { source: video.liquidVideoFrame || video, width, height, version: videoFrame(video), retained: false };
     }
     const previous = videoImages.get(video);
     if (video.seeking || video.readyState < 2) {

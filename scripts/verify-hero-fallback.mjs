@@ -70,6 +70,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.getByRole('button', { name: 'Expand menu', exact: true }).tap();
         await page.waitForFunction(() => window.__liquidGLRenderer__?.hasTexture && window.__liquidGLRenderer__._videoNodes.some(e => e.classList.contains('hero-fallback')));
         assert(await page.evaluate(() => window.__liquidGLRenderer__._videoIsOpaque(document.querySelector('.hero-fallback'))), 'Opaque video canvas must use the cropped live backdrop path');
+        assert(await page.evaluate(() => document.querySelector('.hero-fallback').liquidVideoFrame instanceof VideoFrame), 'Glass must sample a decoded frame without reading back the displayed canvas');
         await page.screenshot({ path: `${output}/fallback-${name}-${scenario}.png` });
         const first = await page.locator('.header-navigation').screenshot();
         await page.waitForTimeout(750);

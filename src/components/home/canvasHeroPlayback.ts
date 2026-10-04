@@ -8,6 +8,7 @@ export async function playCanvasHero(
   if (signal.aborted) return;
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) throw new Error('Canvas is not supported');
+  const mediaCanvas = canvas as HTMLCanvasElement & { liquidVideoFrame?: VideoFrame };
   // WebKit omits alpha from getContextAttributes(); this full-frame H.264 canvas is opaque.
   canvas.dataset.mediaOpaque = 'true';
   const worker = new Worker(new URL('./heroFrameWorker.ts', import.meta.url), { type: 'module' });
@@ -58,6 +59,10 @@ export async function playCanvasHero(
         const drawnAt = performance.now();
         context.drawImage(item.frame, 0, 0, canvas.width, canvas.height);
         drawMs += performance.now() - drawnAt;
+        // The glass renderer can sample the decoded frame without a slow canvas readback.
+        const previousFrame = mediaCanvas.liquidVideoFrame;
+        mediaCanvas.liquidVideoFrame = item.frame.clone();
+        previousFrame?.close();
         canvas.dataset.frame = String(++frames);
         canvas.dataset.time = String(item.time);
         canvas.dataset.loop = String(item.loop);
@@ -72,5 +77,7 @@ export async function playCanvasHero(
     for (const item of queue) item.frame.close();
     worker.onmessage = null;
     worker.onerror = null;
+    mediaCanvas.liquidVideoFrame?.close();
+    delete mediaCanvas.liquidVideoFrame;
   }
 }
