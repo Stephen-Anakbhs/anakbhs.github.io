@@ -16,14 +16,18 @@ export async function playCanvasHero(
   let releaseWait: (() => void) | undefined;
   const cancelWait = () => { cancelAnimationFrame(raf); releaseWait?.(); };
   signal.addEventListener('abort', cancelWait, { once: true });
-  const waitUntil = (deadline: number) => new Promise<void>((resolve) => {
-    releaseWait = resolve;
-    const tick = (time: number) => {
-      if (signal.aborted || time >= deadline) { releaseWait = undefined; resolve(); }
-      else raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-  });
+  const waitUntil = (deadline: number): Promise<void> => {
+    // A late decoded frame must not incur another whole display refresh of delay.
+    if (signal.aborted || performance.now() >= deadline) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      releaseWait = resolve;
+      const tick = (time: number) => {
+        if (signal.aborted || time >= deadline) { releaseWait = undefined; resolve(); }
+        else raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    });
+  };
   try {
     const track = await input.getPrimaryVideoTrack();
     if (!track || !await track.canDecode()) throw new Error('Original H.264 cannot be decoded');

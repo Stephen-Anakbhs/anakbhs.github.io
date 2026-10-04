@@ -234,8 +234,9 @@ The later mobile work supersedes the historical mobile scope above. Native
 muted inline playback is still the first choice. A rejected `play()` promise
 or four seconds without advancing video time replaces the native player with
 `AnimatedHeroFallback`; a rejected player is not left over the background.
-The fallback first tries WebKit's MP4-as-image support, then lazily decodes the
-same H.264 file with WebCodecs/Mediabunny and draws it on a canvas. The navigation
+The fallback lazily decodes the same H.264 file with WebCodecs/Mediabunny and
+draws it on a canvas. Hosts without VideoDecoder first try WebKit's MP4-as-image
+support. The navigation
 uses that image/canvas in its existing live-refraction path. The material,
 wallpaper, typography and navigation geometry are unchanged by this patch.
 
@@ -258,15 +259,18 @@ Current Windows Chrome production-preview checks (`http://127.0.0.1:4173`):
   user activation. No native hero player remains. Glass updates and offscreen
   return also pass.
 - The full-loop canvas check draws all 1,330 original frames before frame 1,331
-  starts loop two. From source time 2.0s to that boundary takes 42.329s; observed
-  median frame spacing is 33.3ms and p95 is 33.9ms on this host.
+  starts loop two. From source time 2.0s to that boundary takes 42.319s; observed
+  median frame spacing is 33.3ms and p95 is 34.0ms on this host.
 - `verify-responsive-assets.mjs`: compact-menu pixel checks, breakpoint
   roundtrips, six corrected publication mappings/lightboxes, TOG review status,
   transparent logos and supplied-figure byte identity pass.
 
 These results do not establish physical iPhone/low-power-mode acceptance.
 The existing macOS WebKit deployment check now also runs the fallback suite;
-its actual result must be inspected before claiming WebKit coverage.
+its actual result must be inspected before claiming WebKit coverage. The first
+macOS fallback run found timeline slowdown and prevented deployment. The
+follow-up scheduler no longer adds an extra display-refresh wait to an already
+late frame, and capable hosts skip the unnecessary image-video startup probe.
 
 Primary references:
 - https://webkit.org/blog/6784/new-video-policies-for-ios/

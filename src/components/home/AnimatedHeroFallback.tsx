@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 
 const notify = () => document.dispatchEvent(new Event('hero-media-change'));
 
-/** Use the original file as a WebKit animated image; no palette conversion or frame removal. */
+/** Reuse the original file without palette conversion or frame removal. */
 export default function AnimatedHeroFallback({ src }: { src: string }) {
   const host = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const resumeTime = useRef(0);
   const [active, setActive] = useState(false);
-  const [mode, setMode] = useState<'image' | 'canvas' | 'poster'>('image');
+  const [mode, setMode] = useState<'image' | 'canvas' | 'poster'>(() =>
+    typeof VideoDecoder === 'undefined' ? 'image' : 'canvas');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

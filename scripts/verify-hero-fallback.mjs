@@ -101,12 +101,13 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
               document.addEventListener('hero-media-frame', capture);
             });
           });
+          const { sourceTimes, ...frameTiming } = timing;
+          report.cases.push({ name, scenario, fullLoop: frameTiming });
+          console.log(`TIMING ${name}: ${JSON.stringify(frameTiming)}`);
           assert(!timing.timeout, 'Full-length fallback must loop');
           assert.equal(timing.frame, 1331, 'Every original frame must be drawn before the next loop');
-          assert(timing.sourceTimes.slice(0, -1).every((t, i, a) => !i || Math.abs(t - a[i - 1] - 1 / 30) < .001));
+          assert(sourceTimes.slice(0, -1).every((t, i, a) => !i || Math.abs(t - a[i - 1] - 1 / 30) < .001));
           assert(Math.abs(timing.elapsed / 1000 - (44.333333 - timing.initialTime)) < 2, 'Fallback must not slow the timeline');
-          delete timing.sourceTimes;
-          report.cases.push({ name, scenario, fullLoop: timing });
         }
         await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
         await page.waitForFunction(() => !document.querySelector('.hero-fallback'));
