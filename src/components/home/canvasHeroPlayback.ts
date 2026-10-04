@@ -1,5 +1,29 @@
 import { Input, MP4, UrlSource, VideoSampleSink } from 'mediabunny';
 
+// WebKit may deliver decoded frames in bursts. Keep only a short, bounded lead.
+async function* prebufferedSamples(source: ReturnType<VideoSampleSink['samples']>) {
+  const next = () => source.next().then(
+    result => ({ result, error: null as unknown }),
+    (error: unknown) => ({ result: null, error }),
+  );
+  const queue = Array.from({ length: 12 }, next);
+  try {
+    await Promise.all(queue);
+    while (queue.length) {
+      const item = await queue.shift()!;
+      if (!item.result) throw item.error;
+      if (item.result.done) return;
+      queue.push(next());
+      yield item.result.value;
+    }
+  } finally {
+    await source.return?.();
+    for (const item of await Promise.all(queue)) {
+      if (item.result && !item.result.done) item.result.value.close();
+    }
+  }
+}
+
 /** Decode the original MP4 into images on its original timestamps; loaded only after autoplay denial. */
 export async function playCanvasHero(
   canvas: HTMLCanvasElement, src: string, signal: AbortSignal, start: number,
@@ -44,7 +68,7 @@ export async function playCanvasHero(
       let decodeWaitMs = 0;
       let drawMs = 0;
       let requestedAt = performance.now();
-      for await (const sample of sink.samples(start)) {
+      for await (const sample of prebufferedSamples(sink.samples(start))) {
         try {
           decodeWaitMs += performance.now() - requestedAt;
           if (signal.aborted) return;

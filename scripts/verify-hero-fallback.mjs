@@ -106,6 +106,8 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert.equal(timing.frame, 1331, 'Every original frame must be drawn before the next loop');
           assert(sourceTimes.slice(0, -1).every((t, i, a) => !i || Math.abs(t - a[i - 1] - 1 / 30) < .001));
           assert(Math.abs(timing.elapsed / 1000 - (44.333333 - timing.initialTime)) < 2, 'Fallback must not slow the timeline');
+          assert(timing.medianMs >= 25 && timing.medianMs <= 42, 'Frames must be paced, not delivered in bursts');
+          assert(timing.p95Ms < 85, 'Decoded-frame delivery must remain smooth');
         }
         await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
         await page.waitForFunction(() => !document.querySelector('.hero-fallback'));
@@ -131,14 +133,25 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           HTMLMediaElement.prototype.play = function () {
             return Promise.reject(new DOMException('Test host requires input', 'NotAllowedError'));
           };
+          const started = performance.now();
+          let inputs = 0;
+          for (const type of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(type, e => { if (e.isTrusted) inputs++; }, true);
+          const timer = setInterval(() => {
+            const mode = document.querySelector('.hero-fallback-layer')?.dataset.mode;
+            const img = document.querySelector('.hero-photo');
+            const loaded = Boolean(img?.complete && img?.naturalWidth > 0);
+            if (!(mode === 'poster' && loaded) && performance.now() - started < 20000) return;
+            clearInterval(timer);
+            console.info('POSTER_RESULT ' + JSON.stringify({ mode, loaded, inputs, activated: navigator.userActivation.hasBeenActive,
+              videoElements: document.querySelectorAll('.hero-video').length }));
+          }, 100);
         });
+        const recording = page.waitForEvent('console', { predicate: m => m.text().startsWith('POSTER_RESULT '), timeout: 30000 });
         await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
-        await page.locator('.hero-fallback-layer[data-mode="poster"]').waitFor({ state: 'attached' });
-        assert.equal(await page.locator('.hero-video').count(), 0);
-        assert.equal(await page.evaluate(() => navigator.userActivation.hasBeenActive), false);
-        const poster = page.locator('.hero-photo');
-        assert.equal(await poster.evaluate(img => img.complete && img.naturalWidth > 0), true);
-        report.cases.push({ name, scenario: 'decoder-unavailable', mode: 'static-poster', passed: true });
+        const result = JSON.parse((await recording).text().slice('POSTER_RESULT '.length));
+        assert.equal(result.mode, 'poster'); assert.equal(result.loaded, true);
+        assert.equal(result.videoElements, 0); assert.equal(result.inputs, 0); assert.equal(result.activated, false);
+        report.cases.push({ name, scenario: 'decoder-unavailable', ...result, passed: true });
         console.log('PASS webkit decoder-unavailable: static poster, not an animation claim');
       } catch (error) {
         report.cases.push({ name, scenario: 'decoder-unavailable', failure: error.stack });
