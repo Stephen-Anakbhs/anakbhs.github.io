@@ -17,8 +17,8 @@ export async function playCanvasHero(
   let failure: Error | undefined;
   let wake: (() => void) | undefined;
   let releaseWait: (() => void) | undefined;
-  let raf = 0;
-  const stop = () => { worker.terminate(); cancelAnimationFrame(raf); wake?.(); releaseWait?.(); };
+  let timer = 0;
+  const stop = () => { worker.terminate(); clearTimeout(timer); wake?.(); releaseWait?.(); };
   signal.addEventListener('abort', stop, { once: true });
   worker.onmessage = (event: MessageEvent<HeroFrameMessage | { error: string }>) => {
     if ('error' in event.data) failure = new Error(event.data.error);
@@ -32,11 +32,13 @@ export async function playCanvasHero(
     if (signal.aborted || performance.now() >= deadline) return Promise.resolve();
     return new Promise<void>(resolve => {
       releaseWait = resolve;
-      const tick = (time: number) => {
-        if (signal.aborted || time >= deadline) { releaseWait = undefined; resolve(); }
-        else raf = requestAnimationFrame(tick);
+      const tick = () => {
+        const remaining = deadline - performance.now();
+        if (signal.aborted || remaining <= 0) { releaseWait = undefined; resolve(); }
+        else timer = window.setTimeout(tick, remaining);
       };
-      raf = requestAnimationFrame(tick);
+      // Media timestamps must keep advancing even when WebKit delays page animation callbacks.
+      tick();
     });
   };
   try {
