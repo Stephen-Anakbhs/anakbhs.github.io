@@ -302,6 +302,7 @@ function LiquidGlass({
   style = {},
   mode = "standard",
   displacementMap,
+  rims = 2,
   onClick
 }) {
   const glassRef = useRef(null);
@@ -433,7 +434,7 @@ function LiquidGlass({
     left: baseStyle.left || "50%"
   };
   return /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(
+    overLight && /* @__PURE__ */ jsx(
       "div",
       {
         className: `bg-black transition-all duration-150 ease-in-out pointer-events-none ${overLight ? "opacity-20" : "opacity-0"}`,
@@ -447,7 +448,7 @@ function LiquidGlass({
         }
       }
     ),
-    /* @__PURE__ */ jsx(
+    overLight && /* @__PURE__ */ jsx(
       "div",
       {
         className: `bg-black transition-all duration-150 ease-in-out pointer-events-none mix-blend-overlay ${overLight ? "opacity-100" : "opacity-0"}`,
@@ -487,7 +488,7 @@ function LiquidGlass({
         children
       }
     ),
-    /* @__PURE__ */ jsx(
+    rims >= 2 && /* @__PURE__ */ jsx(
       "span",
       {
         style: {
@@ -515,7 +516,7 @@ function LiquidGlass({
         }
       }
     ),
-    /* @__PURE__ */ jsx(
+    rims >= 1 && /* @__PURE__ */ jsx(
       "span",
       {
         style: {

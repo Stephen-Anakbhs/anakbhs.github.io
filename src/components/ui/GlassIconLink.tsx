@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import { GlassSurface } from "./GlassSurface";
+import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 
 type GlassIconLinkProps = {
@@ -28,7 +29,7 @@ export function GlassIconLink({ href, label, icon: Icon, tone = "light" }: Glass
     const overflowLeft = viewportMargin - left;
     const overflowRight = left + width - (document.documentElement.clientWidth - viewportMargin);
     element.style.setProperty("--tooltip-shift", `${Math.max(0, overflowLeft) - Math.max(0, overflowRight)}px`);
-    if (lens?.width !== width || lens.height !== height) setLens({ width, height, map: lensMap(width, height, height / 2) });
+    if (fullGlass && (lens?.width !== width || lens.height !== height)) setLens({ width, height, map: lensMap(width, height, height / 2) });
   };
 
   return (

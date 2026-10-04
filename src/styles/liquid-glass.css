@@ -96,6 +96,9 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) !important;
 }
 
+/* Lite devices (glassQuality.ts) keep blur, tint and rims but drop the SVG refraction pass. */
+:root[data-glass-quality="lite"] .liquid-surface:not([data-material="navigation"]) .glass__warp { filter: none !important; }
+
 .liquid-surface[data-glass-visible="false"] .glass__warp {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;

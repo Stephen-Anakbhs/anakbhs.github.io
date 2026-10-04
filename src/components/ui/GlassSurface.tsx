@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type ComponentProps, type CSSProperties
 import LiquidGlass from "liquid-glass-react";
 import { type GlassAppearance, type GlassMaterial, type GlassTone } from "../../content/appearance";
 import { observeGlassVisibility } from "./glassVisibility";
+import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 import { surfaceAppearance, useGlassProfile } from '../../content/glassStore';
 import type { GlassType } from '../../content/glassSchema';
@@ -103,10 +104,12 @@ export function GlassSurface({
   const explicit = { blurPx, saturation, displacementScale, aberrationIntensity, elasticity, cornerRadius, mode, overLight, fill, ink, hoverFill, highlightOpacity, shadow, padding };
   Object.assign(appearance, Object.fromEntries(Object.entries(explicit).filter(([, v]) => v !== undefined)));
   const lens = enabled && appearance.mode === "lens";
+  // Lite devices keep the lens styling but skip the per-pixel refraction pass.
+  const refract = lens && fullGlass;
   const radius = appearance.cornerRadius;
   const lensDisplacement = useCallback((width: number, height: number) => lensMap(width, height, radius), [radius]);
   const pressable = enabled && pressableTypes.has(componentType);
-  useLiquidHover(surface, pressable, lens ? appearance.displacementScale : 0);
+  useLiquidHover(surface, pressable, refract ? appearance.displacementScale : 0);
   useEffect(() => {
     if (surface.current && enabled) return observeGlassVisibility(surface.current);
   }, [enabled]);
@@ -131,7 +134,8 @@ export function GlassSurface({
         aberrationIntensity={appearance.aberrationIntensity}
         elasticity={appearance.elasticity}
         mode={lens ? "standard" : appearance.mode as Exclude<GlassAppearance["mode"], "lens">}
-        displacementMap={lens ? lensDisplacement : undefined}
+        displacementMap={refract ? lensDisplacement : undefined}
+        rims={lens || material === "navigation" ? 0 : 1}
         overLight={appearance.overLight}
         mouseContainer={mouseContainer}
         globalMousePos={globalMousePos ?? (trackPointer ? undefined : staticPointer)}

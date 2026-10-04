@@ -117,15 +117,26 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     };
     wakeRenderer.current = wake;
     const onPointer = () => lens.current?.renderer?.invalidate(reduceMotion ? 0 : 450);
+    // A snapshot rasterises the whole page (hundreds of ms on slow CPUs), so lazy images
+    // arriving mid-scroll wait until scrolling settles; dialog images never change the page.
+    let lastScroll = 0;
+    const recapture = () => {
+      const quiet = performance.now() - lastScroll;
+      if (quiet < 400) { captureTimer = window.setTimeout(recapture, 400 - quiet); return; }
+      void lens.current?.renderer?.captureSnapshot();
+    };
     const onImageLoad = (event: Event) => {
-      if (!(event.target instanceof HTMLImageElement)) return;
+      if (!(event.target instanceof HTMLImageElement) || event.target.closest('dialog')) return;
       clearTimeout(captureTimer);
-      captureTimer = window.setTimeout(() => { void lens.current?.renderer?.captureSnapshot(); }, 300);
+      captureTimer = window.setTimeout(recapture, 300);
     };
     const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange', 'hero-media-change'];
     videoEvents.forEach(name => document.addEventListener(name, wake, true));
     const onMediaFrame = () => { if (openState.current) lens.current?.renderer?.invalidate(); };
-    const onMediaScroll = () => { if (video && !(video instanceof HTMLVideoElement)) watchVideo(); };
+    const onMediaScroll = () => {
+      lastScroll = performance.now();
+      if (video && !(video instanceof HTMLVideoElement)) watchVideo();
+    };
     document.addEventListener('hero-media-frame', onMediaFrame);
     window.addEventListener('scroll', onMediaScroll, { passive: true });
     document.addEventListener('load', onImageLoad, true);

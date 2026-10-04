@@ -22,6 +22,7 @@
   --font-body: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-heading: var(--font-body);
   --type-section: 2.125rem;
+  --type-display: 2.75rem;
   --type-title: 1.375rem;
   --type-body: 1.0625rem;
   --type-callout: 1rem;
@@ -455,18 +456,37 @@ textarea {
   line-height: 1.3;
 }
 
-/* Liquid-glass lettering (filter: liquidHeadingFilter.ts): translucent blue glass
-   that lets the wallpaper through, lit along the glyph edges. */
+/* Glass lettering (liquidHeading.ts): the glyphs are filled with the wallpaper behind
+   them, so they read as clear glass. Full tier refracts that background through rounded
+   rose-red glass strokes; lite tier only tints it (no SVG filter work). */
 .section-heading :is(h1, h2) {
-  color: #2a5cc2;
-  background-image: linear-gradient(180deg, rgba(84, 140, 236, 0.76) 0%, rgba(40, 96, 206, 0.84) 52%, rgba(26, 70, 168, 0.9) 100%);
+  color: #a3214e;
+  font-size: var(--type-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
+  background: url("/media/cold-stone.webp") var(--wall-position, 50% 50%) / var(--wall-size, cover) no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: url(#liquid-heading);
 }
+:root[data-glass-quality="lite"] .section-heading :is(h1, h2) {
+  background:
+    linear-gradient(180deg, rgba(206, 58, 102, 0.5), rgba(150, 30, 70, 0.66)),
+    url("/media/cold-stone.webp") var(--wall-position, 50% 50%) / var(--wall-size, cover) no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 0.6px rgba(110, 18, 52, 0.5);
+  filter: none;
+}
+@media (max-width: 640px) {
+  .section-heading :is(h1, h2) { filter: url(#liquid-heading-compact); }
+}
 @media (prefers-contrast: more), (forced-colors: active) {
-  .section-heading :is(h1, h2) { background: none; -webkit-text-fill-color: currentColor; filter: none; }
+  .section-heading :is(h1, h2), :root[data-glass-quality="lite"] .section-heading :is(h1, h2) {
+    background: none; -webkit-text-fill-color: currentColor; -webkit-text-stroke: 0; filter: none;
+  }
 }
 
 .section-heading span,
@@ -913,16 +933,6 @@ textarea {
 .showcase-summary { max-width: 28ch; font-size: 16px; line-height: 1.6; color: inherit; }
 .showcase-overlay-content > svg { flex-shrink: 0; }
 
-.project-dialog { width: min(920px, calc(100% - 48px)); max-width: none; max-height: 90dvh; padding: 0; border: 0; border-radius: 8px; background: #fff; color: var(--text); }
-.project-dialog::backdrop { background: rgba(15, 18, 22, 0.65); }
-.project-detail { padding: 32px; }
-.project-detail-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 20px; padding: 10px 0; background: #fff; }
-.project-detail h2 { flex: 1; margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 600; line-height: 1.3; }
-.project-close { display: grid; flex-shrink: 0; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 50%; background: #f1f2f4; color: var(--text); cursor: pointer; }
-.project-close:hover { background: #e6e8eb; }
-.project-detail p { margin: 14px 0 24px; font-size: 18px; line-height: 1.75; color: var(--muted); }
-.project-detail-image { width: 100%; max-height: 65vh; object-fit: contain; margin: 0 auto 24px; border-radius: 8px; }
-.project-detail .text-link { margin-top: 20px; }
 
 .video-frame {
   overflow: hidden;
@@ -1272,8 +1282,7 @@ textarea {
   }
   .social-row { gap: 6px; }
 
-  .section-heading h2,
-  .section-heading h1,
+  :root { --type-display: 2.125rem; }
   .prose-page h1 {
     font-size: 28px;
   }
@@ -1304,10 +1313,6 @@ textarea {
     width: calc(100% - 40px);
   }
 
-  .publication-section .section-heading h2 {
-    font-size: 28px;
-  }
-
   .publication-info > :is(h2, h3) {
     font-size: 1.25rem;
   }
@@ -1320,9 +1325,6 @@ textarea {
     display: grid;
     gap: 10px;
   }
-  .project-dialog { width: calc(100% - 24px); max-height: 92dvh; }
-  .project-detail { padding: 18px; }
-  .project-detail h2 { font-size: 23px; }
 }
 
 @media (min-width: 641px) and (max-height: 540px) {
@@ -1375,17 +1377,10 @@ textarea {
 
   .typing-cursor { animation: none; }
   .showcase-overlay { transform: none; transition: opacity 100ms ease; }
-  .project-dialog[open] { animation: dialog-fade 100ms ease-out; }
 }
 
 @media (hover: none) {
   .showcase-overlay { inset: auto 8px 8px; opacity: 1; transform: none; }
   .showcase-overlay-content { align-items: flex-start; padding: 14px 16px; text-align: left; }
   .showcase-summary, .showcase-overlay-content > svg { display: none; }
-}
-
-@keyframes dialog-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: no-preference) {
-  .project-dialog[open] { animation: dialog-enter 180ms cubic-bezier(0.16, 1, 0.3, 1); }
 }

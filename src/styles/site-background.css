@@ -68,7 +68,7 @@ html body:has(.site-backdrop) { background: transparent; }
   text-shadow: var(--glass-text-shadow);
 }
 
-/* Project details remain dark text on their existing white panel. */
+/* Project details keep dark text on their frosted glass sheet. */
 .site-shell .project-dialog {
   --text: #242629;
   --muted: #565b63;
