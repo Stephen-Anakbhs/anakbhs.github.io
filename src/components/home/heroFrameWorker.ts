@@ -17,6 +17,16 @@ const worker = self as unknown as {
 let credits = 0;
 let resume: (() => void) | undefined;
 
+// Keep the continuous media clock off the page's rendering/timer queue.
+const waitUntil = (deadline: number) => new Promise<void>(resolve => {
+  const tick = () => {
+    const remaining = deadline - performance.now();
+    if (remaining <= 0) resolve();
+    else setTimeout(tick, remaining);
+  };
+  tick();
+});
+
 worker.onmessage = ({ data }) => {
   if (data.type === 'next') { credits++; resume?.(); return; }
   credits = data.capacity;
@@ -42,6 +52,7 @@ async function decode(src: string, start: number) {
     let loop = 0;
     let offset = 0;
     let decodeWaitMs = 0;
+    let origin: number | undefined;
     while (true) {
       let lastEnd = start;
       let requestedAt = performance.now();
@@ -50,11 +61,14 @@ async function decode(src: string, start: number) {
           decodeWaitMs += performance.now() - requestedAt;
           while (credits === 0) await new Promise<void>(resolve => { resume = resolve; });
           credits--;
-          const frame = sample.toVideoFrame();
           lastEnd = sample.timestamp + sample.duration;
+          const clock = offset + sample.timestamp;
+          origin ??= performance.now() - clock * 1000;
+          await waitUntil(origin + clock * 1000);
+          const frame = sample.toVideoFrame();
           try {
             worker.postMessage({ frame, time: sample.timestamp, endTime: lastEnd,
-              clock: offset + sample.timestamp, loop, decodeWaitMs }, [frame]);
+              clock, loop, decodeWaitMs }, [frame]);
           } catch (error) { frame.close(); throw error; }
         } finally { sample.close(); requestedAt = performance.now(); }
       }

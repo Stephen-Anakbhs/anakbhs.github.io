@@ -1,6 +1,6 @@
 import type { HeroFrameMessage } from './heroFrameWorker';
 
-/** Decode off the page thread and transfer original frames without copying their pixels. */
+/** Display frames paced by the decoder worker, without copying their pixels. */
 export async function playCanvasHero(
   canvas: HTMLCanvasElement, src: string, signal: AbortSignal, start: number,
   onFrame: (time: number) => void,
@@ -16,9 +16,7 @@ export async function playCanvasHero(
   const queue: HeroFrameMessage[] = [];
   let failure: Error | undefined;
   let wake: (() => void) | undefined;
-  let releaseWait: (() => void) | undefined;
-  let timer = 0;
-  const stop = () => { worker.terminate(); clearTimeout(timer); wake?.(); releaseWait?.(); };
+  const stop = () => { worker.terminate(); wake?.(); };
   signal.addEventListener('abort', stop, { once: true });
   worker.onmessage = (event: MessageEvent<HeroFrameMessage | { error: string }>) => {
     if ('error' in event.data) failure = new Error(event.data.error);
@@ -28,23 +26,8 @@ export async function playCanvasHero(
   };
   worker.onerror = (event) => { failure = new Error(event.message || 'Frame worker failed'); wake?.(); };
   const waitForData = () => new Promise<void>(resolve => { wake = resolve; });
-  const waitUntil = (deadline: number): Promise<void> => {
-    if (signal.aborted || performance.now() >= deadline) return Promise.resolve();
-    return new Promise<void>(resolve => {
-      releaseWait = resolve;
-      const tick = () => {
-        const remaining = deadline - performance.now();
-        if (signal.aborted || remaining <= 0) { releaseWait = undefined; resolve(); }
-        else timer = window.setTimeout(tick, remaining);
-      };
-      // Media timestamps must keep advancing even when WebKit delays page animation callbacks.
-      tick();
-    });
-  };
   try {
     worker.postMessage({ type: 'start', src: new URL(src, location.href).href, start, capacity });
-    while (!signal.aborted && !failure && queue.length < capacity) await waitForData();
-    let origin: number | undefined;
     let frames = 0;
     let drawMs = 0;
     while (!signal.aborted) {
@@ -53,8 +36,6 @@ export async function playCanvasHero(
       const item = queue.shift()!;
       worker.postMessage({ type: 'next' });
       try {
-        origin ??= performance.now() - item.clock * 1000;
-        await waitUntil(origin + item.clock * 1000);
         if (signal.aborted) return;
         if (canvas.width !== item.frame.displayWidth) canvas.width = item.frame.displayWidth;
         if (canvas.height !== item.frame.displayHeight) canvas.height = item.frame.displayHeight;
