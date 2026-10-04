@@ -235,19 +235,21 @@ muted inline playback is still the first choice. A rejected `play()` promise
 or four seconds without advancing video time replaces the native player with
 `AnimatedHeroFallback`; a rejected player is not left over the background.
 The fallback lazily decodes the same H.264 file with WebCodecs/Mediabunny and
-draws it on a canvas. Hosts without VideoDecoder first try WebKit's MP4-as-image
-support. The navigation
-uses that image/canvas in its existing live-refraction path. The material,
+draws it on a canvas. Hosts without working VideoDecoder retain the poster;
+the tested MP4-as-image path remained static and has been removed. The navigation
+uses the canvas in its existing live-refraction path. The material,
 wallpaper, typography and navigation geometry are unchanged by this patch.
 
 No GIF conversion is shipped. Ordinary GIF uses a 256-entry color table and
-cannot preserve this video's full-color decoded frames. Both implemented
-dynamic paths reuse the original 1920x1080, 30 fps, 44.333333-second MP4 without
+cannot preserve this video's full-color decoded frames. The canvas path
+reuses the original 1920x1080, 30 fps, 44.333333-second MP4 without
 rescaling, re-encoding, shortening the loop or intentionally removing frames.
 Canvas drawing follows source timestamps; actual delivery speed still depends
 on the device. Offscreen/hidden playback is stopped, and reduced-motion mode
-retains the static poster. A host with neither working image-video nor video
-decoding also keeps the poster; universal animation is not claimed.
+retains the static poster. Universal animation is not claimed. A three-second
+full-resolution WebP experiment (quality 95, 90 frames) already takes 27,210,368
+bytes, versus 11,713,800 bytes for the full original MP4. That lossy experimental
+asset is not deployed as an alleged identical-quality GIF.
 
 Current Windows Chrome production-preview checks (`http://127.0.0.1:4173`):
 
@@ -255,7 +257,7 @@ Current Windows Chrome production-preview checks (`http://127.0.0.1:4173`):
 - `verify-mobile-autoplay.mjs`: seven checks pass, covering 320px/390px portrait,
   landscape, fresh entry/reload, delayed media and offscreen return.
 - `verify-hero-fallback.mjs`: denial, pending promise, resolved-but-stalled
-  playback and unavailable image-video all animate before trusted input or
+  playback and a full-loop run all animate before trusted input or
   user activation. No native hero player remains. Glass updates and offscreen
   return also pass.
 - The full-loop canvas check draws all 1,330 original frames before frame 1,331
@@ -270,7 +272,9 @@ The existing macOS WebKit deployment check now also runs the fallback suite;
 its actual result must be inspected before claiming WebKit coverage. The first
 macOS fallback run found timeline slowdown and prevented deployment. The
 follow-up scheduler no longer adds an extra display-refresh wait to an already
-late frame, and capable hosts skip the unnecessary image-video startup probe.
+late frame. Low-latency decoding is requested explicitly; the loop test also
+records decode-wait and canvas-draw time to distinguish stalls from rendering
+cost. Neither the full-loop duration nor frame-count assertions was relaxed.
 
 Primary references:
 - https://webkit.org/blog/6784/new-video-policies-for-ios/

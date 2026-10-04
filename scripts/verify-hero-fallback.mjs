@@ -11,12 +11,9 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
   if (!engines.includes(name)) continue;
   const browser = await engine.launch({ headless: true, ...(name === 'chrome' ? { channel: 'chrome' } : {}) });
   try {
-    for (const scenario of ['denied', 'pending', 'resolved-but-stalled', 'image-unavailable']) {
+    for (const scenario of ['denied', 'pending', 'resolved-but-stalled', 'full-loop']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
       page.on('pageerror', e => report.errors.push({ name, scenario, message: e.message }));
-      if (scenario === 'image-unavailable') {
-        await page.route('**/media/hero-background-1080p.mp4', route => route.request().resourceType() === 'image' ? route.abort('failed') : route.continue());
-      }
       await page.addInitScript((scenario) => {
         const originalSet = Element.prototype.setAttribute;
         Element.prototype.setAttribute = function (name, value) {
@@ -69,7 +66,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         assert.equal(result.inputs, 0); assert.equal(result.activated, false);
         assert.equal(result.videoElements, 0, 'No blocked native player or start button may remain');
         assert.equal(result.width, 1920); assert.equal(result.height, 1080);
-        assert.equal(result.reason, ['denied', 'image-unavailable'].includes(scenario) ? 'autoplay-denied' : 'no-frame-progress');
+        assert.equal(result.reason, ['denied', 'full-loop'].includes(scenario) ? 'autoplay-denied' : 'no-frame-progress');
         await page.getByRole('button', { name: 'Expand menu', exact: true }).tap();
         await page.waitForFunction(() => window.__liquidGLRenderer__?.hasTexture && window.__liquidGLRenderer__._videoNodes.some(e => e.classList.contains('hero-fallback')));
         await page.screenshot({ path: `${output}/fallback-${name}-${scenario}.png` });
@@ -77,7 +74,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.waitForTimeout(750);
         const second = await page.locator('.header-navigation').screenshot();
         assert(!first.equals(second), 'Glass must continue reflecting the animated background');
-        if (scenario === 'image-unavailable') {
+        if (scenario === 'full-loop') {
           assert.equal(result.mode, 'canvas');
           const timing = await page.evaluate(async () => {
             const media = document.querySelector('canvas.hero-fallback');
@@ -94,6 +91,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
                 clearTimeout(timeout);
                 const gaps = walls.slice(1).map((t, i) => t - walls[i]).sort((a, b) => a - b);
                 resolve({ loop: Number(media.dataset.loop), frame: Number(media.dataset.frame), initialFrame, initialTime,
+                  decodeWaitMs: Number(media.dataset.decodeWaitMs), drawMs: Number(media.dataset.drawMs),
                   elapsed: performance.now() - start, sourceTimes: times,
                   medianMs: gaps[Math.floor(gaps.length * .5)], p95Ms: gaps[Math.floor(gaps.length * .95)] });
               };
@@ -135,20 +133,15 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           };
         });
         await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
-        await page.locator('img.hero-fallback[data-media-ready="true"]').waitFor();
-        // Observe rendered pixels directly: drawImage(animated img) may return its first frame.
-        const clip = { x: 20, y: 150, width: 300, height: 150 };
-        const before = await page.screenshot({ clip });
-        await page.waitForTimeout(7000);
-        const after = await page.screenshot({ clip, path: `${output}/fallback-webkit-image-only.png` });
-        assert(!before.equals(after), 'MP4 image fallback must visibly animate');
-        assert.equal(await page.locator('.hero-fallback-layer').getAttribute('data-mode'), 'image');
+        await page.locator('.hero-fallback-layer[data-mode="poster"]').waitFor({ state: 'attached' });
         assert.equal(await page.locator('.hero-video').count(), 0);
         assert.equal(await page.evaluate(() => navigator.userActivation.hasBeenActive), false);
-        report.cases.push({ name, scenario: 'image-only', passed: true, activated: false });
-        console.log('PASS webkit image-only: original MP4 animates without VideoDecoder or user input');
+        const poster = page.locator('.hero-photo');
+        assert.equal(await poster.evaluate(img => img.complete && img.naturalWidth > 0), true);
+        report.cases.push({ name, scenario: 'decoder-unavailable', mode: 'static-poster', passed: true });
+        console.log('PASS webkit decoder-unavailable: static poster, not an animation claim');
       } catch (error) {
-        report.cases.push({ name, scenario: 'image-only', failure: error.stack });
+        report.cases.push({ name, scenario: 'decoder-unavailable', failure: error.stack });
         process.exitCode = 1;
         console.error(error.message);
       } finally { await page.close(); }

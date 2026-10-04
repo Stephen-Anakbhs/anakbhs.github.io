@@ -35,26 +35,34 @@ export async function playCanvasHero(
     if (!context) throw new Error('Canvas is not supported');
     canvas.width = await track.getDisplayWidth();
     canvas.height = await track.getDisplayHeight();
-    const sink = new VideoSampleSink(track);
+    const sink = new VideoSampleSink(track, { optimizeForLatency: true });
     let frames = 0;
     let loop = 0;
     while (!signal.aborted) {
       let origin: number | undefined;
       let lastEnd = start;
+      let decodeWaitMs = 0;
+      let drawMs = 0;
+      let requestedAt = performance.now();
       for await (const sample of sink.samples(start)) {
         try {
+          decodeWaitMs += performance.now() - requestedAt;
           if (signal.aborted) return;
           origin ??= performance.now() - sample.timestamp * 1000;
           await waitUntil(origin + sample.timestamp * 1000);
           if (signal.aborted) return;
+          const drawStarted = performance.now();
           sample.draw(context, 0, 0, canvas.width, canvas.height);
+          drawMs += performance.now() - drawStarted;
           canvas.dataset.frame = String(++frames);
           canvas.dataset.time = String(sample.timestamp);
           canvas.dataset.loop = String(loop);
           lastEnd = sample.timestamp + sample.duration;
           onFrame(lastEnd);
-        } finally { sample.close(); }
+        } finally { sample.close(); requestedAt = performance.now(); }
       }
+      canvas.dataset.decodeWaitMs = String(decodeWaitMs);
+      canvas.dataset.drawMs = String(drawMs);
       if (origin !== undefined) await waitUntil(origin + lastEnd * 1000);
       start = 0;
       loop++;

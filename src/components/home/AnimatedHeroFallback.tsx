@@ -8,8 +8,8 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const resumeTime = useRef(0);
   const [active, setActive] = useState(false);
-  const [mode, setMode] = useState<'image' | 'canvas' | 'poster'>(() =>
-    typeof VideoDecoder === 'undefined' ? 'image' : 'canvas');
+  const [mode, setMode] = useState<'canvas' | 'poster'>(() =>
+    typeof VideoDecoder === 'undefined' ? 'poster' : 'canvas');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return;
       console.warn('Animated background unavailable', error);
-      setReady(false); setMode('image');
+      setReady(false); setMode('poster');
     });
     return () => controller.abort();
   }, [active, mode, src]);
@@ -53,10 +53,6 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
   useEffect(() => { if (!active) setReady(false); notify(); }, [ready, active, mode]);
 
   return <div ref={host} className="hero-fallback-layer" data-mode={mode} aria-hidden="true">
-    {/* Canvas drawImage may expose only an animated image's default frame; do not use it as an animation watchdog. */}
-    {active && mode === 'image' && <img className="hero-fallback" src={src} alt=""
-      data-media-ready={ready} onLoad={() => { setReady(true); notify(); }}
-      onError={() => { setReady(false); setMode('poster'); }} />}
     {active && mode === 'canvas' && <canvas ref={canvas} className="hero-fallback" width={1920} height={1080}
       data-media-ready={ready} />}
   </div>;
