@@ -35,7 +35,12 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           if (route === '/') assert.equal(await page.locator('.site-header .brand').count(), 0, 'Home must not repeat the name in the header');
           const toggle = page.locator('.header-toggle button');
           if (await toggle.getAttribute('aria-expanded') !== 'true') await (touch ? toggle.tap() : toggle.click());
-          await page.waitForTimeout(400);
+          await page.waitForFunction(() => {
+            const nav = document.querySelector('.header-navigation');
+            const style = getComputedStyle(nav);
+            return nav.dataset.open === 'true' && style.transform === 'none' && style.opacity === '1'
+              && nav.getAnimations().every(animation => animation.playState === 'finished');
+          });
           const navigation = await page.evaluate(() => {
             const nav = document.querySelector('.header-navigation'), button = document.querySelector('.header-toggle');
             const n = nav.getBoundingClientRect(), b = button.getBoundingClientRect();

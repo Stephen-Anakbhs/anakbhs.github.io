@@ -17,6 +17,14 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
       if (process.env.FALLBACK_BACKEND === 'webgl') await page.addInitScript(() => Object.defineProperty(navigator, 'gpu', { value: undefined }));
       page.on('pageerror', e => report.errors.push({ name, scenario, message: e.message }));
       await page.addInitScript((scenario) => {
+        const NativeWorker = Worker;
+        window.heroFrameWorkerUrls = [];
+        window.Worker = class extends NativeWorker {
+          constructor(url, options) {
+            super(url, options);
+            if (String(url).includes('heroFrameWorker')) window.heroFrameWorkerUrls.push(String(url));
+          }
+        };
         const originalSet = Element.prototype.setAttribute;
         Element.prototype.setAttribute = function (name, value) {
           if (this instanceof HTMLVideoElement && name.toLowerCase() === 'autoplay') return;
@@ -146,6 +154,28 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           assert(Math.abs(timing.elapsed / 1000 - (44.333333 - timing.initialTime)) < 2, 'Fallback must not slow the timeline');
           assert(timing.medianMs >= 25 && timing.medianMs <= 42, 'Frames must be paced, not delivered in bursts');
           assert(timing.p95Ms < 85, 'Decoded-frame delivery must remain smooth');
+          const boundary = await page.evaluate(async () => {
+            const url = window.heroFrameWorkerUrls[0];
+            if (!url) throw new Error('The actual frame-worker URL was not observed');
+            return new Promise((resolve, reject) => {
+              const worker = new Worker(url, { type: 'module' });
+              const frames = [];
+              const stop = () => { clearTimeout(timeout); worker.terminate(); };
+              const timeout = setTimeout(() => { stop(); reject(new Error('End-of-file resume timed out')); }, 15000);
+              worker.onerror = event => { stop(); reject(new Error(event.message)); };
+              worker.onmessage = ({ data }) => {
+                if ('error' in data) { stop(); reject(new Error(data.error)); return; }
+                frames.push({ time: data.time, width: data.frame.displayWidth, height: data.frame.displayHeight });
+                data.frame.close();
+                if (frames.length === 3) { stop(); resolve(frames); }
+              };
+              worker.postMessage({ type: 'start', src: new URL('/media/hero-background-1080p.mp4', location.href).href,
+                start: 1330 / 30, capacity: 3 });
+            });
+          });
+          assert(boundary.every((frame, i) => Math.abs(frame.time - i / 30) < .001
+            && frame.width === 1920 && frame.height === 1080), 'Resume at the original end timestamp must restart at frame zero');
+          report.cases.push({ name, scenario: 'resume-at-end', frames: boundary, passed: true });
         }
         await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
         await page.waitForFunction(() => !document.querySelector('.hero-fallback'));
