@@ -458,10 +458,10 @@ textarea {
 }
 
 /* Glass lettering (liquidHeading.ts): the glyphs are filled with the wallpaper behind
-   them, so they read as clear glass. Full tier refracts that background through rounded
-   rose-red glass strokes; lite tier only tints it (no SVG filter work). */
+   them and the filter turns each stroke into clear, refracting red glass. Every device gets the
+   same static filter; only how often the wallpaper is realigned differs by tier. */
 .section-heading :is(h1, h2) {
-  color: #a3214e;
+  color: #c0262d;
   font-size: var(--type-display);
   font-weight: 800;
   letter-spacing: 0;
@@ -472,22 +472,11 @@ textarea {
   -webkit-text-fill-color: transparent;
   filter: url(#liquid-heading);
 }
-:root[data-glass-quality="lite"] .section-heading :is(h1, h2) {
-  background:
-    linear-gradient(180deg, rgba(206, 58, 102, 0.5), rgba(150, 30, 70, 0.66)),
-    url("/media/cold-stone.webp") var(--wall-position, 50% 50%) / var(--wall-size, cover) no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-stroke: 0.6px rgba(110, 18, 52, 0.5);
-  filter: none;
-}
 @media (max-width: 640px) {
   .section-heading :is(h1, h2) { filter: url(#liquid-heading-compact); }
 }
 @media (prefers-contrast: more), (forced-colors: active) {
-  .section-heading :is(h1, h2), :root[data-glass-quality="lite"] .section-heading :is(h1, h2) {
-    background: none; -webkit-text-fill-color: currentColor; -webkit-text-stroke: 0; filter: none;
-  }
+  .section-heading :is(h1, h2) { background: none; -webkit-text-fill-color: currentColor; filter: none; }
 }
 
 .section-heading span,

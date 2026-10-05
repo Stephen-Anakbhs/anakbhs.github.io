@@ -2,7 +2,7 @@
 // bezel refracts, sampling the backdrop from further inside like a real lens edge.
 // Channels follow feDisplacementMap: R = x offset, B = y offset, 128 = none.
 const cache = new Map<string, string>();
-const MAX_SIDE = 512;
+const MAX_SIDE = 320;
 const NEUTRAL = 0xff808080;
 
 export function lensBezel(width: number, height: number): number {

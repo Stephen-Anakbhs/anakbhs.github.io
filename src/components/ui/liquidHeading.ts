@@ -1,21 +1,22 @@
 import { useLayoutEffect, type RefObject } from "react";
 import { fullGlass } from "./glassQuality";
 
-// Glass lettering. Each heading is filled with the wallpaper that sits behind it
-// (aligned to the fixed backdrop), so the glyphs read as clear glass. In the full
-// tier an SVG filter treats every stroke as a rounded rose-red glass tube: the
-// background is bent inward along the curved edges and slightly darkened, the body
-// takes a light red tint that deepens to wine where the glass is thickest, and a
-// directional specular glint follows the top-left slopes. There is no outline.
+// Glass lettering, modelled on clear tinted glass rather than a bevel. Each heading is
+// filled with the wallpaper that sits behind it (aligned to the fixed backdrop), so the
+// glyphs are see-through. The filter refracts that background along the rounded stroke
+// edges (the edge is defined by bending, not by light/dark bevel lines), filters it
+// through red multiplicatively so it stays red and transparent over the light stone,
+// deepens the red slightly where the glass is thickest, and adds an even hairline rim
+// with a faint specular glint. No shadow, no offset highlights.
 const FILTER_ID = "liquid-heading";
 
-type Optics = { id: string; blur: number; refraction: number; surface: number };
+type Optics = { id: string; blur: number; refraction: number };
 const opticsFor: Optics[] = [
-  { id: FILTER_ID, blur: 2.8, refraction: 24, surface: 5 },
-  { id: `${FILTER_ID}-compact`, blur: 2.1, refraction: 17, surface: 4 },
+  { id: FILTER_ID, blur: 3.4, refraction: 36 },
+  { id: `${FILTER_ID}-compact`, blur: 2.6, refraction: 26 },
 ];
 
-const filterMarkup = opticsFor.map(({ id, blur, refraction, surface }) => `
+const filterMarkup = opticsFor.map(({ id, blur, refraction }) => `
 <filter id="${id}" x="-6%" y="-25%" width="112%" height="150%" color-interpolation-filters="sRGB">
   <feComponentTransfer in="SourceAlpha" result="mask"><feFuncA type="linear" slope="4" /></feComponentTransfer>
   <feGaussianBlur in="mask" stdDeviation="${blur}" result="soft" />
@@ -25,25 +26,31 @@ const filterMarkup = opticsFor.map(({ id, blur, refraction, surface }) => `
   <feColorMatrix in="slopeY" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 1 0  0 0 0 0 1" result="mapY" />
   <feComposite in="mapX" in2="mapY" operator="arithmetic" k2="1" k3="1" result="map" />
   <feDisplacementMap in="SourceGraphic" in2="map" scale="${refraction}" xChannelSelector="R" yChannelSelector="B" result="bent" />
-  <feComponentTransfer in="bent" result="toned">
-    <feFuncR type="linear" slope="0.88" /><feFuncG type="linear" slope="0.88" /><feFuncB type="linear" slope="0.88" />
+  <feComponentTransfer in="bent" result="clear">
+    <feFuncR type="linear" slope="1.04" /><feFuncG type="linear" slope="0.5" /><feFuncB type="linear" slope="0.49" />
   </feComponentTransfer>
-  <feComposite in="toned" in2="mask" operator="in" result="glass" />
-  <feFlood flood-color="#b8285a" flood-opacity="0.44" />
-  <feComposite in2="mask" operator="in" result="tint" />
-  <feComponentTransfer in="soft" result="thickness"><feFuncA type="table" tableValues="0.9 0.62 0.26 0.06 0" /></feComponentTransfer>
-  <feComposite in="thickness" in2="mask" operator="in" result="edgeBand" />
-  <feFlood flood-color="#4e0620" flood-opacity="0.86" />
-  <feComposite in2="edgeBand" operator="in" result="edge" />
-  <feSpecularLighting in="soft" surfaceScale="${surface}" specularConstant="0.9" specularExponent="26" lighting-color="#fff" result="specular">
-    <feDistantLight azimuth="225" elevation="42" />
+  <feComponentTransfer in="bent" result="thick">
+    <feFuncR type="linear" slope="0.88" /><feFuncG type="linear" slope="0.22" /><feFuncB type="linear" slope="0.22" />
+  </feComponentTransfer>
+  <feComponentTransfer in="soft" result="thin"><feFuncA type="table" tableValues="0.9 0.6 0.25 0.05 0 0" /></feComponentTransfer>
+  <feComposite in="thick" in2="thin" operator="in" result="edgeGlass" />
+  <feMerge result="glass"><feMergeNode in="clear" /><feMergeNode in="edgeGlass" /></feMerge>
+  <feComposite in="glass" in2="mask" operator="in" result="body" />
+  <feMorphology in="mask" operator="erode" radius="0.8" result="inner" />
+  <feComposite in="mask" in2="inner" operator="out" result="ring" />
+  <feGaussianBlur in="ring" stdDeviation="0.3" result="ringSoft" />
+  <feFlood flood-color="#ffffff" flood-opacity="0.58" />
+  <feComposite in2="ringSoft" operator="in" result="rim" />
+  <feSpecularLighting in="soft" surfaceScale="1.2" specularConstant="1" specularExponent="70" lighting-color="#fff" result="specular">
+    <feDistantLight azimuth="235" elevation="30" />
   </feSpecularLighting>
-  <feComposite in="specular" in2="mask" operator="in" result="glint" />
-  <feMerge><feMergeNode in="glass" /><feMergeNode in="tint" /><feMergeNode in="edge" /><feMergeNode in="glint" /></feMerge>
+  <feComposite in="specular" in2="mask" operator="in" result="glintRaw" />
+  <feComponentTransfer in="glintRaw" result="glint"><feFuncA type="linear" slope="0.6" /></feComponentTransfer>
+  <feMerge><feMergeNode in="body" /><feMergeNode in="rim" /><feMergeNode in="glint" /></feMerge>
 </filter>`).join("");
 
 function installFilter() {
-  if (!fullGlass || typeof document === "undefined" || document.getElementById(FILTER_ID)) return;
+  if (typeof document === "undefined" || document.getElementById(FILTER_ID)) return;
   const holder = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   holder.setAttribute("aria-hidden", "true");
   holder.setAttribute("focusable", "false");
