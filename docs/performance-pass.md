@@ -116,6 +116,18 @@ SSIM 1 and zero changed pixels for one WebKit desktop/lite home state only.
 That candidate was an intermediate thumbnail experiment, not this release;
 neither that single state nor the repaired mask establishes a full-matrix pass.
 
+Release isolation: Actions 37823655943 did not deploy. Attempt 1 failed the
+unchanged landscape hero-poster check. Attempt 2 passed all 13 autoplay cases
+but failed the unchanged fallback full-loop timing check (49.741 s for 38.433 s
+remaining; median delivery 0 ms). Both failures are retained, not waived.
+`codex/mobile-alpha-release` therefore restores ProjectGallery and the Vite
+configuration exactly to the public 2ae1d3d versions, keeping the unshipped
+project-lens/scrollbar work on `codex/perf-pass` at 2ab80df. Only PublicationList
+differs at runtime from the current public release. The new animation check
+runs first so older hero failures cannot hide its result; all original checks
+still gate deployment. This does not claim the unshipped changes caused the CI
+failures, and no hero code or test threshold has been changed.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds
