@@ -128,6 +128,17 @@ runs first so older hero failures cannot hide its result; all original checks
 still gate deployment. This does not claim the unshipped changes caused the CI
 failures, and no hero code or test threshold has been changed.
 
+The user subsequently authorized "only fix video compatibility, effects unchanged".
+Native Hero readiness in d948ad3 therefore accepts a real compositor frame even
+if WebKit is paused at callback delivery; disposed/error/HAVE_CURRENT_DATA guards
+remain. No video, CSS, autoplay/WeChat retry or fallback behavior changes. Added
+readiness callback diagnostics to the existing autoplay report without altering
+assertions. Chrome autoplay/WeChat 13/13, typecheck and build pass. The focused
+`test-hero-readiness.mjs` uses TypeScript AST extraction of the actual observer:
+working tree/d948ad3 pass 10/10; pre-fix 01d4453 fails exactly the paused-frame
+case (9/10), retaining all invalid-frame and duplicate-scheduling checks. Native
+macOS validation and release remain separate from this unit evidence.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds
