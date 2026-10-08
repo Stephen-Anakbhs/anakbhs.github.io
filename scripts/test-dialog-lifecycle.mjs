@@ -136,11 +136,11 @@ test('failed native opening releases the lock without hiding the source', () => 
   assert.notEqual(modal.origin.style.visibility, 'hidden');
 });
 
-test('source visibility is batched before the native modal performs layout', () => {
+test('the native modal records its visible trigger before source hiding', () => {
   const env = environment();
   const modal = env.create();
   modal.dialog.showModal = () => {
-    assert.equal(modal.origin.style.visibility, 'hidden');
+    assert.notEqual(modal.origin.style.visibility, 'hidden');
     modal.dialog.open = true;
   };
   modal.show(modal.origin);

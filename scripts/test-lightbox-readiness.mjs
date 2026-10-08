@@ -148,6 +148,7 @@ test('native AVIF picture opens on its thumbnail and reveals only after the exis
   assert.equal(env.node('source').props.type, 'image/avif');
   assert.equal(env.node('source').props.srcSet, '/full.avif');
   assert.equal(env.node('img').props.src, '/full.webp');
+  assert.equal(env.node('img').props.style.objectFit, 'fill');
   assert.equal(env.requests.length, 0, 'AVIF opening must not create a separate WebP preloader');
   assert.equal(env.shown(), 1, 'opening must not wait for full decode');
   const picture = env.node('picture');

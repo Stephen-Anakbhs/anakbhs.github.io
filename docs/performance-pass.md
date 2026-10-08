@@ -42,5 +42,61 @@ measurements will also use DOM input timestamps to isolate application delay.
 
 ## Status
 
-Baseline captured. Candidate implementation and all final acceptance checks are
-in progress; no performance success or public deployment is claimed yet.
+User authorized an interim deployment on 2026-10-08, explicitly asking to inspect
+the current optimized version online and then continue optimization. This changes
+the release timing only; the original performance targets remain outstanding.
+The 30 ms modal target and complete visual matrix are NOT yet accepted. No claim
+of full goal completion is made. Experimental focus/data-state changes are not
+part of this release; the original visible-trigger/native-modal ordering remains.
+
+Completed local checks for the interim candidate: typecheck/build, site 12/12,
+responsive 30/30 (Chrome/WebKit), Glass Studio 18/18, Chrome mobile autoplay
+13/13, hero fallback 4/4 scenarios, lifecycle/readiness 18/18, P1 browser playback
+15 cases. Protected optics/hero source and original media are unchanged. No PDFs
+are present in the public/build directories. Deployment and public verification
+will be recorded after the remote jobs finish.
+
+## Media Candidate
+
+Original media and all publication text/links are retained. Static figures have
+responsive lossless WebP derivatives; full images have a maximum edge of 2559 px.
+The source aspect ratio determines the painted rectangle, independently of
+integer rounding in derivative dimensions. TOG and P4 use their larger thumbnail
+variant because the smaller variant showed greater rasterization differences.
+
+Native Chrome DPR-2 content SSIM on white/light/dark backgrounds is below. These
+are measurements, not user acceptance. The numerical 0.995 heuristic in the new
+visual harness is not a user-specified threshold; its failures remain recorded
+alongside actual image pairs for visual inspection.
+
+| Figure | Selected thumbnail minimum SSIM | Full minimum SSIM |
+| --- | ---: | ---: |
+| TOG | 0.993258 | 0.993003 |
+| BBA | 0.985916 | 0.995678 |
+| GF | 0.974033 | 0.982228 |
+| MC | 0.958606 | 0.989407 |
+| RSC | 0.958716 | 0.988112 |
+| P2 | 0.989215 | 1.000000 |
+| P3 | 0.995684 | 1.000000 |
+| P4 | 0.989224 | 1.000000 |
+| P5 | 0.989288 | 1.000000 |
+| P6 | 0.958552 | 0.991377 |
+| P7 | 0.967729 | 0.986769 |
+
+P1 retains 150 frames, 40 ms/frame, a six-second loop, four synchronized models
+and alpha. Only the thumbnail loads before opening the lightbox.
+
+| P1 resource | Bytes | Difference from original 7,346,780 bytes |
+| --- | ---: | ---: |
+| AVIF thumbnail, 720 x 275 | 1,708,130 | -76.75% |
+| AVIF full, 1440 x 550 | 1,907,439 | -74.04% |
+| WebP fallback thumbnail | 1,992,966 | -72.87% |
+| WebP fallback full | 4,035,762 | -45.07% |
+
+Budget deviation: the AVIF thumbnail exceeds 1 MB. The 950,357-byte candidate
+left alpha=1 at a transparent corner; the selected alpha-32 encode keeps every
+border pixel fully transparent across all 150 frames. The full AVIF meets 2 MB.
+WebP fallback also exceeds the requested budgets; its chosen sizes retain the
+animation timing and acceptable point-cloud detail instead of dropping frames.
+Originals are untouched. Exact encoding metadata and sampled pixel evidence:
+`output/media-derivative-review/p1-final.json` and `static-final-mapping.csv`.

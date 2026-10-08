@@ -16,6 +16,18 @@ async function setup(slow = false) {
   await page.addInitScript(() => {
     window.__perfPass = { frames: [], longtasks: [], headingInkReady: null, headingAligned: null, recording: false, last: null };
     const state = window.__perfPass;
+    document.addEventListener('pointerdown', event => {
+      if (!state.case || !(event.target instanceof Element)) return;
+      if (event.target.closest('.publication-thumbnail, .showcase-image')) {
+        state.inputAt = performance.now();
+        state.shownAt = null;
+        performance.mark(`${state.case}:input`);
+      }
+    }, true);
+    new MutationObserver(records => {
+      if (!state.case || state.shownAt !== null) return;
+      if (records.some(r => r.target instanceof HTMLDialogElement && r.target.open)) state.shownAt = performance.now();
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['open'] });
     new PerformanceObserver(list => state.longtasks.push(...list.getEntries().map(e => ({ start: e.startTime, duration: e.duration })))).observe({ type: 'longtask', buffered: true });
     const tick = time => {
       if (state.recording && state.last !== null) state.frames.push({ at: time, gap: time - state.last });
@@ -64,9 +76,10 @@ function traceSummary(events, startMark, endMark) {
   const start = events.find(e => e.name === startMark);
   const end = events.find(e => e.name === endMark);
   if (!start || !end) return { missingMarks: [startMark, endMark] };
-  const work = events.filter(e => e.ph === 'X' && e.pid === start.pid && e.tid === start.tid && e.ts >= start.ts && e.ts < end.ts);
+  // The input handler's task starts before its performance mark; include overlaps.
+  const work = events.filter(e => e.ph === 'X' && e.pid === start.pid && e.tid === start.tid && e.ts + e.dur > start.ts && e.ts < end.ts);
   const tasks = work.filter(e => /RunTask|ThreadControllerImpl::RunTask/.test(e.name));
-  const longest = tasks.sort((a, b) => b.dur - a.dur).slice(0, 8).map(e => ({ durationMs: e.dur / 1000, sources: work.filter(x => x !== e && x.ts >= e.ts && x.ts < e.ts + e.dur && ['FunctionCall', 'Layout', 'UpdateLayoutTree', 'Paint', 'ImageDecodeTask', 'Decode Image'].includes(x.name)).sort((a, b) => b.dur - a.dur).slice(0, 8).map(x => ({ name: x.name, durationMs: x.dur / 1000, data: x.args?.data })) }));
+  const longest = tasks.sort((a, b) => b.dur - a.dur).slice(0, 8).map(e => ({ durationMs: e.dur / 1000, sources: work.filter(x => x !== e && x.ts >= e.ts && x.ts < e.ts + e.dur && ['FunctionCall', 'Layout', 'UpdateLayoutTree', 'Paint', 'ImageDecodeTask', 'Decode Image'].includes(x.name)).sort((a, b) => b.dur - a.dur).slice(0, 8).map(x => ({ name: x.name, durationMs: x.dur / 1000, url: x.args?.data?.url, function: x.args?.data?.functionName, node: x.args?.data?.nodeName })) }));
   return { durationMs: (end.ts - start.ts) / 1000, maxTaskMs: Math.max(0, ...tasks.map(e => e.dur / 1000)), tasksOver30: tasks.filter(e => e.dur > 30000).length, longest };
 }
 
@@ -91,8 +104,7 @@ async function routeMeasurement(route) {
   measuring = false;
   const first5s = { elapsedMs: Date.now() - start, bytes: [...requests.values()].reduce((n, e) => n + e.bytes5s, 0), requests: [...requests.values()] };
   await page.locator('.section-heading').first().waitFor({ state: 'attached', timeout: 120000 });
-  await page.waitForFunction(() => window.__perfPass.headingInkReady !== null, { timeout: 120000 });
-  const heading = await page.evaluate(() => ({ inkReadyMs: window.__perfPass.headingInkReady, alignedMs: window.__perfPass.headingAligned }));
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, 6000 - (Date.now() - start))));
   await page.evaluate(() => performance.mark('scroll-start'));
   const scrollStart = await page.evaluate(async () => {
     const state = window.__perfPass;
@@ -111,6 +123,8 @@ async function routeMeasurement(route) {
   });
   await page.evaluate(() => performance.mark('scroll-end'));
   const scroll = await frames(page, scrollStart);
+  await page.waitForFunction(() => window.__perfPass.headingInkReady !== null, undefined, { timeout: 120000 });
+  const heading = await page.evaluate(() => ({ inkReadyMs: window.__perfPass.headingInkReady, alignedMs: window.__perfPass.headingAligned }));
   const trace = await stopTrace(cdp, route === '/' ? 'home' : 'publications');
   const item = { route, first5s, heading, scroll, scrollTrace: traceSummary(trace, 'scroll-start', 'scroll-end') };
   report.routes.push(item);
@@ -131,14 +145,13 @@ async function dialogMeasurements() {
     // Warm the full image and browser cache, then measure the next ordinary interaction.
     await button.hover();
     await button.click();
-    await dialog.locator('[data-unused]').count();
     await page.waitForFunction(() => !!document.querySelector('dialog[open][data-settled]'));
     await dialog.locator('img').first().evaluate(i => i.decode().catch(() => {}));
     await close.click();
     await dialog.waitFor({ state: 'hidden' });
     await page.waitForTimeout(700);
     await page.mouse.move(2, 880);
-    const start = await page.evaluate(id => { window.__perfPass.recording = true; performance.mark(`${id}:open-start`); return performance.now(); }, id);
+    const start = await page.evaluate(id => { window.__perfPass.recording = true; window.__perfPass.case = id; performance.mark(`${id}:open-start`); return performance.now(); }, id);
     await button.click();
     await dialog.waitFor({ state: 'visible' });
     const appeared = await page.evaluate(() => performance.now());
@@ -152,7 +165,8 @@ async function dialogMeasurements() {
     await page.waitForTimeout(180);
     await page.evaluate(id => { performance.mark(`${id}:close-end`); window.__perfPass.recording = false; }, id);
     const closeFrames = await frames(page, closeStart);
-    const item = { id, appearedMs: appeared - start, openFrames, closeFrames };
+    const input = await page.evaluate(() => ({ at: window.__perfPass.inputAt, shown: window.__perfPass.shownAt }));
+    const item = { id, appearedMs: appeared - start, inputToOpenMs: input.shown - input.at, openFrames, closeFrames };
     report.dialogs.push(item);
     console.log(JSON.stringify(item));
   }
@@ -164,6 +178,7 @@ async function dialogMeasurements() {
   const trace = await stopTrace(cdp, 'dialogs');
   for (const item of report.dialogs) {
     item.openTrace = traceSummary(trace, `${item.id}:open-start`, `${item.id}:open-end`);
+    item.inputTrace = traceSummary(trace, `${item.id}:input`, `${item.id}:open-end`);
     item.closeTrace = traceSummary(trace, `${item.id}:close-start`, `${item.id}:close-end`);
   }
   await context.close();

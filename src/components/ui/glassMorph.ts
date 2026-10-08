@@ -86,8 +86,6 @@ export function useMorphDialog(onClosed: () => void) {
         : origin?.querySelector<HTMLElement>("button, a[href], [tabindex]")
           ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     }
-    // Include the source's visibility in the native modal's first style/layout flush.
-    if (origin) origin.style.visibility = "hidden";
     delete dialog.dataset.settled;
     openDialogs.add(dialog);
     document.documentElement.classList.add("glass-dialog-open");
@@ -96,12 +94,12 @@ export function useMorphDialog(onClosed: () => void) {
         dialog.showModal();
       } catch (error) {
         releaseScrollLock(dialog);
-        if (origin) origin.style.visibility = "";
         throw error;
       }
     }
     current.origin = origin;
     current.closing = false;
+    if (origin) origin.style.visibility = "hidden";
   }, []);
 
   const run = useCallback((animations: Animation[]) => {
