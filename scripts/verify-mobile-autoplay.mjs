@@ -28,6 +28,17 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         let firstTime = null;
         let inputs = 0;
         let unreadySamples = 0, unreadyPlayerExposed = false;
+        const readinessCallbacks = [];
+        const nativeFrameCallback = HTMLVideoElement.prototype.requestVideoFrameCallback;
+        if (nativeFrameCallback) HTMLVideoElement.prototype.requestVideoFrameCallback = function (callback) {
+          return nativeFrameCallback.call(this, (now, metadata) => {
+            if (this.matches('.hero-video') && this.dataset.ready !== 'true' && readinessCallbacks.length < 8) {
+              readinessCallbacks.push({ at: performance.now() - start, paused: this.paused,
+                readyState: this.readyState, presentedFrames: metadata.presentedFrames, mediaTime: metadata.mediaTime });
+            }
+            callback(now, metadata);
+          });
+        };
         for (const event of ['pointerdown', 'touchend', 'keydown']) {
           document.addEventListener(event, e => { if (e.isTrusted) inputs++; }, true);
         }
@@ -57,6 +68,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             width: v?.videoWidth, height: v?.videoHeight,
             decoded,
             unreadySamples, unreadyPlayerExposed, coveredByPoster,
+            readinessCallbacks,
             droppedPlayingEvents: window.heroDroppedPlayingEvents || 0,
             playingSuppressionInstalled: window.heroPlayingSuppressionInstalled === true,
             timeUpdateSuppressionInstalled: window.heroTimeUpdateSuppressionInstalled === true,

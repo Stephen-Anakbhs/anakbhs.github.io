@@ -46,7 +46,8 @@ export function Hero() {
       if (frameObserved || readinessFrame || typeof video.requestVideoFrameCallback !== 'function') return;
       readinessFrame = video.requestVideoFrameCallback(() => {
         readinessFrame = 0;
-        if (!disposed && !video.paused && !video.error && video.readyState >= 2) {
+        // A presented frame is valid even if WebKit briefly pauses during startup.
+        if (!disposed && !video.error && video.readyState >= 2) {
           frameObserved = true;
           setVideoReady(true);
           setVideoFailed(false);
