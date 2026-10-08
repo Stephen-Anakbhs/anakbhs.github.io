@@ -382,6 +382,13 @@ export const site = {
       venue: "Computers & Mathematics with Applications (CAMWA), vol. 202, pp. 88-112",
       year: "2026",
       image: "/media/pub-lagrange-rotation.webp",
+      preview: {
+        width: 1440, height: 550,
+        thumb: "/media/derived/pub-lagrange-rotation.thumb.webp",
+        full: "/media/derived/pub-lagrange-rotation.full.webp",
+        avifThumb: "/media/derived/pub-lagrange-rotation.thumb.avif",
+        avifFull: "/media/derived/pub-lagrange-rotation.full.avif"
+      },
       selected: true,
       links: [
         { label: "Code", href: "https://github.com/cfdyang521/C-3PO/tree/main" },
