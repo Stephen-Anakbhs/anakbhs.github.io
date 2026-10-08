@@ -53,8 +53,64 @@ Completed local checks for the interim candidate: typecheck/build, site 12/12,
 responsive 30/30 (Chrome/WebKit), Glass Studio 18/18, Chrome mobile autoplay
 13/13, hero fallback 4/4 scenarios, lifecycle/readiness 18/18, P1 browser playback
 15 cases. Protected optics/hero source and original media are unchanged. No PDFs
-are present in the public/build directories. Deployment and public verification
-will be recorded after the remote jobs finish.
+are present in the public/build directories. Interim commit 2ae1d3d was deployed
+by Actions run 37799409803; build, macOS WebKit autoplay/fallback and deploy all
+succeeded. Live HTML matches the local entry names. Through the configured
+proxy, the full AVIF downloaded in 2.28 s (1,907,439 bytes); the thumbnail retry
+took 20.31 s (1,708,130 bytes) after an earlier timeout. These are single-request
+observations, not stable bandwidth estimates.
+
+The full 192-state visual matrix was captured, but comparisons have unresolved
+failures. Chrome reported stable glass-region differences around some project
+dialogs; WebKit also reported fractional image bounds and hero freeze mismatch.
+No visual pass or full-goal completion is claimed.
+
+Post-release user Chrome diagnosis: the same AVIF thumbnail is fully loaded but
+appears stuck while IAB plays it. The supplied Chrome GPU status explicitly shows
+software-only compositing/rasterization and hardware acceleration disabled, with
+Microsoft Basic Render Driver. User was asked to enable graphics acceleration
+and relaunch. The animation still requires rechecking after that change; this
+does not waive the remaining site-level performance targets.
+
+## Follow-Up - 2026-10-09
+
+- Project lens maps now synchronize to settled sheet dimensions, and to an image
+  load that arrives after settling. Optical inputs, spring parameters and CSS are
+  unchanged. The old baseline's first open used an early map size; its warmed
+  reopen eliminated the large lower-sheet difference. Targeted dev checks covered
+  Chrome/WebKit full/lite, first open, reopen and delayed image loading: 4 geometry
+  checks and 8 zero-tolerance unmasked image comparisons passed.
+- OverlayScrollbars 2.16.0 removed then re-added all viewport overflow tokens on
+  every update, including no-ops. A narrowly scoped Vite transform now writes the
+  final token set atomically and skips unchanged values. The pinned package and
+  styles are retained; dependency prebundling excludes this module so dev and
+  production use the same patch. The existing public options cannot suppress this
+  internal host-update rewrite. Three unit checks cover all axis combinations,
+  repeated state and patch scope; Chrome/WebKit browser checks cover actual handle
+  dragging, keyboard scrolling, modal scroll lock, focus and restored scrolling.
+- Latest checks: typecheck/build, site 12/12, responsive 30/30, Studio 18/18,
+  lifecycle/readiness 18/18 and the new scrollbar checks passed. The first site
+  command used an unavailable default fixture port; rerunning with the existing
+  5183 fixture server passed without changing assertions. The new scrollbar test
+  now waits for the actual lazy-loaded route, and confirms pointerdown hits the
+  handle instead of accidentally clicking the track.
+- Timing remains incomplete. On Chrome 154.0.8037.99, DPR2, CPU4x, the isolated
+  atomic-update experiment removed the second document-wide style pass. Its three
+  close tasks were 119.2/89.5/126.9 ms versus control 131.9/126.7/176.2 ms. The
+  rebuilt candidate still measured open tasks 63.5/89.9/107.7 ms and over-50-ms
+  frames. These samples do not establish the required 30/50-ms pass or a stable
+  overall speedup. Traces: `output/performance-pass/e-quiet-control`,
+  `e-atomic-overflow`, and `e-atomic-built`. A persistent-lightbox-DOM experiment
+  showed no demonstrated benefit and was reverted.
+- The Windows WebKit visual harness previously accepted transparent video pixels
+  while the media clock advanced, so some screenshots were the poster. A bounded
+  native pause/resume plus actual pixel checks recovered both baseline/candidate
+  desktop-lite home captures. Independent source-frame comparison identified frame
+  60; all 5,184,000 baseline/candidate screenshot pixels matched exactly. This is
+  one verified state, not a replacement for rerunning the full 192-state matrix.
+
+The follow-up changes are local and not a second deployment. The public release
+remains 2ae1d3d. The user's Chrome acceleration/animation retest is still pending.
 
 ## Media Candidate
 
