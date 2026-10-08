@@ -139,6 +139,18 @@ working tree/d948ad3 pass 10/10; pre-fix 01d4453 fails exactly the paused-frame
 case (9/10), retaining all invalid-frame and duplicate-scheduling checks. Native
 macOS validation and release remain separate from this unit evidence.
 
+Actions 37827490243 then passed Apple animation transparency/looping and all 13
+native autoplay/WeChat checks, including landscape reload. The unchanged canvas
+fallback test still showed burst delivery (median 0 ms, p95 8 ms) and 38.373 s
+for 36.300 s remaining, so deployment was held. Within the user's compatibility
+authorization, canvasHeroPlayback now waits on requestAnimationFrame instead of
+window timers, retaining absolute media deadlines, all frames, original source,
+abort cleanup, decoding and resume behavior. Chrome's four fallback scenarios
+and end-of-file resume pass: all 1331 frames through loop start, elapsed 43.519 s
+for 43.533 s remaining, median 33.3 ms, p95 33.8 ms. The user's pre-existing
+fallback-test diagnostics remain uncommitted; no assertion or limit was changed.
+Build/typecheck pass; macOS pacing is still to be verified, not inferred.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds

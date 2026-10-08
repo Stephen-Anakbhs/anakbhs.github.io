@@ -17,8 +17,8 @@ export async function playCanvasHero(
   let failure: Error | undefined;
   let wake: (() => void) | undefined;
   let releaseWait: (() => void) | undefined;
-  let timer = 0;
-  const stop = () => { worker.terminate(); clearTimeout(timer); wake?.(); releaseWait?.(); };
+  let presentationFrame = 0;
+  const stop = () => { worker.terminate(); cancelAnimationFrame(presentationFrame); wake?.(); releaseWait?.(); };
   signal.addEventListener('abort', stop, { once: true });
   worker.onmessage = (event: MessageEvent<HeroFrameMessage | { error: string }>) => {
     if ('error' in event.data) failure = new Error(event.data.error);
@@ -32,12 +32,12 @@ export async function playCanvasHero(
     if (signal.aborted || performance.now() >= deadline) return Promise.resolve();
     return new Promise<void>(resolve => {
       releaseWait = resolve;
-      const tick = () => {
-        const remaining = deadline - performance.now();
-        if (signal.aborted || remaining <= 0) { releaseWait = undefined; resolve(); }
-        else timer = window.setTimeout(tick, remaining);
+      // Present on the browser's paint clock; WebKit timers can batch overdue frames.
+      const tick = (now: number) => {
+        if (signal.aborted || now >= deadline) { presentationFrame = 0; releaseWait = undefined; resolve(); }
+        else presentationFrame = requestAnimationFrame(tick);
       };
-      tick();
+      presentationFrame = requestAnimationFrame(tick);
     });
   };
   try {
