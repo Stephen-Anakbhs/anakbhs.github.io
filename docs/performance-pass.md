@@ -74,6 +74,45 @@ does not waive the remaining site-level performance targets.
 
 ## Follow-Up - 2026-10-09
 
+Fresh matching-protocol slow-network measurements (scroll begins six seconds
+after navigation), baseline `e44b6b7` versus local `13b30e7`:
+
+| Metric | Baseline home | Current home | Baseline publications | Current publications |
+| --- | ---: | ---: | ---: | ---: |
+| First 5 s transferred bytes | 1,242,401 | 1,391,015 | 1,285,913 | 1,399,970 |
+| First 5 s requests | 98 | 81 | 63 | 58 |
+| Heading ink ready (ms) | 13,574 | 2,710 | 13,697 | 2,456 |
+| Scroll p95 (ms) | 33.4 | 49.9 | 16.8 | 16.8 |
+| Worst scroll frame (ms) | 133.4 | 133.3 | 33.4 | 266.8 |
+| Scroll frames >50 ms | 3 | 4 | 0 | 2 |
+
+Evidence: `baseline-final-protocol/network.json` and `candidate-13b30e7/network.json`
+under `output/performance-pass`. The old baseline table above used an earlier
+scroll-start protocol; these fresh runs are the matching comparison. Under the
+fixed bandwidth cap, transferred bytes did not decrease. Home below-fold
+publication/logo requests changed from 13 to 0. Hero-related first-five-second
+transfer was 322,822 versus 351,322 bytes; hero code/media remains excluded.
+
+Three rejected snapshot experiments tested asynchronous detached-image decode,
+decode of already-loaded DOM images, and temporary ImageBitmap preparation. They
+preserved the original lazy-image restriction, but did not eliminate main-thread
+WebP decode: the publications trace still showed 197.9, 154.4 and 166.8 ms decode
+events respectively, versus 162.1 ms before. They were completely reverted; no
+speedup or shipped fix is claimed. The decode-only experimental fixture matched
+1,024,000 RGBA pixels in each of Chrome/WebKit/Firefox, but that does not satisfy
+the performance target or the full-site visual matrix. Current production-preview
+build and the restored original five loading checks pass after the reversion.
+Experimental traces are kept in `candidate-async-snapshot-decode`,
+`candidate-async-all-images`, and `candidate-snapshot-bitmaps`.
+
+The stricter WebKit native-frame proof failed equally for baseline/candidate:
+closest independent source frame 60, MAE 15.881510, versus bound 7.756438. The
+reference uses FFmpeg area resize, while the native probe uses Canvas high-quality
+resize; equivalence is not established. Offline tests point to sampling-path
+differences more strongly than a BT.709/601 matrix change, but native probe RGBA
+was not saved, so the cause is not yet proven. Preserve both failed reports and
+collect original native RGBA before changing the proof. No threshold was relaxed.
+
 - Project lens maps now synchronize to settled sheet dimensions, and to an image
   load that arrives after settling. Optical inputs, spring parameters and CSS are
   unchanged. The old baseline's first open used an early map size; its warmed
