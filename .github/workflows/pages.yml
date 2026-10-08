@@ -53,18 +53,17 @@ jobs:
         env:
           AUTOPLAY_ENGINES: webkit
         run: |
-          # Measure foreground playback, not macOS idle/App Nap timer coalescing.
-          pmset -g
-          defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
-          caffeinate -d -i -u -t 600 &
-          awake_pid=$!
           npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/autoplay-preview.log" 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" "$awake_pid"' EXIT
+          trap 'kill "$server_pid" ${awake_pid:-}' EXIT
           for attempt in {1..50}; do
             if curl --silent --fail http://127.0.0.1:4173/ > /dev/null; then break; fi
             sleep 0.2
           done
+          node scripts/diagnose-webkit-clock.mjs http://127.0.0.1:4173
+          defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
+          caffeinate -d -i -u -t 600 &
+          awake_pid=$!
           ANIMATION_APP_ONLY=1 ANIMATION_PROFILES=webkit ANIMATION_OUTPUT=output/verification/publication-animation node scripts/verify-publication-animation.mjs http://127.0.0.1:4173
           node scripts/verify-mobile-autoplay.mjs http://127.0.0.1:4173
           node scripts/verify-hero-fallback.mjs http://127.0.0.1:4173
