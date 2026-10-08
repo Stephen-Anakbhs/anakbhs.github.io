@@ -162,6 +162,14 @@ timeout remains unchanged. Only these transport hunks are staged; the user's
 pre-existing worker timing diagnostics remain unstaged and unchanged. This is
 an experiment until native macOS evidence confirms or rejects it.
 
+Actions 37830335629 passed animated transparency but hit the native landscape
+poster assertion before reaching the transport experiment. Its added diagnostics
+show valid compositor callbacks at 624 ms with readyState 4, while the poster was
+still covering an advancing video at 1054 ms. Hero now flushes its two readiness
+state updates synchronously inside the first accepted native frame callback.
+The existing valid-frame guards remain; this does not expose an unready player
+or add a timer/playing-event substitute for frame evidence.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds

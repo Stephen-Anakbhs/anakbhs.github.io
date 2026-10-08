@@ -49,6 +49,7 @@ function setup() {
   };
   const state = {
     video, disposed: false, frameObserved: false, readinessFrame: 0,
+    flushSync: callback => callback(),
     setVideoReady: value => calls.ready.push(value),
     setVideoFailed: value => calls.failed.push(value),
   };

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { site } from "../../content/site";
 import { TypewriterLine } from "../hero/TypewriterLine";
@@ -49,8 +50,10 @@ export function Hero() {
         // A presented frame is valid even if WebKit briefly pauses during startup.
         if (!disposed && !video.error && video.readyState >= 2) {
           frameObserved = true;
-          setVideoReady(true);
-          setVideoFailed(false);
+          flushSync(() => {
+            setVideoReady(true);
+            setVideoFailed(false);
+          });
         }
       });
     };
