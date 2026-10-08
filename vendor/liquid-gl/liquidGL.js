@@ -5825,9 +5825,6 @@ fn fs() -> @location(0) vec4<f32> {
           if (this._destroyed) return false;
           console.error("liquidGL snapshot failed on attempt " + attempt, e);
           if (attempt < maxAttempts) {
-            console.log(
-              `Retrying snapshot capture (${attempt + 1}/${maxAttempts})...`,
-            );
             await new Promise((resolve) => {
               this._retryResolve = resolve;
               this._retryTimeout = setTimeout(resolve, delayMs);

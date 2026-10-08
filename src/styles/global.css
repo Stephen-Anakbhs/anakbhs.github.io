@@ -648,12 +648,6 @@ textarea {
   scroll-margin-top: 112px;
 }
 
-.post-card {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
 .publication-list {
   display: grid;
   gap: 0;
@@ -933,36 +927,14 @@ textarea {
 .membership-links a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #bcc3c7; }
 .membership-links a:hover { text-decoration-color: currentColor; }
 
-.post-card-meta {
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.post-card h3 {
-  margin: 26px 0 12px;
-  font-size: 24px;
-  line-height: 1.15;
-}
-
 .post-card p,
 .markdown-body {
   color: var(--muted);
 }
 
 .post-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.post-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 32px;
-}
-
-.post-card {
-  min-height: 250px;
-  padding: 24px;
 }
 
 .post-card {
