@@ -1082,11 +1082,9 @@ const liquidGL = (() => {
     function discoverAssets(el, style) {
       const layers = style.backgroundImage;
       if (layers && layers !== "none") layerUrls(layers).forEach(loadImage);
-      const tag = el.tagName;
-      if (tag === "IMG") {
-        const src = el.currentSrc || el.src;
-        if (src && !usableDomImage(el)) loadImage(src);
-      } else if (tag === "svg") {
+      // Reuse decoded DOM images when painting; never bypass their native lazy loading.
+      // The host schedules a fresh snapshot after an image's load event.
+      if (el.tagName === "svg") {
         svgToImage(el);
       }
     }
