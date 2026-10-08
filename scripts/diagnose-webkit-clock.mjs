@@ -37,6 +37,11 @@ try {
   await page.goto('about:blank');
   await sample('blank-before');
   await page.addInitScript(() => {
+    const WorkerClass = Worker;
+    window.clockWorkers = [];
+    window.Worker = class extends WorkerClass {
+      constructor(...args) { super(...args); window.clockWorkers.push(this); }
+    };
     const set = Element.prototype.setAttribute;
     Element.prototype.setAttribute = function (name, value) {
       if (this instanceof HTMLVideoElement && name.toLowerCase() === 'autoplay') return;
@@ -58,6 +63,19 @@ try {
   // Diagnostic only: isolate compositor sampling without changing the application source.
   await page.evaluate(() => { window.__liquidGLRenderer__.suspended = true; });
   await sample('canvas-glass-suspended');
+  await page.evaluate(() => { document.querySelector('.hero-fallback').style.willChange = 'transform'; });
+  await sample('canvas-promoted');
+  await page.evaluate(() => {
+    document.querySelector('.hero-fallback').style.willChange = '';
+    const draw = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = function (...args) {
+      if (this.canvas.matches('.hero-fallback')) return;
+      return draw.apply(this, args);
+    };
+  });
+  await sample('canvas-drawing-suppressed');
+  await page.evaluate(() => { window.clockWorkers.forEach(worker => worker.terminate()); });
+  await sample('canvas-worker-stopped');
   await page.goto('about:blank');
   await sample('blank-after');
 } finally {
