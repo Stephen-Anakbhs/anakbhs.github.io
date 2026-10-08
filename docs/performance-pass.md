@@ -65,12 +65,56 @@ failures. Chrome reported stable glass-region differences around some project
 dialogs; WebKit also reported fractional image bounds and hero freeze mismatch.
 No visual pass or full-goal completion is claimed.
 
-Post-release user Chrome diagnosis: the same AVIF thumbnail is fully loaded but
-appears stuck while IAB plays it. The supplied Chrome GPU status explicitly shows
-software-only compositing/rasterization and hardware acceleration disabled, with
-Microsoft Basic Render Driver. User was asked to enable graphics acceleration
-and relaunch. The animation still requires rechecking after that change; this
-does not waive the remaining site-level performance targets.
+Post-release user Chrome diagnosis: the same AVIF thumbnail was fully loaded but
+appeared stuck while IAB played it. The supplied Chrome GPU status explicitly
+showed software-only compositing/rasterization, acceleration disabled and Microsoft
+Basic Render Driver. On 2026-10-09 the user confirmed enabling GPU acceleration
+made Chrome very smooth. The reported browser-wide stutter is therefore resolved
+by that user-observed change; no animation format/visual downgrade is needed for
+this symptom. This is not a new agent GPU inspection or a frame-by-frame P1 test,
+and does not waive the remaining site-level performance targets.
+
+## Mobile Transparency Hotfix - 2026-10-09
+
+The user's physical iPhone screenshot shows an opaque black P1 rectangle.
+The AVIF files still contain animated alpha. Apple reports this decoder defect
+in https://bugs.webkit.org/show_bug.cgi?id=275906 and its black-background
+duplicate https://bugs.webkit.org/show_bug.cgi?id=305155. Advertising AVIF
+support does not establish correct animated transparency.
+
+PublicationList now omits the animated AVIF source for Apple WebKit (including
+iOS Chrome/Firefox and desktop-mode iPad), both in the thumbnail and the preview
+payload. Those browsers use the existing transparent animated WebP. Chromium,
+Android and Firefox retain AVIF with native fallback. The original metadata still
+prevents full animation preloading on hover/focus. No media was re-encoded;
+150 frames, 40 ms, infinite rotation, glass visuals and fixed row height remain.
+Thumbnail centering uses auto margins rather than a fractional transform; 96
+earlier bounds checks differed from the original contain geometry by at most
+0.015492 CSS px, below the unchanged 0.05 px check.
+
+`output/performance-pass/animation-mobile-alpha-loaded/report.json` passes seven
+application profiles: Chrome, mobile WebKit, Firefox, AVIF-capable Chrome with
+iPhone Safari or iOS Chrome UA, desktop-mode iPad UA, and Android Chrome UA.
+All check selected thumb/full formats, transparent corners and frames, retained
+504/300 frame ratio and no full animation request before opening. Four profiles
+also verify all four painted models change and continue past the six-second
+loop in both thumbnail and lightbox. iOS UA routing is deliberately tested in
+an AVIF-capable engine, not just a WebKit build that lacks AVIF decoding.
+The first run hit a lazy-image decode/source-change race in the test; it now
+waits for the selected image to finish loading before decoding. Existing alpha,
+loop and preload assertions were not relaxed. Build and typecheck pass. No PDFs
+are present in public or dist. The existing macOS WebKit release job now also
+runs this application animation check. Physical iPhone acceptance remains for
+the user after deployment; local WebKit is not claimed as that device test.
+
+The broader performance objective is still incomplete. Fresh all-15 cached
+modal results are in `output/performance-pass/dialogs-13b30e7-gpu-confirmed`:
+input-to-open 32.6-60.9 ms, maximum task during opening 42.222-152.311 ms,
+worst opening frame 166.7 ms. The native-video visual harness sampling mismatch
+is repaired with matching RGBA area sampling and negative controls, yielding
+SSIM 1 and zero changed pixels for one WebKit desktop/lite home state only.
+That candidate was an intermediate thumbnail experiment, not this release;
+neither that single state nor the repaired mask establishes a full-matrix pass.
 
 ## Follow-Up - 2026-10-09
 

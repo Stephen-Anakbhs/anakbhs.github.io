@@ -1,12 +1,28 @@
 import assert from 'node:assert/strict';
-import { chromium, webkit, firefox } from 'playwright';
+import { chromium, webkit, firefox, devices } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const base = process.argv[2] || 'http://127.0.0.1:4182';
-const output = 'output/performance-pass/animation';
+const output = process.env.ANIMATION_OUTPUT || 'output/performance-pass/animation';
+const appOnly = process.env.ANIMATION_APP_ONLY === '1';
+const onlyProfiles = process.env.ANIMATION_PROFILES?.split(',');
 await mkdir(output, { recursive: true });
 const report = { base, cases: [], errors: [] };
 const prefix = '/media/derived/pub-lagrange-rotation';
+const iphone = devices['iPhone 13'];
+const profiles = [
+  { engine: 'chrome', launcher: chromium, expected: 'avif' },
+  { engine: 'webkit', launcher: webkit, expected: 'webp', options: iphone },
+  { engine: 'firefox', launcher: firefox, expected: 'avif' },
+  // Chromium can decode AVIF: this proves the app explicitly bypasses it for Apple browsers.
+  { engine: 'ios-safari-routing', launcher: chromium, expected: 'webp', options: iphone, appOnly: true },
+  { engine: 'ios-chrome-routing', launcher: chromium, expected: 'webp',
+    options: { ...iphone, userAgent: iphone.userAgent.replace(/Version\/[^ ]+/, 'CriOS/154.0.0.0') }, appOnly: true, routingOnly: true },
+  { engine: 'ipad-desktop-routing', launcher: chromium, expected: 'webp',
+    options: { ...devices['Desktop Safari'], hasTouch: true }, appOnly: true, routingOnly: true },
+  { engine: 'android-chrome-routing', launcher: chromium, expected: 'avif',
+    options: devices['Pixel 7'], appOnly: true, routingOnly: true },
+];
 
 async function watchAnimation(page, selector, duration = 6600) {
   return page.locator(selector).evaluate(async (image, duration) => {
@@ -77,14 +93,16 @@ async function verifyPaintedAnimation(page, selector) {
 }
 
 try {
-  for (const [engine, launcher] of [['chrome', chromium], ['webkit', webkit], ['firefox', firefox]]) {
-    const browser = await launcher.launch({ headless: true, ...(engine === 'chrome' ? { channel: 'chrome' } : {}) });
+  for (const profile of profiles) {
+    if (onlyProfiles && !onlyProfiles.includes(profile.engine)) continue;
+    const { engine, launcher } = profile;
+    const browser = await launcher.launch({ headless: true, ...(launcher === chromium ? { channel: 'chrome' } : {}) });
     try {
-      const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, ...profile.options });
       const page = await context.newPage();
       page.on('pageerror', error => report.errors.push({ engine, message: error.message }));
       await page.route('**/__perf_animation', route => route.fulfill({ contentType: 'text/html', body: '<html><body style="margin:0;background:#d2d4d4"></body></html>' }));
-      for (const format of ['avif', 'webp']) for (const size of ['thumb', 'full']) {
+      for (const format of appOnly || profile.appOnly ? [] : ['avif', 'webp']) for (const size of ['thumb', 'full']) {
         await page.goto(`${base}/__perf_animation`);
         await page.setContent(`<style>body{margin:0;background:#d2d4d4}img{display:block;max-width:100%;height:auto}</style><picture>${format === 'avif' ? `<source type="image/avif" srcset="${prefix}.${size}.avif">` : ''}<img id="animation" src="${prefix}.${size}.webp"></picture>`);
         await page.locator('#animation').evaluate(image => image.decode());
@@ -123,24 +141,48 @@ try {
         Object.assign(report.cases.at(-1), result);
         console.log(JSON.stringify({ engine, format, size, src: result.src, models: result.modelStates, frames: result.frames, decode: result.decode }));
       }
-      await page.goto(`${base}/publications?glass=full`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${base}/publications?glass=${profile.options ? 'lite' : 'full'}`, { waitUntil: 'domcontentloaded' });
       const button = page.locator('[data-publication-id="P1"] .publication-thumbnail');
       const fullRequests = [];
-      page.on('request', request => { if (/pub-lagrange-rotation\.full\.(avif|webp)/.test(request.url())) fullRequests.push(request.url()); });
+      const animationRequests = [];
+      page.on('request', request => {
+        if (request.url().includes(prefix)) animationRequests.push(request.url());
+        if (/pub-lagrange-rotation\.full\.(avif|webp)/.test(request.url())) fullRequests.push(request.url());
+      });
       await button.scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => {
+        const image = document.querySelector('[data-publication-id="P1"] img');
+        return image?.complete && image.naturalWidth > 0;
+      });
       await button.locator('img').evaluate(image => image.decode());
+      const thumbnail = await watchAnimation(page, '[data-publication-id="P1"] img', 250);
+      verify(thumbnail);
+      assert(thumbnail.src.endsWith(`.thumb.${profile.expected}`), `${engine}: thumbnail must select ${profile.expected}`);
+      assert.equal(await button.locator('source[type="image/avif"]').count(), profile.expected === 'avif' ? 1 : 0);
+      if (!profile.routingOnly) thumbnail.painted = await verifyPaintedAnimation(page, '[data-publication-id="P1"] img');
+      const frame = await button.evaluate(element => {
+        const box = element.getBoundingClientRect();
+        return { ratio: box.width / box.height, background: getComputedStyle(element).backgroundColor };
+      });
+      assert(Math.abs(frame.ratio - 504 / 300) < .005, 'Keep the fixed publication frame ratio');
+      assert.equal(frame.background, 'rgba(0, 0, 0, 0)');
+      await page.screenshot({ path: `${output}/${engine}-thumbnail.png` });
       await button.hover();
       await button.focus();
       await page.waitForTimeout(300);
       assert.deepEqual(fullRequests, [], 'P1 full image must not download before opening, including hover and focus');
       await button.click();
       await page.locator('.image-lightbox[open][data-settled]').waitFor();
-      const result = await watchAnimation(page, '.image-lightbox[open] img');
+      const result = await watchAnimation(page, '.image-lightbox[open] img', appOnly || profile.appOnly ? 250 : 6600);
       verify(result);
-      result.painted = await verifyPaintedAnimation(page, '.image-lightbox[open] img');
+      assert(result.src.endsWith(`.full.${profile.expected}`), `${engine}: lightbox must select ${profile.expected}`);
+      assert.equal(await page.locator('.image-lightbox[open] source[type="image/avif"]').count(), profile.expected === 'avif' ? 1 : 0);
+      if (!profile.routingOnly) result.painted = await verifyPaintedAnimation(page, '.image-lightbox[open] img');
+      if (profile.expected === 'webp') assert(animationRequests.every(url => !url.endsWith('.avif')), `${engine}: never request the incompatible animated AVIF`);
       assert.equal(await page.locator('.lightbox-paper').evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
       await page.screenshot({ path: `${output}/${engine}-lightbox.png` });
-      report.cases.push({ engine, size: 'lightbox', ...result });
+      report.cases.push({ engine, size: 'lightbox', thumbnail, frame, animationRequests, ...result });
+      console.log(JSON.stringify({ engine, thumbnail: thumbnail.src, full: result.src, transparent: true, models: result.painted?.modelStates, frame }));
       await context.close();
     } finally { await browser.close(); }
   }

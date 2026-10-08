@@ -62,6 +62,7 @@ jobs:
           done
           node scripts/verify-mobile-autoplay.mjs http://127.0.0.1:4173
           node scripts/verify-hero-fallback.mjs http://127.0.0.1:4173
+          ANIMATION_APP_ONLY=1 ANIMATION_PROFILES=webkit ANIMATION_OUTPUT=output/verification/publication-animation node scripts/verify-publication-animation.mjs http://127.0.0.1:4173
       - uses: actions/upload-artifact@v4
         if: always()
         with:

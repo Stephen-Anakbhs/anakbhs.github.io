@@ -4,6 +4,11 @@ import type { Publication, PublicationAuthor } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
 
+// Apple WebKit advertises AVIF but can lose animated alpha (WebKit bug 275906).
+// iOS Chrome/Firefox also use this decoder; keep their transparent WebP fallback.
+const preferAnimatedAvif = typeof navigator === "undefined" ||
+  !(/AppleWebKit/i.test(navigator.userAgent) && !/(?:Chrome|Chromium)\/|Android/i.test(navigator.userAgent));
+
 function Authors({ authors }: { authors: PublicationAuthor[] }) {
   return (
     <>
@@ -41,7 +46,7 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           onPointerDown={prepare}
           onClick={(event) => onPreview({
             src: image?.full ?? publication.image,
-            avif: image?.avifFull,
+            avif: preferAnimatedAvif ? image?.avifFull : undefined,
             thumbnail: event.currentTarget.querySelector("img")?.currentSrc,
             natural: image ? { width: image.width, height: image.height } : undefined,
             alt: publication.title,
@@ -49,11 +54,11 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           })}
         >
           <picture>
-            {image?.avifThumb && <source type="image/avif" srcSet={image.avifThumb} />}
+            {preferAnimatedAvif && image?.avifThumb && <source type="image/avif" srcSet={image.avifThumb} />}
             <img src={image?.thumb ?? publication.image} srcSet={image?.thumbSrcSet}
               sizes="(max-width: 640px) calc(100vw - 64px), (max-width: 740px) min(416px, calc(100vw - 72px)), 276px"
               style={image ? {
-                inset: "auto", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+                margin: "auto",
                 width: image.width / image.height >= 504 / 300 ? "100%" : "auto",
                 height: image.width / image.height >= 504 / 300 ? "auto" : "100%",
                 aspectRatio: `${image.width} / ${image.height}`, objectFit: "fill"
