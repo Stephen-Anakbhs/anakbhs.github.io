@@ -65,24 +65,48 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
     if (!selection) return;
     let cancelled = false;
     let mapTimer: number | undefined;
-    const cleanup = () => { cancelled = true; clearTimeout(mapTimer); };
     show(selection.origin);
     const sheet = sheetRef.current!;
-    const target = boxOf(sheet);
-    if (fullGlass) mapTimer = window.setTimeout(() => {
-      mapRef.current?.setAttribute("width", String(target.width));
-      mapRef.current?.setAttribute("height", String(target.height));
-      mapRef.current?.setAttribute("href", lensMap(target.width, target.height, 28, 24));
-    });
     const dialog = dialogRef.current!;
-    if (reducedMotion()) { dialog.dataset.settled = ""; return cleanup; }
+    const picture = contentRef.current?.querySelector<HTMLImageElement>(".project-detail-image");
+    const target = boxOf(sheet);
+    let mapped: Box | undefined;
+    const active = () => !cancelled && dialog.open && !state.current.closing;
+    const syncMap = (bounds: Box) => {
+      const map = mapRef.current;
+      if (!fullGlass || !active() || !map || (mapped?.width === bounds.width && mapped.height === bounds.height)) return;
+      map.setAttribute("width", String(bounds.width));
+      map.setAttribute("height", String(bounds.height));
+      map.setAttribute("href", lensMap(bounds.width, bounds.height, 28, 24));
+      mapped = bounds;
+    };
+    const onImageLoad = () => {
+      if (active() && dialog.dataset.settled !== undefined) syncMap(boxOf(sheet));
+    };
+    const cleanup = () => {
+      cancelled = true;
+      clearTimeout(mapTimer);
+      picture?.removeEventListener("load", onImageLoad);
+    };
+    const markSettled = () => {
+      if (!active()) return;
+      clearTimeout(mapTimer);
+      // The image may have established its height after the opening box was measured.
+      if (fullGlass) syncMap(boxOf(sheet));
+      dialog.dataset.settled = "";
+    };
+    if (fullGlass) {
+      mapTimer = window.setTimeout(() => syncMap(target));
+      picture?.addEventListener("load", onImageLoad);
+    }
+    if (reducedMotion()) { markSettled(); return cleanup; }
     const { easing, duration } = openMotion;
     const from = sourceBox(selection.origin) ?? near(target);
     void run([
       veilRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }),
       sheet.animate([{ transform: flip(from, target) }, { transform: "none" }], { duration, easing }),
       contentRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: duration * 0.4, easing: "ease-out", fill: "backwards" }),
-    ]).then(completed => { if (completed && !cancelled && !state.current.closing) dialog.dataset.settled = ""; });
+    ]).then(completed => { if (completed) markSettled(); });
     return cleanup;
   }, [selection]);
 
