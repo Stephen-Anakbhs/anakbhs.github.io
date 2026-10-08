@@ -5,7 +5,40 @@ import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 import "../../styles/glass-dialog.css";
 
-export type PreviewImage = { src: string; alt: string; origin?: HTMLElement | null };
+export type PreviewImage = {
+  src: string;
+  avif?: string;
+  thumbnail?: string;
+  natural?: { width: number; height: number };
+  alt: string;
+  origin?: HTMLElement | null;
+};
+
+type PreparedPreview = { picture: HTMLImageElement; ready: boolean; promise: Promise<boolean> };
+const preparedPreviews = new Map<string, PreparedPreview>();
+
+/** Called by static-image intent handlers; animated formats are selected only by the open picture. */
+export function preparePreview(src: string): Promise<boolean> {
+  if (!src) return Promise.resolve(false);
+  const existing = preparedPreviews.get(src);
+  if (existing) return existing.promise;
+  const picture = new Image();
+  picture.decoding = "async";
+  picture.src = src;
+  const prepared: PreparedPreview = {
+    picture,
+    ready: false,
+    promise: picture.decode().then(() => {
+      prepared.ready = true;
+      return true;
+    }, () => {
+      if (preparedPreviews.get(src) === prepared) preparedPreviews.delete(src);
+      return false;
+    }),
+  };
+  preparedPreviews.set(src, prepared);
+  return prepared.promise;
+}
 
 type Layout = { sheet: Box; card: Box; caption: Box; close: Box; radius: number };
 
@@ -67,12 +100,17 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
   const veilRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
-  const figureRef = useRef<HTMLImageElement>(null);
+  const figureRef = useRef<HTMLPictureElement>(null);
+  const fullRef = useRef<HTMLImageElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const mapRef = useRef<SVGFEImageElement>(null);
   const filterId = `lightbox-lens-${useId().replace(/:/g, "")}`;
   const layout = useRef<Layout | null>(null);
+  const naturalRef = useRef<{ width: number; height: number } | null>(null);
+  const revealRef = useRef<Animation | null>(null);
+  const thumbnail = image?.natural ? image.thumbnail : undefined;
+  const thumbnailBackground = thumbnail ? `url(${JSON.stringify(thumbnail)})` : "none";
 
   const apply = (next: Layout) => {
     layout.current = next;
@@ -100,22 +138,53 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
 
   useLayoutEffect(() => {
     const picture = figureRef.current;
-    if (!image || !picture) return;
+    const full = fullRef.current;
+    if (!image || !picture || !full) return;
     let cancelled = false;
+    let settled = false;
     let mapTimer: number | undefined;
-    // Decode first so no frame of the morph waits on the image.
-    void picture.decode().catch(() => undefined).then(() => {
+    // Only prepared static resources bypass the thumbnail; native picture owns animated format selection.
+    let fullReady = !image.avif && Boolean(preparedPreviews.get(image.src)?.ready) && full.complete && full.naturalWidth > 0;
+    picture.style.backgroundImage = thumbnailBackground;
+    full.style.opacity = thumbnail && !fullReady ? "0" : "1";
+
+    const revealFull = () => {
+      if (cancelled || !settled || !fullReady || state.current.closing || !dialogRef.current?.open) return;
+      if (full.style.opacity === "1" || reducedMotion()) {
+        full.style.opacity = "1";
+        picture.style.backgroundImage = "none";
+        return;
+      }
+      full.style.opacity = "1";
+      const animation = full.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" });
+      revealRef.current = animation;
+      void animation.finished.then(() => {
+        if (cancelled || state.current.closing) return;
+        picture.style.backgroundImage = "none";
+        revealRef.current = null;
+      }, () => undefined);
+    };
+
+    const markSettled = () => {
+      if (cancelled || state.current.closing || !dialogRef.current?.open) return;
+      settled = true;
+      dialogRef.current.dataset.settled = "";
+      revealFull();
+    };
+
+    const open = () => {
       if (cancelled) return;
+      if (fullReady) picture.style.backgroundImage = "none";
       show(image.origin);
-      const natural = { width: picture.naturalWidth || 16, height: picture.naturalHeight || 9 };
+      const natural = image.natural ?? { width: full.naturalWidth || 16, height: full.naturalHeight || 9 };
+      naturalRef.current = natural;
       const source = sourceBoxes(image.origin, natural);
       const next = finalLayout(natural, captionRef.current!, closeRef.current!.offsetWidth);
       apply(next);
       paperRef.current!.style.backgroundColor = source?.background ?? "#fff";
       // The lens only renders once the sheet has settled; keep its existing deferred preparation.
       if (fullGlass) mapTimer = window.setTimeout(() => mapRef.current?.setAttribute("href", lensMap(next.sheet.width, next.sheet.height, next.radius, next.radius - 2)));
-      const dialog = dialogRef.current!;
-      if (reducedMotion()) { dialog.dataset.settled = ""; return; }
+      if (reducedMotion()) { markSettled(); return; }
       const { easing, duration } = openMotion;
       const grow = (element: Element, from: Box, to: Box) =>
         element.animate([{ transform: flip(from, to) }, { transform: "none" }], { duration, easing });
@@ -129,9 +198,25 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         grow(picture, from.figure, next.card),
         fadeIn(captionRef.current!),
         fadeIn(closeRef.current!),
-      ]).then(completed => { if (completed && !cancelled && !state.current.closing) dialog.dataset.settled = ""; });
+      ]).then(completed => { if (completed) markSettled(); });
+    };
+
+    // A decoded on-page thumbnail starts immediately; legacy callers still wait for their full image.
+    if (thumbnail) open();
+    void full.decode().then(() => {
+      if (cancelled) return;
+      fullReady = true;
+      if (thumbnail) revealFull();
+      else open();
+    }, () => {
+      if (!thumbnail) open();
     });
-    return () => { cancelled = true; clearTimeout(mapTimer); };
+    return () => {
+      cancelled = true;
+      clearTimeout(mapTimer);
+      revealRef.current?.cancel();
+      revealRef.current = null;
+    };
   }, [image]);
 
   // Keep the settled frame centred when the viewport changes while open.
@@ -139,8 +224,9 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     if (!image) return;
     const relayout = () => {
       const picture = figureRef.current;
-      if (!dialogRef.current?.open || !layout.current || state.current.closing || !picture || !captionRef.current || !closeRef.current) return;
-      const next = finalLayout({ width: picture.naturalWidth, height: picture.naturalHeight }, captionRef.current, closeRef.current.offsetWidth);
+      const natural = naturalRef.current;
+      if (!dialogRef.current?.open || !layout.current || !natural || state.current.closing || !picture || !captionRef.current || !closeRef.current) return;
+      const next = finalLayout(natural, captionRef.current, closeRef.current.offsetWidth);
       apply(next);
       if (fullGlass) mapRef.current?.setAttribute("href", lensMap(next.sheet.width, next.sheet.height, next.radius, next.radius - 2));
     };
@@ -153,9 +239,10 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     const picture = figureRef.current;
     const target = layout.current;
     if (!dialog || !picture || !target) { void close(); return; }
+    revealRef.current?.pause();
     delete dialog.dataset.settled;
     void close(() => {
-      const natural = { width: picture.naturalWidth || 16, height: picture.naturalHeight || 9 };
+      const natural = naturalRef.current!;
       const source = sourceBoxes(state.current.origin, natural) ?? { frame: shrink(target.sheet), paper: shrink(target.card), figure: shrink(target.card) };
       const sheetTransform = currentTransform(sheetRef.current!);
       const paperTransform = currentTransform(paperRef.current!);
@@ -198,7 +285,12 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
             <span className="glass-sheet-tint" />
           </div>
           <div className="lightbox-paper" ref={paperRef} />
-          <img className="lightbox-figure" ref={figureRef} src={image.src} alt={image.alt} />
+          <picture className="lightbox-figure" ref={figureRef}
+            style={{ backgroundImage: thumbnailBackground, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
+            {image.avif && <source type="image/avif" srcSet={image.avif} />}
+            <img ref={fullRef} src={image.src} alt={image.alt} decoding="async"
+              style={{ display: "block", width: "100%", height: "100%", maxWidth: "none", objectFit: "contain", borderRadius: "inherit", opacity: thumbnail ? 0 : 1 }} />
+          </picture>
           <p className="lightbox-caption" ref={captionRef} aria-hidden="true">{image.alt}</p>
           <button className="glass-close lightbox-close" ref={closeRef} type="button" onClick={requestClose}
             aria-label="Close image preview" title="Close image preview" autoFocus>
