@@ -69,23 +69,22 @@ let observer: IntersectionObserver | undefined;
 let frame = 0;
 
 // Reads every rect before writing, so one frame costs one layout at most.
-function align() {
-  frame = 0;
+function align(headings: Iterable<HTMLElement>) {
   const backdrop = document.querySelector(".site-backdrop")?.getBoundingClientRect();
-  if (!backdrop || !visible.size) return;
+  if (!backdrop) return;
   const scale = Math.max(backdrop.width / wallpaper.width, backdrop.height / wallpaper.height);
   const width = wallpaper.width * scale;
   const height = wallpaper.height * scale;
   const left = backdrop.left + (backdrop.width - width) / 2;
   const top = backdrop.top + (backdrop.height - height) / 2;
-  const rects = [...visible].map(heading => [heading, heading.getBoundingClientRect()] as const);
+  const rects = [...headings].map(heading => [heading, heading.getBoundingClientRect()] as const);
   const size = `${width.toFixed(1)}px ${height.toFixed(1)}px`;
   for (const [heading, rect] of rects) {
     heading.style.setProperty("--wall-size", size);
     heading.style.setProperty("--wall-position", `${(left - rect.left).toFixed(1)}px ${(top - rect.top).toFixed(1)}px`);
   }
 }
-const scheduleAlign = () => { if (!frame) frame = requestAnimationFrame(align); };
+const scheduleAlign = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; align(visible); }); };
 let settle = 0;
 // Lite devices realign once scrolling settles instead of repainting every frame.
 const onScroll = fullGlass ? scheduleAlign : () => { clearTimeout(settle); settle = window.setTimeout(scheduleAlign, 120); };
@@ -94,6 +93,7 @@ export function useLiquidHeading(heading: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const element = heading.current;
     if (!element) return;
+    align([element]);
     if (!observer) {
       observer = new IntersectionObserver(entries => {
         for (const entry of entries) {

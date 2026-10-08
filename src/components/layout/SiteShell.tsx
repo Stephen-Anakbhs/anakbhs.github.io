@@ -128,7 +128,7 @@ export function SiteShell({ children }: PropsWithChildren) {
     <div className="site-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="site-backdrop" aria-hidden="true">
-        <img src="/media/cold-stone.webp" alt="" />
+        <img src="/media/cold-stone.webp" alt="" fetchPriority="high" />
       </div>
       <GlassScrollbar tone="dark" />
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"
