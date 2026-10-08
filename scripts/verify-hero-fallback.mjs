@@ -93,9 +93,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         assert(await page.evaluate(() => document.querySelector('.hero-fallback').liquidVideoFrame instanceof VideoFrame), 'Glass must sample a decoded frame without reading back the displayed canvas');
         if (scenario === 'full-loop') {
           assert.equal(result.mode, 'canvas');
-          const timingEvent = page.waitForEvent('console', { predicate: m => m.text().startsWith('FALLBACK_TIMING '), timeout: 75000 });
-          void timingEvent.catch(() => undefined);
-          await page.evaluate(() => {
+          const timing = await page.evaluate(async () => {
             const media = document.querySelector('canvas.hero-fallback');
             const renderer = window.__liquidGLRenderer__;
             const costs = {};
@@ -132,7 +130,7 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
             const initialFrame = Number(media.dataset.frame);
             const initialTime = Number(media.dataset.time);
             const start = performance.now();
-            void new Promise(resolve => {
+            return new Promise(resolve => {
               const capture = () => {
                 times.push(Number(media.dataset.time)); walls.push(performance.now());
                 if (Number(media.dataset.loop) < 1) return;
@@ -149,9 +147,8 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
               };
               const timeout = setTimeout(() => { document.removeEventListener('hero-media-frame', capture); resolve({ timeout: true }); }, 65000);
               document.addEventListener('hero-media-frame', capture);
-            }).then(timing => console.info('FALLBACK_TIMING ' + JSON.stringify(timing)));
+            });
           });
-          const timing = JSON.parse((await timingEvent).text().slice('FALLBACK_TIMING '.length));
           const { sourceTimes, ...frameTiming } = timing;
           report.cases.push({ name, scenario, fullLoop: frameTiming });
           console.log(`TIMING ${name}: ${JSON.stringify(frameTiming)}`);

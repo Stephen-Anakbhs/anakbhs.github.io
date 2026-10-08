@@ -170,6 +170,14 @@ state updates synchronously inside the first accepted native frame callback.
 The existing valid-frame guards remain; this does not expose an unready player
 or add a timer/playing-event substitute for frame evidence.
 
+Actions 37831213461 passed Apple alpha/looping and all 13 native autoplay checks,
+but the console transport did NOT remove fallback bursts (median 0 ms, 47.014 s
+for 36.900 s remaining, only 41 renderer calls). The transport experiment is
+reverted, retaining the original fallback test exactly. Next diagnostic runs its
+existing FALLBACK_HEADED=1 mode on macOS, with every original frame/timeline and
+pacing assertion unchanged. This compares a displayed browser with the failed
+headless mode; no claim of a headless fix or physical iPhone acceptance is made.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds
