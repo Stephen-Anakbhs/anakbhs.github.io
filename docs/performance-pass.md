@@ -151,6 +151,17 @@ for 43.533 s remaining, median 33.3 ms, p95 33.8 ms. The user's pre-existing
 fallback-test diagnostics remain uncommitted; no assertion or limit was changed.
 Build/typecheck pass; macOS pacing is still to be verified, not inferred.
 
+The RAF experiment did NOT fix macOS pacing (Actions 37828790692: median 0 ms,
+p95 92 ms, 50.634 s for 36.933 s remaining), so canvasHeroPlayback is restored
+exactly to the production implementation. Testing a measurement-transport cause
+next: install the same full-loop collector with a short evaluate call and receive
+its unchanged result through a console event, matching the existing startup
+collector. The browser is no longer held in one awaited inspector evaluation
+for the entire loop. Every frame/timeline/pacing assertion and 65 s in-page
+timeout remains unchanged. Only these transport hunks are staged; the user's
+pre-existing worker timing diagnostics remain unstaged and unchanged. This is
+an experiment until native macOS evidence confirms or rejects it.
+
 ## Follow-Up - 2026-10-09
 
 Fresh matching-protocol slow-network measurements (scroll begins six seconds
