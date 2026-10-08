@@ -55,6 +55,12 @@ export function currentTransform(element: Element) {
 
 const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.finished.catch(() => undefined)));
 
+const openDialogs = new Set<HTMLDialogElement>();
+const releaseScrollLock = (dialog: HTMLDialogElement) => {
+  openDialogs.delete(dialog);
+  document.documentElement.classList.toggle("glass-dialog-open", openDialogs.size > 0);
+};
+
 /**
  * Lifecycle of a modal glass dialog: open as a modal, hide the source element while
  * the sheet stands in for it, animate out, then reveal the source, close, and return
@@ -70,21 +76,35 @@ export function useMorphDialog(onClosed: () => void) {
   const show = useCallback((origin: HTMLElement | null | undefined) => {
     const dialog = dialogRef.current;
     if (!dialog) return;
+    cancelAnimationFrame(focusFrame.current);
+    const current = state.current;
+    current.running.forEach(animation => animation.cancel());
+    current.running = [];
+    if (current.origin && current.origin !== origin) current.origin.style.visibility = "";
+    delete dialog.dataset.settled;
+    openDialogs.add(dialog);
+    document.documentElement.classList.add("glass-dialog-open");
     if (!dialog.open) {
-      state.current.returnFocus = origin?.matches("button, a[href], [tabindex]") ? origin
+      current.returnFocus = origin?.matches("button, a[href], [tabindex]") ? origin
         : origin?.querySelector<HTMLElement>("button, a[href], [tabindex]")
           ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
-      dialog.showModal();
+      try {
+        dialog.showModal();
+      } catch (error) {
+        releaseScrollLock(dialog);
+        throw error;
+      }
     }
-    delete dialog.dataset.settled;
-    state.current.origin = origin;
-    state.current.closing = false;
+    current.origin = origin;
+    current.closing = false;
     if (origin) origin.style.visibility = "hidden";
   }, []);
 
   const run = useCallback((animations: Animation[]) => {
-    state.current.running = animations;
-    return finished(animations);
+    const current = state.current;
+    current.running = animations;
+    return finished(animations).then(() =>
+      state.current === current && current.running === animations && Boolean(dialogRef.current?.open));
   }, []);
 
   const close = useCallback(async (animateOut?: () => Animation[]) => {
@@ -95,30 +115,43 @@ export function useMorphDialog(onClosed: () => void) {
     if (animateOut && !reducedMotion()) {
       const animations = animateOut();
       current.running.forEach(a => a.cancel());
-      await run(animations);
+      if (!await run(animations)) return;
     }
+    if (state.current !== current || !current.closing) return;
     if (current.origin) current.origin.style.visibility = "";
+    releaseScrollLock(dialog);
     dialog.close();
   }, [run]);
 
   const handleClose = useCallback(() => {
+    const dialog = dialogRef.current;
+    if (dialog?.open) return;
+    if (dialog) {
+      releaseScrollLock(dialog);
+      delete dialog.dataset.settled;
+    }
     const current = state.current;
     current.running.forEach(a => a.cancel());
     if (current.origin) current.origin.style.visibility = "";
     const target = current.returnFocus;
     state.current = { closing: false, running: [] };
     onClosedRef.current();
-    // Native dialog focus cleanup and React's unmount must finish before restoring focus.
+    // Native dialog focus cleanup and React's close update must finish first.
     cancelAnimationFrame(focusFrame.current);
     focusFrame.current = requestAnimationFrame(() => {
       if (target?.isConnected && !dialogRef.current?.open) target.focus({ preventScroll: true });
     });
   }, []);
 
-  useEffect(() => () => {
-    cancelAnimationFrame(focusFrame.current);
-    state.current.running.forEach(animation => animation.cancel());
-    if (state.current.origin) state.current.origin.style.visibility = "";
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    return () => {
+      cancelAnimationFrame(focusFrame.current);
+      state.current.running.forEach(animation => animation.cancel());
+      if (state.current.origin) state.current.origin.style.visibility = "";
+      state.current = { ...state.current, closing: false, running: [] };
+      if (dialog) releaseScrollLock(dialog);
+    };
   }, []);
 
   return { dialogRef, state, show, run, close, handleClose };

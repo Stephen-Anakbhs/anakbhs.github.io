@@ -56,23 +56,27 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
 
   useLayoutEffect(() => {
     if (!selection) return;
+    let cancelled = false;
+    let mapTimer: number | undefined;
+    const cleanup = () => { cancelled = true; clearTimeout(mapTimer); };
     show(selection.origin);
     const sheet = sheetRef.current!;
     const target = boxOf(sheet);
-    if (fullGlass) setTimeout(() => {
+    if (fullGlass) mapTimer = window.setTimeout(() => {
       mapRef.current?.setAttribute("width", String(target.width));
       mapRef.current?.setAttribute("height", String(target.height));
       mapRef.current?.setAttribute("href", lensMap(target.width, target.height, 28, 24));
     });
     const dialog = dialogRef.current!;
-    if (reducedMotion()) { dialog.dataset.settled = ""; return; }
+    if (reducedMotion()) { dialog.dataset.settled = ""; return cleanup; }
     const { easing, duration } = openMotion;
     const from = sourceBox(selection.origin) ?? near(target);
     void run([
       veilRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }),
       sheet.animate([{ transform: flip(from, target) }, { transform: "none" }], { duration, easing }),
       contentRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: duration * 0.4, easing: "ease-out", fill: "backwards" }),
-    ]).then(() => { if (!state.current.closing) dialog.dataset.settled = ""; });
+    ]).then(completed => { if (completed && !cancelled && !state.current.closing) dialog.dataset.settled = ""; });
+    return cleanup;
   }, [selection]);
 
   const requestClose = () => {
@@ -84,9 +88,10 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
       const home = boxOf(sheet);
       const { easing, duration } = closeMotion;
       const to = sourceBox(state.current.origin) ?? near(home);
+      const transform = currentTransform(sheet);
       return [
         veilRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" }),
-        sheet.animate([{ transform: currentTransform(sheet) }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" }),
+        sheet.animate([{ transform }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" }),
         contentRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-in", fill: "forwards" }),
       ];
     });

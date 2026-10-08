@@ -20,7 +20,15 @@ function finalLayout(natural: { width: number; height: number }, caption: HTMLEl
   const radius = compact ? 24 : 32;
   const maxWidth = Math.min(viewportWidth - 2 * margin, 1360) - 2 * pad;
   const maxHeight = viewportHeight - 2 * margin - 2 * pad - gap;
-  const captionHeight = (width: number) => { caption.style.width = `${width}px`; return caption.offsetHeight; };
+  const heights = new Map<number, number>();
+  const captionHeight = (width: number) => {
+    const cached = heights.get(width);
+    if (cached !== undefined) return cached;
+    caption.style.width = `${width}px`;
+    const height = caption.offsetHeight;
+    heights.set(width, height);
+    return height;
+  };
   let width = maxWidth;
   let height = 0;
   let text = 0;
@@ -94,17 +102,18 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     const picture = figureRef.current;
     if (!image || !picture) return;
     let cancelled = false;
+    let mapTimer: number | undefined;
     // Decode first so no frame of the morph waits on the image.
     void picture.decode().catch(() => undefined).then(() => {
       if (cancelled) return;
       show(image.origin);
       const natural = { width: picture.naturalWidth || 16, height: picture.naturalHeight || 9 };
+      const source = sourceBoxes(image.origin, natural);
       const next = finalLayout(natural, captionRef.current!, closeRef.current!.offsetWidth);
       apply(next);
-      const source = sourceBoxes(image.origin, natural);
       paperRef.current!.style.backgroundColor = source?.background ?? "#fff";
-      // The lens only renders once the sheet has settled, so its map can wait a frame.
-      if (fullGlass) setTimeout(() => mapRef.current?.setAttribute("href", lensMap(next.sheet.width, next.sheet.height, next.radius, next.radius - 2)));
+      // The lens only renders once the sheet has settled; keep its existing deferred preparation.
+      if (fullGlass) mapTimer = window.setTimeout(() => mapRef.current?.setAttribute("href", lensMap(next.sheet.width, next.sheet.height, next.radius, next.radius - 2)));
       const dialog = dialogRef.current!;
       if (reducedMotion()) { dialog.dataset.settled = ""; return; }
       const { easing, duration } = openMotion;
@@ -120,9 +129,9 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         grow(picture, from.figure, next.card),
         fadeIn(captionRef.current!),
         fadeIn(closeRef.current!),
-      ]).then(() => { if (!state.current.closing) dialog.dataset.settled = ""; });
+      ]).then(completed => { if (completed && !cancelled && !state.current.closing) dialog.dataset.settled = ""; });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(mapTimer); };
   }, [image]);
 
   // Keep the settled frame centred when the viewport changes while open.
@@ -130,7 +139,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     if (!image) return;
     const relayout = () => {
       const picture = figureRef.current;
-      if (!layout.current || state.current.closing || !picture || !captionRef.current || !closeRef.current) return;
+      if (!dialogRef.current?.open || !layout.current || state.current.closing || !picture || !captionRef.current || !closeRef.current) return;
       const next = finalLayout({ width: picture.naturalWidth, height: picture.naturalHeight }, captionRef.current, closeRef.current.offsetWidth);
       apply(next);
       if (fullGlass) mapRef.current?.setAttribute("href", lensMap(next.sheet.width, next.sheet.height, next.radius, next.radius - 2));
@@ -148,15 +157,18 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     void close(() => {
       const natural = { width: picture.naturalWidth || 16, height: picture.naturalHeight || 9 };
       const source = sourceBoxes(state.current.origin, natural) ?? { frame: shrink(target.sheet), paper: shrink(target.card), figure: shrink(target.card) };
+      const sheetTransform = currentTransform(sheetRef.current!);
+      const paperTransform = currentTransform(paperRef.current!);
+      const figureTransform = currentTransform(picture);
       const { easing, duration } = closeMotion;
-      const shrinkTo = (element: Element, to: Box, home: Box) =>
-        element.animate([{ transform: currentTransform(element) }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" });
+      const shrinkTo = (element: Element, transform: string, to: Box, home: Box) =>
+        element.animate([{ transform }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" });
       const fadeOut = (element: Element) => element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-in", fill: "forwards" });
       return [
         veilRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" }),
-        shrinkTo(sheetRef.current!, source.frame, target.sheet),
-        shrinkTo(paperRef.current!, source.paper, target.card),
-        shrinkTo(picture, source.figure, target.card),
+        shrinkTo(sheetRef.current!, sheetTransform, source.frame, target.sheet),
+        shrinkTo(paperRef.current!, paperTransform, source.paper, target.card),
+        shrinkTo(picture, figureTransform, source.figure, target.card),
         fadeOut(captionRef.current!),
         fadeOut(closeRef.current!),
       ];

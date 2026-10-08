@@ -44,7 +44,7 @@ html {
   scrollbar-gutter: stable;
 }
 
-html:has(dialog[open]) { overflow: hidden; }
+html.glass-dialog-open { overflow: hidden; }
 
 /* Keep native dragging and keyboard scrolling; only change the chrome. */
 @media (pointer: fine) {
