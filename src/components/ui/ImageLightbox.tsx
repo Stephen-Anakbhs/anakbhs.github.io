@@ -265,6 +265,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
   return (
     <dialog
       className="glass-dialog image-lightbox"
+      data-liquid-ignore=""
       ref={dialogRef}
       onCancel={(event) => { event.preventDefault(); requestClose(); }}
       onClose={handleClose}
@@ -286,10 +287,10 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
           </div>
           <div className="lightbox-paper" ref={paperRef} />
           <picture className="lightbox-figure" ref={figureRef}
-            style={{ backgroundImage: thumbnailBackground, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
+            style={{ backgroundImage: thumbnailBackground, backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
             {image.avif && <source type="image/avif" srcSet={image.avif} />}
             <img ref={fullRef} src={image.src} alt={image.alt} decoding="async"
-              style={{ display: "block", width: "100%", height: "100%", maxWidth: "none", objectFit: "contain", borderRadius: "inherit", opacity: thumbnail ? 0 : 1 }} />
+              style={{ display: "block", width: "100%", height: "100%", maxWidth: "none", objectFit: "fill", borderRadius: "inherit", opacity: thumbnail ? 0 : 1 }} />
           </picture>
           <p className="lightbox-caption" ref={captionRef} aria-hidden="true">{image.alt}</p>
           <button className="glass-close lightbox-close" ref={closeRef} type="button" onClick={requestClose}

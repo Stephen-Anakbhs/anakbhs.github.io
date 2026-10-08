@@ -109,7 +109,7 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
       <div className="showcase-grid" aria-label="Selected projects">
         {items.map((item) => <ProjectCard key={item.id} item={item} onOpen={openProject} />)}
       </div>
-      <dialog className="glass-dialog project-dialog" ref={dialogRef}
+      <dialog className="glass-dialog project-dialog" ref={dialogRef} data-liquid-ignore=""
         aria-labelledby={project ? `project-${project.id}-title` : undefined}
         onClose={handleClose}
         onCancel={(event) => { event.preventDefault(); requestClose(); }}>

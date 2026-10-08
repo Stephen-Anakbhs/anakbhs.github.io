@@ -57,7 +57,7 @@ const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.
 
 const openDialogs = new Set<HTMLDialogElement>();
 const releaseScrollLock = (dialog: HTMLDialogElement) => {
-  openDialogs.delete(dialog);
+  if (!openDialogs.delete(dialog)) return;
   document.documentElement.classList.toggle("glass-dialog-open", openDialogs.size > 0);
 };
 
@@ -81,23 +81,27 @@ export function useMorphDialog(onClosed: () => void) {
     current.running.forEach(animation => animation.cancel());
     current.running = [];
     if (current.origin && current.origin !== origin) current.origin.style.visibility = "";
-    delete dialog.dataset.settled;
-    openDialogs.add(dialog);
-    document.documentElement.classList.add("glass-dialog-open");
     if (!dialog.open) {
       current.returnFocus = origin?.matches("button, a[href], [tabindex]") ? origin
         : origin?.querySelector<HTMLElement>("button, a[href], [tabindex]")
           ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    }
+    // Include the source's visibility in the native modal's first style/layout flush.
+    if (origin) origin.style.visibility = "hidden";
+    delete dialog.dataset.settled;
+    openDialogs.add(dialog);
+    document.documentElement.classList.add("glass-dialog-open");
+    if (!dialog.open) {
       try {
         dialog.showModal();
       } catch (error) {
         releaseScrollLock(dialog);
+        if (origin) origin.style.visibility = "";
         throw error;
       }
     }
     current.origin = origin;
     current.closing = false;
-    if (origin) origin.style.visibility = "hidden";
   }, []);
 
   const run = useCallback((animations: Animation[]) => {
