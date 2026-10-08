@@ -5,23 +5,30 @@ import { GlassSurface } from "../ui/GlassSurface";
 import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, useMorphDialog, type Box } from "../ui/glassMorph";
 import { fullGlass } from "../ui/glassQuality";
 import { lensMap } from "../ui/lensMap";
+import { preparePreview } from "../ui/ImageLightbox";
 import "../../styles/glass-dialog.css";
 
 type Selection = { project: ShowcaseItem; origin: HTMLElement | null };
 
 // Memoised so opening or closing the dialog does not re-render every glass card.
 const ProjectCard = memo(function ProjectCard({ item, onOpen }: { item: ShowcaseItem; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
+  const prepare = () => { void preparePreview(item.detailSources?.src ?? item.detailImage); };
   return (
     <article className="showcase-card">
       <button
         className="showcase-image"
         type="button"
+        onPointerEnter={prepare}
+        onFocus={prepare}
+        onPointerDown={prepare}
         onClick={(event) => onOpen(item, event.currentTarget.closest<HTMLElement>(".showcase-card"))}
         aria-label={`Open project: ${item.title}`}
         aria-haspopup="dialog"
         data-fit={item.imageFit || "cover"}
       >
-        <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
+        <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet}
+          sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 740px) min(480px, calc(100vw - 48px)), (max-width: 920px) calc((100vw - 96px) / 3), min(358px, calc((100vw - 136px) / 3))"
+          alt={item.title} loading="lazy" decoding="async" />
       </button>
       <div className="showcase-overlay" aria-hidden="true">
         <GlassSurface material="overlay" className="showcase-glass" tone={item.id === "lego-bus" ? "dark" : "light"}>
@@ -126,7 +133,9 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
                 </button>
               </header>
               <p>{project.body}</p>
-              <img className="project-detail-image" src={project.detailImage} alt={project.title} />
+              <img className="project-detail-image" src={project.detailSources?.src ?? project.detailImage}
+                srcSet={project.detailSources?.srcSet} width={project.detailSources?.width} height={project.detailSources?.height}
+                style={{ height: "auto" }} alt={project.title} />
               {project.video && <div className="video-frame">
                 <iframe src={project.video} title={`${project.title} video`} loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />

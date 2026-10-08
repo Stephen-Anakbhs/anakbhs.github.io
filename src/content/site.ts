@@ -40,6 +40,30 @@ export type PublicationAuthor = {
   corresponding?: boolean;
 };
 
+export type ImageSources = { src: string; srcSet?: string; width?: number; height?: number };
+
+export type PublicationPreview = {
+  width: number;
+  height: number;
+  thumb: string;
+  thumbSrcSet?: string;
+  full: string;
+  avifThumb?: string;
+  avifFull?: string;
+};
+
+const publicationImages = (name: string, width: number, height: number, thumbWidths: [number, number], largeThumb = false): PublicationPreview => ({
+  width, height,
+  thumb: `/media/derived/${name}.thumb-${largeThumb ? 880 : 640}.webp`,
+  thumbSrcSet: largeThumb ? undefined : `/media/derived/${name}.thumb-640.webp ${thumbWidths[0]}w, /media/derived/${name}.thumb-880.webp ${thumbWidths[1]}w`,
+  full: `/media/derived/${name}.full.webp`,
+});
+
+const logoImages = (name: string): ImageSources => ({
+  src: `/media/derived/${name}.logo-2x.webp`,
+  srcSet: `/media/derived/${name}.logo-2x.webp 2x, /media/derived/${name}.logo-3x.webp 3x`,
+});
+
 export type Publication = {
   id: string;
   title: string;
@@ -48,6 +72,7 @@ export type Publication = {
   year?: string;
   award?: string;
   image: string;
+  preview?: PublicationPreview;
   selected?: boolean;
   links?: { label: string; href: string }[];
 };
@@ -58,8 +83,10 @@ export type ShowcaseItem = {
   summary: string;
   body: string;
   image: string;
+  imageSources?: ImageSources;
   imageFit?: "cover" | "contain";
   detailImage: string;
+  detailSources?: ImageSources;
   video?: string;
   href?: string;
 };
@@ -70,6 +97,7 @@ export type Membership = {
   period: string;
   body: string;
   logo?: string;
+  logoSources?: ImageSources;
   links: { label: string; href: string }[];
 };
 
@@ -78,6 +106,7 @@ export type CareerEntry = {
   institution: string;
   href: string;
   logo: string;
+  logoSources?: ImageSources;
   role: string;
   group: string;
   groupHref?: string;
@@ -162,6 +191,7 @@ export const site = {
       institution: "Tsinghua University",
       href: "https://air.tsinghua.edu.cn/en/",
       logo: "/media/logos/tsinghua-air-transparent-hq.webp",
+      logoSources: logoImages("tsinghua-air-transparent-hq"),
       role: "Research Assistant",
       group: "Institute for AI Industry Research, DISCOVER Lab",
       groupHref: "https://www.discover-lab.com/",
@@ -173,6 +203,7 @@ export const site = {
       institution: "Macau University of Science and Technology",
       href: "https://www.must.edu.mo/",
       logo: "/media/logos/must-highres.png",
+      logoSources: logoImages("must-highres"),
       role: "Research Assistant",
       group: "Phase-Field & Computational Fluid Dynamics Team",
       groupHref: "https://cfdyang521.github.io/",
@@ -186,6 +217,7 @@ export const site = {
       institution: "Macau University of Science and Technology",
       href: "https://www.must.edu.mo/",
       logo: "/media/logos/must-highres.png",
+      logoSources: logoImages("must-highres"),
       role: "B.Sc. in Computer Science",
       group: "Faculty of Innovation Engineering",
       groupHref: "https://fie.must.edu.mo/",
@@ -275,7 +307,8 @@ export const site = {
       title: "3D volume reconstruction based on a phase-field model with high-order polynomials free energy",
       authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "ACM Transactions on Graphics (TOG), under review",
-      image: "/media/pub-high-order-tog.png"
+      image: "/media/pub-high-order-tog.png",
+      preview: publicationImages("pub-high-order-tog", 3180, 976, [632, 896], true)
     },
     {
       id: "BBA",
@@ -289,6 +322,7 @@ export const site = {
       ],
       venue: "In submission",
       image: "/media/pub-brick-but-agile-transparent.webp",
+      preview: publicationImages("pub-brick-but-agile-transparent", 2703, 870, [640, 873]),
       selected: true
     },
     {
@@ -303,6 +337,7 @@ export const site = {
       ],
       venue: "In submission",
       image: "/media/pub-gesturefuse-transparent.webp",
+      preview: publicationImages("pub-gesturefuse-transparent", 3163, 1487, [636, 887]),
       selected: true
     },
     {
@@ -317,6 +352,7 @@ export const site = {
       ],
       venue: "In submission",
       image: "/media/pub-marscanon-transparent.webp",
+      preview: publicationImages("pub-marscanon-transparent", 3519, 2153, [626, 881]),
       selected: true
     },
     {
@@ -331,6 +367,7 @@ export const site = {
       year: "2026",
       award: "Outstanding Student Paper",
       image: "/media/pub-rsc-gesturenet-transparent.webp",
+      preview: publicationImages("pub-rsc-gesturenet-transparent", 5643, 2397, [638, 864]),
       selected: true,
       links: [
         { label: "Paper", href: "https://arxiv.org/pdf/2608.02200" },
@@ -358,6 +395,7 @@ export const site = {
       venue: "Communications in Nonlinear Science and Numerical Simulation (CNSNS), vol. 143, 108649",
       year: "2025",
       image: "/media/pub-two-lower-bounds.png",
+      preview: publicationImages("pub-two-lower-bounds", 2153, 1604, [651, 894]),
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.108649" }]
     },
     {
@@ -367,6 +405,7 @@ export const site = {
       venue: "Engineering with Computers",
       year: "2025",
       image: "/media/pub-shape-transformation-flow.png",
+      preview: publicationImages("pub-shape-transformation-flow", 1550, 1411, [647, 881]),
       selected: true,
       links: [{ label: "Paper", href: "https://doi.org/10.1007/s00366-025-02215-y" }]
     },
@@ -377,6 +416,7 @@ export const site = {
       venue: "Computers & Mathematics with Applications (CAMWA), vol. 189, pp. 1-23",
       year: "2025",
       image: "/media/pub-shell-bdf2.png",
+      preview: publicationImages("pub-shell-bdf2", 1404, 831, [642, 936], true),
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.camwa.2025.03.022" }]
     },
     {
@@ -386,6 +426,7 @@ export const site = {
       venue: "Communications in Nonlinear Science and Numerical Simulation (CNSNS), vol. 151, 109104",
       year: "2025",
       image: "/media/pub-leapfrog-reconstruction.png",
+      preview: publicationImages("pub-leapfrog-reconstruction", 1401, 717, [635, 891]),
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.109104" }]
     },
     {
@@ -403,6 +444,7 @@ export const site = {
       year: "2026",
       image: "/media/lc4dvit.png",
       selected: true,
+      preview: publicationImages("lc4dvit", 2901, 1347, [631, 883]),
       links: [
         { label: "Website", href: "https://charlescsyyy.github.io/LC4-DViT/" },
         { label: "Paper", href: "https://arxiv.org/pdf/2511.22812" },
@@ -423,6 +465,7 @@ export const site = {
       venue: "IEEE International Geoscience and Remote Sensing Symposium (IGARSS)",
       year: "2026",
       image: "/media/pub-mvt-transparent.webp",
+      preview: publicationImages("pub-mvt-transparent", 4139, 1314, [630, 882]),
       selected: true,
       links: [
         { label: "Website", href: "https://charlescsyyy.github.io/MVT/" },
@@ -439,7 +482,9 @@ export const site = {
       body:
         "A 1:20 Macau bus built from 4,000+ LEGO pieces, with rear drive, front steering, three inward-swinging doors, kneeling suspension, route sign replacement, and phone-based Bluetooth control.",
       image: "/media/hero-bus.jpg",
+      imageSources: { src: "/media/derived/hero-bus.thumb-640.webp", srcSet: "/media/derived/hero-bus.thumb-640.webp 641w, /media/derived/hero-bus.thumb-960.webp 976w" },
       detailImage: "/media/lego-bus-collage.png",
+      detailSources: { src: "/media/derived/lego-bus-collage.full.webp", width: 2020, height: 1482 },
       video: "https://www.youtube.com/embed/_EOPROm5bpk?start=178",
       href: "https://www.youtube.com/watch?v=_EOPROm5bpk&t=178s"
     },
@@ -449,8 +494,10 @@ export const site = {
       summary: "A five-link robot prototype built at Tsinghua AIR.",
       body: "A desktop five-link wheel-legged prototype built with LEGO frames, custom adapters, PCB integration, and closed-loop balance control.",
       image: "/media/project-wheel.png",
+      imageSources: { src: "/media/derived/project-wheel.thumb-640.webp" },
       imageFit: "contain",
-      detailImage: "/media/wheel-robot.png"
+      detailImage: "/media/wheel-robot.png",
+      detailSources: { src: "/media/derived/wheel-robot.full.webp", width: 1045, height: 615 }
     },
     {
       id: "dexterous-hand",
@@ -458,14 +505,17 @@ export const site = {
       summary: "A compact, modular hand for education and research.",
       body: "Brick But Agile is a compact anthropomorphic LEGO dexterous hand with detachable finger modules and tendon-driven actuation. The project explores accessible robotic hardware, visual teleoperation, and tool use.",
       image: "/media/project-hand.png",
+      imageSources: { src: "/media/derived/project-hand.thumb-640.webp", srcSet: "/media/derived/project-hand.thumb-640.webp 654w, /media/derived/project-hand.thumb-960.webp 707w" },
       imageFit: "contain",
-      detailImage: "/media/pub-brick-but-agile.png"
+      detailImage: "/media/pub-brick-but-agile.png",
+      detailSources: { src: "/media/derived/pub-brick-but-agile.full.webp", width: 1600, height: 510 }
     }
   ] satisfies ShowcaseItem[],
   memberships: [
     {
       title: "乐构英雄会 / Heroes Club LUG",
       logo: "/media/logos/heroes-club-cutout.png",
+      logoSources: logoImages("heroes-club-cutout"),
       subtitle: "Recognized LEGO User Group, Shanghai",
       period: "Dec. 2022 - Present",
       links: [
@@ -478,6 +528,7 @@ export const site = {
     {
       title: "福乐方块 / FULLBRICK LUG",
       logo: "/media/logos/fullbrick-transparent.png",
+      logoSources: logoImages("fullbrick-transparent"),
       subtitle: "Recognized LEGO User Group, Fujian",
       period: "Dec. 2021 - Present",
       links: [{ label: "LEGO community directory", href: "https://fancolab.lego.com/communities" }],

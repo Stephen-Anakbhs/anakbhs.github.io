@@ -7,7 +7,7 @@ export function MembershipList({ items }: { items: Membership[] }) {
     <div className="membership-list">
       {items.map((item) => (
         <article className={`membership-entry${item.logo ? " has-logo" : ""}`} key={item.title}>
-          {item.logo && <GlassSurface material="logo" className="membership-logo-glass"><img className="membership-logo" src={item.logo} alt={`${item.title} logo`} loading="lazy" /></GlassSurface>}
+          {item.logo && <GlassSurface material="logo" className="membership-logo-glass"><img className="membership-logo" src={item.logoSources?.src ?? item.logo} srcSet={item.logoSources?.srcSet} alt={`${item.title} logo`} loading="lazy" decoding="async" /></GlassSurface>}
           <div>
             <div className="membership-heading">
               <h3>{item.title}</h3>

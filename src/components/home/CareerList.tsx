@@ -8,7 +8,7 @@ export function CareerList({ items }: { items: CareerEntry[] }) {
         <article className="career-entry" key={item.institution}>
           <GlassSurface material="logo" className="career-logo-glass">
           <a className="career-logo" href={item.groupHref || item.href} target="_blank" rel="noopener noreferrer" aria-label={item.group || item.institution}>
-            <img src={item.logo} alt={`${item.institution} logo`} loading="lazy" />
+            <img src={item.logoSources?.src ?? item.logo} srcSet={item.logoSources?.srcSet} alt={`${item.institution} logo`} loading="lazy" decoding="async" />
           </a>
           </GlassSurface>
           <div className="career-copy">

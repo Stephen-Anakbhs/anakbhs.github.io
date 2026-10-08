@@ -2,7 +2,7 @@ import { memo, useCallback, useState } from "react";
 import { Code2, ExternalLink, FileText, Globe, Star } from "lucide-react";
 import type { Publication, PublicationAuthor } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
-import { ImageLightbox, type PreviewImage } from "../ui/ImageLightbox";
+import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
 
 function Authors({ authors }: { authors: PublicationAuthor[] }) {
   return (
@@ -27,6 +27,8 @@ type OpenPreview = (preview: PreviewImage) => void;
 // Memoised so opening or closing the lightbox does not re-render every glass surface.
 const PublicationItem = memo(function PublicationItem({ publication, Heading, onPreview }: { publication: Publication; Heading: HeadingTag; onPreview: OpenPreview }) {
   const primaryLink = publication.links?.find((link) => link.label === "Website" || link.label === "Paper");
+  const image = publication.preview;
+  const prepare = () => { if (image && !image.avifFull) void preparePreview(image.full); };
   return (
     <article className="publication-item" data-publication-id={publication.id}>
       <GlassSurface material="media" className="publication-media">
@@ -34,9 +36,30 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           className="publication-thumbnail"
           type="button"
           aria-label={`Enlarge image: ${publication.title}`}
-          onClick={(event) => onPreview({ src: publication.image, alt: publication.title, origin: event.currentTarget.closest<HTMLElement>(".publication-media") })}
+          onPointerEnter={prepare}
+          onFocus={prepare}
+          onPointerDown={prepare}
+          onClick={(event) => onPreview({
+            src: image?.full ?? publication.image,
+            avif: image?.avifFull,
+            thumbnail: event.currentTarget.querySelector("img")?.currentSrc,
+            natural: image ? { width: image.width, height: image.height } : undefined,
+            alt: publication.title,
+            origin: event.currentTarget.closest<HTMLElement>(".publication-media"),
+          })}
         >
-          <img src={publication.image} alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" />
+          <picture>
+            {image?.avifThumb && <source type="image/avif" srcSet={image.avifThumb} />}
+            <img src={image?.thumb ?? publication.image} srcSet={image?.thumbSrcSet}
+              sizes="(max-width: 640px) calc(100vw - 64px), (max-width: 740px) min(416px, calc(100vw - 72px)), 276px"
+              style={image ? {
+                inset: "auto", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+                width: image.width / image.height >= 504 / 300 ? "100%" : "auto",
+                height: image.width / image.height >= 504 / 300 ? "auto" : "100%",
+                aspectRatio: `${image.width} / ${image.height}`, objectFit: "fill"
+              } : undefined}
+              alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" />
+          </picture>
         </button>
       </GlassSurface>
       <div className="publication-info">
