@@ -151,9 +151,11 @@ export function Hero() {
     window.addEventListener('pageshow', refreshVisibility);
     window.addEventListener('pointerdown', refreshVisibility, { passive: true });
     // Some mobile hosts never settle play(); measure progress, not just a resolved promise.
+    // A slow download is not a blocked host: keep waiting while the browser is still fetching playable data.
     const watchdog = window.setInterval(() => {
       const now = performance.now();
-      if (!shouldPlay() || Math.abs(video.currentTime - lastTime) > 0.01) lastProgress = now;
+      const buffering = video.networkState === video.NETWORK_LOADING && video.readyState < video.HAVE_FUTURE_DATA;
+      if (!shouldPlay() || buffering || Math.abs(video.currentTime - lastTime) > 0.01) lastProgress = now;
       lastTime = video.currentTime;
       if (shouldPlay() && now - lastProgress >= 4000) setFallbackReason('no-frame-progress');
     }, 500);
