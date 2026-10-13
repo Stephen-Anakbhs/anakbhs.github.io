@@ -601,8 +601,9 @@ textarea {
 .career-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
 .career-heading h3 { flex: 1 1 320px; }
 .career-date { flex-shrink: 0; margin-bottom: 8px; }
-.career-copy a { text-decoration: underline; text-decoration-color: #bcc3c7; text-underline-offset: 4px; }
-.career-copy a:hover { text-decoration-color: currentColor; }
+.career-copy a, .about-copy > p a { text-decoration: underline; text-decoration-color: #bcc3c7; text-underline-offset: 4px; }
+.career-copy a:hover, .about-copy > p a:hover { text-decoration-color: currentColor; }
+.about-copy > p strong { color: var(--text); }
 .career-heading a { text-decoration: none; }
 .career-heading a:hover { text-decoration: underline; }
 .career-mentors { color: var(--muted); }
@@ -689,6 +690,14 @@ textarea {
 .awards-list a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.inline-emoji {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin-left: 0.2em;
+  vertical-align: -0.2em;
 }
 
 .awards-list p {
@@ -820,16 +829,9 @@ textarea {
 .publication-info .publication-venue { font-size: var(--type-callout); }
 
 .publication-info .publication-award {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  color: #167d61;
+  color: #866413;
   font-style: italic;
   font-weight: 600;
-}
-
-.publication-award svg {
-  flex-shrink: 0;
 }
 
 .publication-links {

@@ -34,6 +34,14 @@ export type FeatureItem = {
   icon: LucideIcon;
 };
 
+export type InlineLink = { label: string; href: string };
+export type InlineContent = (string | InlineLink | { emoji: string })[];
+
+export type AboutParagraph = {
+  title?: string;
+  text: InlineContent;
+};
+
 export type PublicationAuthor = {
   name: string;
   equalContribution?: boolean;
@@ -116,6 +124,11 @@ export type CareerEntry = {
 
 const scholarProfile = "https://scholar.google.com/citations?user=qM5-vjQAAAAJ&hl=zh-CN&oi=sra";
 
+export const emoji = {
+  medal: "/media/icons/emoji-1st-place-medal.svg",
+  trophy: "/media/icons/emoji-trophy.svg"
+};
+
 export const site = {
   name: "Renjun Gao",
   shortName: "Renjun Gao",
@@ -151,17 +164,42 @@ export const site = {
     { label: "YouTube", href: "https://www.youtube.com/@anakbhs2782", icon: "/media/icons/youtube.svg" },
     { label: "Email", href: "mailto:renjgao@gmail.com", icon: Mail }
   ] satisfies SocialItem[],
-  about: {
-    introduction: "I'm Renjun Gao (高仁俊), a computer science graduate from Macau University of Science and Technology.",
-    interests: "My research interests are robot learning, dexterous manipulation, and whole-body control, with a focus on the interaction between mechanical design and control.",
-    background: "I have worked on humanoid teleoperation at USC, robot prototyping at Tsinghua AIR, phase-field methods for 3D reconstruction at MUST, and remote-sensing vision at HKUST.",
-    personal: "Outside of research, I design LEGO mechanisms and build working models, from a fully motorized Macau bus to compact dexterous hands."
-  },
+  about: [
+    {
+      text: ["I'm Renjun (Stephen) Gao (高仁俊). I'm passionate about robotics, and I'm a professional LEGO Technic MOC (My Own Creation) designer in China. Both come from the same place: I love making things move."]
+    },
+    {
+      text: [
+        "I obtained a B.S. in Computer Science from Macau University of Science and Technology (MUST) in 2026 as one of two ",
+        { label: "President's Gold Medalists", href: "https://2026-congregation.must.edu.mo/page/award-president.html?locale=en_US" },
+        " among about 3,000 graduates. I've been fortunate to be advised by ",
+        { label: "Prof. Yue Wang", href: "https://yuewang.xyz/" },
+        " at USC on humanoid whole-body control and teleoperation, ",
+        { label: "Prof. Guyue Zhou", href: "https://air.tsinghua.edu.cn/en/info/1046/1196.htm" },
+        " at Tsinghua AIR on LEGO-based robot design and control, and ",
+        { label: "Prof. Junxiang Yang", href: "https://cfdyang521.github.io/" },
+        " at MUST on energy-stable phase-field methods for 3D reconstruction."
+      ]
+    },
+    {
+      title: "Robots:",
+      text: ["I want to build robots that can do useful things in the real world. A robot's behavior depends on its body as much as its algorithms, so I want to design its mechanism, control, and learning together."]
+    },
+    {
+      title: "LEGO:",
+      text: [
+        "My motorized ",
+        { label: "Macau 51A bus", href: "https://www.youtube.com/watch?v=_EOPROm5bpk" },
+        " has been exhibited at three China AFOL Festivals, and my LEGO dexterous hand, Brick But Agile, won the Award for Best Technic at the 8th. Today's AI can already generate LEGO models, but it still falls far short of human designers in buildability, part usage, and building techniques. I want to close this gap with a next-generation LEGO generator that designs like an experienced builder and can create models that truly move."
+      ]
+    }
+  ] satisfies AboutParagraph[],
   news: [
-    { date: "May 2026", text: "I won the President's Gold Medal at MUST (2 of ~3,000 graduates; top ~0.067%).", href: "#awards", label: "Award" },
-    { date: "2026", text: "Brick But Agile, GestureFuse, and MarsCanon are in submission.", href: "#publications", label: "Publications" },
-    { date: "Aug. 2026", text: "RSC-GestureNet won an Outstanding Student Paper Award at PRCV 2026.", href: "https://arxiv.org/abs/2608.02200", label: "Paper" },
-    { date: "2026", text: "LC4-DViT and MVT were accepted to IGARSS 2026. LC4-DViT was named a Best Student Paper Finalist.", href: "https://charlescsyyy.github.io/LC4-DViT/", label: "Project" },
+    { date: "Aug. 2026", text: ["Brick But Agile won the Award for Best Technic", { emoji: emoji.trophy }, " at the 8th China AFOL Festival."], href: "#projects", label: "Project" },
+    { date: "Aug. 2026", text: ["RSC-GestureNet won an Outstanding Student Paper Award", { emoji: emoji.trophy }, " at PRCV 2026."], href: "https://arxiv.org/abs/2608.02200", label: "Paper" },
+    { date: "Jun. 2026", text: "I spoke on behalf of the graduates at the Faculty of Innovation Engineering's 2026 graduation ceremony, where I also received the First-Class Honors sash.", href: "https://www.must.edu.mo/id-13630/article/view/id-41205.html?locale=zh_MO", label: "News" },
+    { date: "May 2026", text: ["I won the President's Gold Medal", { emoji: emoji.medal }, " at MUST (2 of ~3,000 graduates; top ~0.067%)."], href: "https://2026-congregation.must.edu.mo/page/award-president.html?locale=en_US", label: "Award" },
+    { date: "Mar. 2026", text: "LC4-DViT and MVT were accepted to IGARSS 2026. LC4-DViT was named a Best Student Paper Finalist.", href: "https://charlescsyyy.github.io/LC4-DViT/", label: "Project" },
     { date: "2026", text: "Our paper on energy-stable 3D narrow-volume reconstruction was published in Computers & Mathematics with Applications.", href: "https://doi.org/10.1016/j.camwa.2025.11.009", label: "Paper" }
   ],
   experience: [
@@ -225,15 +263,19 @@ export const site = {
     }
   ] satisfies CareerEntry[],
   awards: [
-    { date: "Aug. 2026", lead: "RSC-GestureNet won an", title: "Outstanding Student Paper Award", detail: "at PRCV 2026." },
-    { date: "May 2026", lead: "Awarded the", title: "President's Gold Medal", detail: "at MUST (2 of ~3,000 graduates; top ~0.067%)." },
+    { date: "Sep. 2026", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
+    { date: "Aug. 2026", lead: "RSC-GestureNet won an", title: "Outstanding Student Paper Award", detail: "at PRCV 2026.", emoji: emoji.trophy },
+    { date: "Aug. 2026", lead: "Brick But Agile won the", title: "Award for Best Technic", detail: "at the 8th China AFOL Festival.", emoji: emoji.trophy },
+    { date: "May 2026", lead: "Won the", title: "President's Gold Medal", detail: "at MUST (2 of ~3,000 graduates; top ~0.067%).", href: "https://2026-congregation.must.edu.mo/page/award-president.html?locale=en_US", emoji: emoji.medal },
     { date: "Mar. 2026", lead: "LC4-DViT was named a", title: "Best Student Paper Finalist", detail: "at IGARSS 2026." },
     { date: "Nov. 2025", lead: "Awarded the", title: "Henry Fok Foundation Scholarship", detail: "at MUST." },
-    { date: "Sep. 2025", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
+    { date: "Sep. 2025", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship." },
     { date: "Dec. 2024", lead: "Received the", title: "IET Prize", detail: "from IET Hong Kong.", href: "https://fie.must.edu.mo/news/article/view/id-32132.html?locale=en_US" },
     { date: "Nov. 2024", lead: "Awarded the", title: "Henry Fok Foundation Scholarship", detail: "at MUST." },
     { date: "Nov. 2024", lead: "Won", title: "Second Prize", detail: "in the national CUMCM.", href: "https://fie.must.edu.mo/news/article/view/id-32681.html?locale=en_US" },
     { date: "Sep. 2024", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
+    { date: "Apr. 2024", lead: "Won", title: "First Prize", detail: "in the IEEE-MUST Spring Cup Programming Invitational." },
+    { date: "Apr. 2024", lead: "Won the", title: "Excellence Award", detail: "in the MUST Business Innovation Competition." },
     { date: "Nov. 2023", lead: "Awarded the", title: "O Man Cheong Scholarship", detail: "at MUST." },
     { date: "Sep. 2023", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
     { date: "Jul. 2023", lead: "Won the", title: "Best Group Presentation Award", detail: "at HKU Summer Institute." }

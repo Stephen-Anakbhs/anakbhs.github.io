@@ -6,6 +6,7 @@ import { Hero } from "../components/home/Hero";
 import { MembershipList } from "../components/home/MembershipList";
 import { ProjectGallery } from "../components/portfolio/ProjectGallery";
 import { PublicationList } from "../components/research/PublicationList";
+import { Emoji, InlineText } from "../components/ui/InlineText";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { site } from "../content/site";
 
@@ -22,10 +23,10 @@ export function HomePage() {
         <SectionHeading title="News" />
         <ul className="news-list">
           {site.news.map((item) => (
-            <li key={item.text}>
+            <li key={`${item.date}-${item.href}`}>
               <span className="news-date">{item.date}</span>
               <p>
-                {item.text}{" "}
+                <InlineText parts={typeof item.text === "string" ? [item.text] : item.text} />{" "}
                 <a href={item.href} {...(item.href.startsWith("#") ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
                   {item.label}<ArrowUpRight size={14} aria-hidden="true" />
                 </a>
@@ -69,7 +70,8 @@ export function HomePage() {
               <span className="award-date">{award.date}</span>
               <p>
                 {award.lead}{" "}
-                <strong>{"href" in award ? <a href={award.href} target="_blank" rel="noopener noreferrer">{award.title}</a> : award.title}</strong>{" "}
+                <strong>{"href" in award ? <a href={award.href} target="_blank" rel="noopener noreferrer">{award.title}</a> : award.title}</strong>
+                {award.emoji && <Emoji src={award.emoji} />}{" "}
                 {award.detail}
               </p>
             </li>

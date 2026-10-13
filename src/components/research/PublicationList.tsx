@@ -1,7 +1,8 @@
 import { memo, useCallback, useState } from "react";
-import { Code2, ExternalLink, FileText, Globe, Star } from "lucide-react";
-import type { Publication, PublicationAuthor } from "../../content/site";
+import { Code2, ExternalLink, FileText, Globe } from "lucide-react";
+import { emoji, type Publication, type PublicationAuthor } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
+import { Emoji } from "../ui/InlineText";
 import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
 
 // Apple WebKit advertises AVIF but can lose animated alpha (WebKit bug 275906).
@@ -76,11 +77,7 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
         <p className="publication-authors"><Authors authors={publication.authors} /></p>
         <p className="publication-venue"><em>{publication.venue}</em>{publication.year && <> · {publication.year}</>}</p>
         {publication.award && (
-          <p className="publication-award">
-            <Star size={19} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-            <span>{publication.award}</span>
-            <Star size={19} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-          </p>
+          <p className="publication-award">{publication.award}<Emoji src={emoji.trophy} /></p>
         )}
         {!!publication.links?.length && <div className="publication-links">
           {publication.links.map((link) => {

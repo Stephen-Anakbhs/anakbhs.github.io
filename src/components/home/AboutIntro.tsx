@@ -1,6 +1,7 @@
 import { site } from "../../content/site";
 import { GlassIconLink } from "../ui/GlassIconLink";
 import { GlassSurface } from "../ui/GlassSurface";
+import { InlineText } from "../ui/InlineText";
 import { SectionHeading } from "../ui/SectionHeading";
 
 export function AboutIntro() {
@@ -8,9 +9,12 @@ export function AboutIntro() {
     <>
       <div className="about-copy">
         <SectionHeading title="About Me" />
-        <p>{site.about.introduction} {site.about.interests}</p>
-        <p>{site.about.background}</p>
-        <p>{site.about.personal}</p>
+        {site.about.map((paragraph, index) => (
+          <p key={index}>
+            {paragraph.title && <><strong>{paragraph.title}</strong>{" "}</>}
+            <InlineText parts={paragraph.text} />
+          </p>
+        ))}
         <div className="social-row">
           {site.socials.map((item) => <GlassIconLink key={item.label} {...item} />)}
         </div>

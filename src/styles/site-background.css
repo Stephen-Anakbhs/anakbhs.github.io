@@ -58,7 +58,7 @@ html body:has(.site-backdrop) { background: transparent; }
 
 .site-shell .publication-legend span { color: var(--dim); }
 .site-shell .publication-item { border-color: var(--line); }
-.site-shell .publication-info .publication-award { color: #23644d; }
+.site-shell .publication-info .publication-award { color: #77540d; }
 .site-shell .awards-list .award-gold strong { color: #77540d; }
 
 .site-shell .showcase-overlay {
