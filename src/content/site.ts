@@ -345,14 +345,6 @@ export const site = {
   ],
   publications: [
     {
-      id: "TOG",
-      title: "3D volume reconstruction based on a phase-field model with high-order polynomials free energy",
-      authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
-      venue: "ACM Transactions on Graphics (TOG), under review",
-      image: "/media/pub-high-order-tog.png",
-      preview: publicationImages("pub-high-order-tog", 3180, 976, [632, 896], true)
-    },
-    {
       id: "BBA",
       title: "Brick But Agile: A Compact, Modular Anthropomorphic LEGO\u00ae Dexterous Hand for Education and Research",
       authors: [
@@ -364,7 +356,7 @@ export const site = {
       ],
       venue: "In submission",
       image: "/media/pub-brick-but-agile-transparent.webp",
-      preview: publicationImages("pub-brick-but-agile-transparent", 2703, 870, [640, 873]),
+      preview: publicationImages("pub-brick-but-agile-transparent", 2703, 886, [656, 894]),
       selected: true
     },
     {
@@ -417,6 +409,15 @@ export const site = {
       ]
     },
     {
+      id: "TOG",
+      title: "3D volume reconstruction based on a phase-field model with high-order polynomials free energy",
+      authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
+      venue: "ACM Transactions on Graphics (TOG), under review",
+      image: "/media/pub-high-order-tog.png",
+      preview: publicationImages("pub-high-order-tog", 3180, 976, [632, 896], true),
+      selected: true
+    },
+    {
       id: "P1",
       title:
         "Three-dimensional narrow volume reconstruction method with unconditional stability based on a phase-field Lagrange multiplier approach",
@@ -445,6 +446,7 @@ export const site = {
       year: "2025",
       image: "/media/pub-two-lower-bounds.png",
       preview: publicationImages("pub-two-lower-bounds", 2153, 1604, [651, 894]),
+      selected: true,
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.108649" }]
     },
     {
@@ -493,7 +495,7 @@ export const site = {
       year: "2026",
       image: "/media/lc4dvit.png",
       selected: true,
-      preview: publicationImages("lc4dvit", 2901, 1347, [631, 883]),
+      preview: publicationImages("lc4dvit", 2590, 1224, [656, 876]),
       links: [
         { label: "Website", href: "https://charlescsyyy.github.io/LC4-DViT/" },
         { label: "Paper", href: "https://arxiv.org/pdf/2511.22812" },
@@ -515,7 +517,6 @@ export const site = {
       year: "2026",
       image: "/media/pub-mvt-transparent.webp",
       preview: publicationImages("pub-mvt-transparent", 4139, 1314, [630, 882]),
-      selected: true,
       links: [
         { label: "Website", href: "https://charlescsyyy.github.io/MVT/" },
         { label: "Paper", href: "https://arxiv.org/pdf/2509.18693" },

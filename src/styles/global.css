@@ -786,7 +786,7 @@ textarea {
   cursor: zoom-in;
 }
 
-:is([data-publication-id="P1"], [data-publication-id="BBA"], [data-publication-id="GF"], [data-publication-id="MC"], [data-publication-id="RSC"], [data-publication-id="P7"]) .publication-thumbnail {
+:is([data-publication-id="P1"], [data-publication-id="BBA"], [data-publication-id="GF"], [data-publication-id="MC"], [data-publication-id="RSC"], [data-publication-id="P6"], [data-publication-id="P7"]) .publication-thumbnail {
   background: transparent;
 }
 
