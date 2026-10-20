@@ -461,8 +461,14 @@ export const site = {
       authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "Engineering with Computers",
       year: "2025",
-      image: "/media/pub-shape-transformation-flow.png",
-      preview: publicationImages("pub-shape-transformation-flow", 1550, 1411, [647, 881]),
+      image: "/media/derived/pub-shape-transformation-sequence.full.webp",
+      preview: {
+        width: 1440, height: 720,
+        thumb: "/media/derived/pub-shape-transformation-sequence.thumb.webp",
+        full: "/media/derived/pub-shape-transformation-sequence.full.webp",
+        avifThumb: "/media/derived/pub-shape-transformation-sequence.thumb.avif",
+        avifFull: "/media/derived/pub-shape-transformation-sequence.full.avif"
+      },
       selected: true,
       links: [{ label: "Paper", href: "https://doi.org/10.1007/s00366-025-02215-y" }]
     },
