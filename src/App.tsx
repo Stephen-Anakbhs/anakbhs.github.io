@@ -1,6 +1,7 @@
-import { lazy, Suspense, useLayoutEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SiteShell } from "./components/layout/SiteShell";
+import { trackPageView } from "./lib/visits";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const ResearchPage = lazy(() => import("./pages/ResearchPage").then((module) => ({ default: module.ResearchPage })));
@@ -21,9 +22,17 @@ function ScrollPosition() {
   return null;
 }
 
+// One private visitor-log beacon per route (live domain only).
+function VisitTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => { trackPageView(pathname); }, [pathname]);
+  return null;
+}
+
 export function App() {
   return (
     <SiteShell>
+      <VisitTracker />
       <Suspense fallback={<main className="subpage route-loading" id="main-content" tabIndex={-1}><p role="status">Loading page...</p></main>}>
         <Routes>
           <Route path="/" element={<HomePage />} />
