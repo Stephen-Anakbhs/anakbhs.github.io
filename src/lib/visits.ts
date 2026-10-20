@@ -1,7 +1,7 @@
 // One beacon per page view to the private visitor log (Cloudflare Worker, see HANDOFF.md), plus the
 // visible time on that page when it is left. Only on the live domain, so local runs and tests are not logged.
 // Open https://renjun.one/?me once in a browser to mark it as the owner's (hidden in the log by default).
-const ENDPOINT = "https://renjun-visitors.renjun-visitors.workers.dev/v";
+const ENDPOINT = "https://stats.renjun.one/v"; // custom domain, so the beacon also works from mainland China
 const LIVE_HOSTS = new Set(["renjun.one", "www.renjun.one"]);
 
 type View = { pid: string; visibleSince: number | null; visibleMs: number };
