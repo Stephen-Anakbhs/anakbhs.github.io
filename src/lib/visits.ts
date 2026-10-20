@@ -15,7 +15,7 @@ const SCROLL_MARKS = [25, 50, 75, 90, 100];
 type Ev = { t: number; type: string; target?: string; label?: string; context?: string; value?: number; extra?: string };
 type Dwell = { kind: string; label: string; ms: number };
 type View = {
-  pid: string; start: number; visibleSince: number | null; visibleMs: number; activeMs: number;
+  pid: string; vid: string; start: number; visibleSince: number | null; visibleMs: number; activeMs: number;
   scroll: number; events: Ev[]; logged: number; errors: number; dwell: Map<string, Dwell>; lastSent: string;
 };
 
@@ -76,7 +76,7 @@ function flush(final = false) {
   const state = `${Math.round(visible / 1000)}|${Math.round(view.activeMs / 1000)}|${view.scroll}`;
   if (!events.length && !dwell.length && state === view.lastSent) return;
   view.lastSent = state;
-  send({ kind: "batch", pid: view.pid, seconds: Math.round(visible / 1000), active: Math.round(view.activeMs / 1000),
+  send({ kind: "batch", pid: view.pid, vid: view.vid, seconds: Math.round(visible / 1000), active: Math.round(view.activeMs / 1000),
     scroll: view.scroll, events, dwell });
 }
 
@@ -314,7 +314,7 @@ export async function trackPageView(path: string) {
       flush(true);
     }
     const now = Date.now();
-    current = { pid: randomId(), start: now, visibleSince: document.visibilityState === "visible" ? now : null, visibleMs: 0,
+    current = { pid: randomId(), vid, start: now, visibleSince: document.visibilityState === "visible" ? now : null, visibleMs: 0,
       activeMs: 0, scroll: 0, events: [], logged: 0, errors: 0, dwell: new Map(), lastSent: "" };
     lastTick = now;
     lastInteraction = now;
