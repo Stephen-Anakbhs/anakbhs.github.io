@@ -108,7 +108,7 @@ try {
       width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height,
     })));
     assert(frames.every(frame => Math.abs(frame.width / frame.height - 504 / 300) < .01));
-    for (const id of ['BBA', 'P1', 'P6']) {
+    for (const id of ['BBA', 'TOG', 'P1', 'P6']) {
       const button = page.locator(`[data-publication-id="${id}"] .publication-thumbnail`);
       await button.click();
       const dialog = page.locator('.image-lightbox[open]');

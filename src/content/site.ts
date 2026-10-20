@@ -413,8 +413,14 @@ export const site = {
       title: "3D volume reconstruction based on a phase-field model with high-order polynomials free energy",
       authors: [{ name: "Sheng Su" }, { name: "Renjun Gao" }, { name: "Dongting Cai" }, { name: "Xiangjie Kong" }, { name: "Junxiang Yang", corresponding: true }],
       venue: "ACM Transactions on Graphics (TOG), under review",
-      image: "/media/pub-high-order-tog.png",
-      preview: publicationImages("pub-high-order-tog", 3180, 976, [632, 896], true),
+      image: "/media/derived/pub-high-order-tog-reconstruction.full.webp",
+      preview: {
+        width: 1440, height: 720,
+        thumb: "/media/derived/pub-high-order-tog-reconstruction.thumb.webp",
+        full: "/media/derived/pub-high-order-tog-reconstruction.full.webp",
+        avifThumb: "/media/derived/pub-high-order-tog-reconstruction.thumb.avif",
+        avifFull: "/media/derived/pub-high-order-tog-reconstruction.full.avif"
+      },
       selected: true
     },
     {
