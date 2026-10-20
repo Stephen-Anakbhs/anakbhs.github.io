@@ -147,7 +147,8 @@ export const site = {
     words: [
       "robot learning.",
       "dexterous manipulation.",
-      "robotic mechanisms."
+      "robotic mechanisms.",
+      "numerical simulation."
     ]
   },
   nav: [
@@ -211,7 +212,7 @@ export const site = {
       role: "Research Assistant",
       group: "Physical Superintelligence Lab",
       groupHref: "https://psi-lab.ai/",
-      mentors: [{ name: "Yue Wang", href: "https://yuewang.xyz/" }],
+      mentors: [{ name: "Prof. Yue Wang", href: "https://yuewang.xyz/" }],
       description: "Humanoid teleoperation and whole-body control for Unitree G1, including motion retargeting, trajectory optimization, weighted inverse kinematics, and Apple Vision Pro sim-to-real deployment."
     },
     {
@@ -221,7 +222,7 @@ export const site = {
       logo: "/media/logos/hkust.svg",
       role: "Research Assistant",
       group: "Remote-sensing research",
-      mentors: [{ name: "Dasa Gu", href: "https://dasagu.people.ust.hk/" }, { name: "Cheng Li", href: "https://github.com/chengli24" }],
+      mentors: [{ name: "Prof. Dasa Gu", href: "https://dasagu.people.ust.hk/" }, { name: "Dr. Cheng Li", href: "https://github.com/chengli24" }],
       description: "Land-cover recognition and vision-language models for remote-sensing imagery, including LC4-DViT and MVT."
     },
     {
@@ -233,7 +234,7 @@ export const site = {
       role: "Research Assistant",
       group: "Institute for AI Industry Research, DISCOVER Lab",
       groupHref: "https://www.discover-lab.com/",
-      mentors: [{ name: "Guyue Zhou", href: "https://air.tsinghua.edu.cn/en/info/1046/1196.htm" }],
+      mentors: [{ name: "Prof. Guyue Zhou", href: "https://air.tsinghua.edu.cn/en/info/1046/1196.htm" }],
       description: "Mechanical design and integration of a LEGO-based wheel-legged robot, with custom motor adapters, ESP32 electronics, IMU state estimation, and low-level stabilization experiments."
     },
     {
@@ -245,7 +246,7 @@ export const site = {
       role: "Research Assistant",
       group: "Phase-Field & Computational Fluid Dynamics Team",
       groupHref: "https://cfdyang521.github.io/",
-      mentors: [{ name: "Junxiang Yang", href: "https://cfdyang521.github.io/" }],
+      mentors: [{ name: "Prof. Junxiang Yang", href: "https://cfdyang521.github.io/" }],
       description: "Energy-stable numerical methods for phase-field models, with applications to 3D reconstruction, shape transformation, and image segmentation."
     }
   ] satisfies CareerEntry[],
