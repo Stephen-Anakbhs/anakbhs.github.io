@@ -14,7 +14,7 @@ type Selection = { project: ShowcaseItem; origin: HTMLElement | null };
 const ProjectCard = memo(function ProjectCard({ item, onOpen }: { item: ShowcaseItem; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
   const prepare = () => { void preparePreview(item.detailSources?.src ?? item.detailImage); };
   return (
-    <article className="showcase-card">
+    <article className="showcase-card" data-track-item={`project:${item.id}`}>
       <button
         className="showcase-image"
         type="button"

@@ -7,7 +7,7 @@ import { site } from "../content/site";
 export function ResearchPage() {
   return (
     <main className="research-page" id="main-content" tabIndex={-1}>
-      <section className="page-section publication-section research-index">
+      <section className="page-section publication-section research-index" data-track-section="publication-list">
         <div className="section-inner">
           <Link className="text-link back-link" to="/#publications">
             <ArrowLeft size={17} aria-hidden="true" /> Back to selected publications

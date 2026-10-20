@@ -5,7 +5,7 @@ export function CareerList({ items }: { items: CareerEntry[] }) {
   return (
     <div className="career-list">
       {items.map((item) => (
-        <article className="career-entry" key={item.institution}>
+        <article className="career-entry" key={item.institution} data-track-item={`career:${item.institution}`}>
           <GlassSurface material="logo" className="career-logo-glass">
           <a className="career-logo" href={item.groupHref || item.href} target="_blank" rel="noopener noreferrer" aria-label={item.group || item.institution}>
             <img src={item.logoSources?.src ?? item.logo} srcSet={item.logoSources?.srcSet} alt={`${item.institution} logo`} loading="lazy" decoding="async" />
