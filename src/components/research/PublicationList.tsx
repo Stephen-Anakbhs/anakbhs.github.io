@@ -30,6 +30,10 @@ function Authors({ authors }: { authors: PublicationAuthor[] }) {
 type HeadingTag = "h2" | "h3";
 type OpenPreview = (preview: PreviewImage) => void;
 
+// Every entry lists its links in the same order.
+const LINK_ORDER = ["Website", "Paper", "Code"];
+const linkRank = (label: string) => (LINK_ORDER.indexOf(label) + LINK_ORDER.length + 1) % (LINK_ORDER.length + 1);
+
 // Memoised so opening or closing the lightbox does not re-render every glass surface.
 const PublicationItem = memo(function PublicationItem({ publication, Heading, onPreview }: { publication: Publication; Heading: HeadingTag; onPreview: OpenPreview }) {
   const primaryLink = publication.links?.find((link) => link.label === "Website" || link.label === "Paper");
@@ -80,7 +84,7 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           <p className="publication-award">{publication.award}<Emoji src={emoji.trophy} /></p>
         )}
         {!!publication.links?.length && <div className="publication-links">
-          {publication.links.map((link) => {
+          {[...publication.links].sort((a, b) => linkRank(a.label) - linkRank(b.label)).map((link) => {
             const Icon = link.label === "Paper" ? FileText : link.label === "Code" ? Code2 : link.label === "Website" ? Globe : ExternalLink;
             return (
               <GlassSurface tone="light" key={link.label}>

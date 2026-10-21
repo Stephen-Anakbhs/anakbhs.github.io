@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { X } from "lucide-react";
 import { boxOf, closeMotion, containBox, currentTransform, flip, openMotion, reducedMotion, useMorphDialog, type Box } from "./glassMorph";
 import { fullGlass } from "./glassQuality";
@@ -12,7 +12,13 @@ export type PreviewImage = {
   natural?: { width: number; height: number };
   alt: string;
   origin?: HTMLElement | null;
+  /** Several photos of one item: dots under the figure (and the arrow keys) switch between them. */
+  slides?: PreviewSlide[];
+  slide?: number;
+  onSlide?: (index: number) => void;
 };
+
+export type PreviewSlide = { src: string; thumbnail?: string; natural: { width: number; height: number }; alt?: string; caption?: string };
 
 type PreparedPreview = { picture: HTMLImageElement; ready: boolean; promise: Promise<boolean> };
 const preparedPreviews = new Map<string, PreparedPreview>();
@@ -111,6 +117,12 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
   const revealRef = useRef<Animation | null>(null);
   const thumbnail = image?.natural ? image.thumbnail : undefined;
   const thumbnailBackground = thumbnail ? `url(${JSON.stringify(thumbnail)})` : "none";
+  const dotsRef = useRef<HTMLDivElement>(null);
+  const [picked, setPicked] = useState<{ image: PreviewImage | null; index: number }>({ image: null, index: 0 });
+  const slides = image?.slides && image.slides.length > 1 ? image.slides : undefined;
+  const index = picked.image === image ? picked.index : image?.slide ?? 0;
+  const shown = slides?.[index];
+  const switching = useRef(false);
 
   const apply = (next: Layout) => {
     layout.current = next;
@@ -121,6 +133,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
       element.style.borderRadius = `${next.radius - 16}px`;
     }
     place(captionRef.current!, next.caption);
+    if (dotsRef.current) place(dotsRef.current, next.caption);
     place(closeRef.current!, next.close);
     mapRef.current?.setAttribute("width", String(next.sheet.width));
     mapRef.current?.setAttribute("height", String(next.sheet.height));
@@ -128,7 +141,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
 
   // The source frame, the thumbnail's paper and the picture inside it: the morph's far end.
   const sourceBoxes = (origin: HTMLElement | null | undefined, natural: { width: number; height: number }) => {
-    const thumbnail = origin?.querySelector(".publication-thumbnail");
+    const thumbnail = origin?.querySelector(".publication-thumbnail, .honor-thumbnail");
     if (!origin?.isConnected || !thumbnail) return null;
     const frame = boxOf(origin);
     if (frame.width === 0 || frame.y + frame.height < 0 || frame.y > innerHeight) return null;
@@ -197,7 +210,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         grow(paperRef.current!, from.paper, next.card),
         grow(picture, from.figure, next.card),
         fadeIn(captionRef.current!),
-        fadeIn(closeRef.current!),
+        ...(dotsRef.current ? [fadeIn(dotsRef.current)] : []),
       ]).then(completed => { if (completed) markSettled(); });
     };
 
@@ -234,6 +247,63 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     return () => removeEventListener("resize", relayout);
   }, [image]);
 
+  // Switch to another photo of the same item: the sheet reshapes to the new figure while the new image comes in
+  // over its already-loaded thumbnail.
+  const goTo = (next: number) => {
+    const dialog = dialogRef.current;
+    const picture = figureRef.current;
+    const full = fullRef.current;
+    const from = layout.current;
+    if (!slides || !image || next === index || !dialog?.open || state.current.closing || !from || !picture || !full) return;
+    const target = slides[next];
+    revealRef.current?.cancel();
+    revealRef.current = null;
+    picture.style.backgroundImage = target.thumbnail ? `url(${JSON.stringify(target.thumbnail)})` : "none";
+    full.style.opacity = target.thumbnail ? "0" : "1";
+    switching.current = true;
+    setPicked({ image, index: next });
+    image.onSlide?.(next);
+    naturalRef.current = target.natural;
+    // The caption is measured for the new layout, so give it the new text before React re-renders it.
+    if (target.caption) captionRef.current!.textContent = target.caption;
+    const to = finalLayout(target.natural, captionRef.current!, closeRef.current!.offsetWidth);
+    apply(to);
+    if (fullGlass) mapRef.current?.setAttribute("href", lensMap(to.sheet.width, to.sheet.height, to.radius, to.radius - 2));
+    if (reducedMotion()) return;
+    const { easing, duration } = openMotion;
+    const grow = (element: Element, a: Box, b: Box) =>
+      element.animate([{ transform: flip(a, b) }, { transform: "none" }], { duration, easing });
+    const shift = (element: Element, a: Box, b: Box) =>
+      element.animate([{ transform: `translate(${a.x - b.x}px, ${a.y - b.y}px)` }, { transform: "none" }], { duration, easing });
+    void run([
+      grow(sheetRef.current!, from.sheet, to.sheet),
+      grow(paperRef.current!, from.card, to.card),
+      grow(picture, from.card, to.card),
+      shift(captionRef.current!, from.caption, to.caption),
+      shift(closeRef.current!, from.close, to.close),
+      ...(dotsRef.current ? [shift(dotsRef.current, from.caption, to.caption)] : []),
+    ]);
+  };
+
+  // After a switch, show the full image once it has decoded, then drop the thumbnail behind it.
+  useEffect(() => {
+    if (!switching.current) return;
+    switching.current = false;
+    const picture = figureRef.current;
+    const full = fullRef.current;
+    if (!picture || !full) return;
+    let cancelled = false;
+    void full.decode().then(() => {
+      if (cancelled || state.current.closing) return;
+      full.style.opacity = "1";
+      if (reducedMotion()) { picture.style.backgroundImage = "none"; return; }
+      const fade = full.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "linear" });
+      revealRef.current = fade;
+      void fade.finished.then(() => { if (!cancelled) picture.style.backgroundImage = "none"; }, () => undefined);
+    }, () => { full.style.opacity = "1"; });
+    return () => { cancelled = true; };
+  }, [index]);
+
   const requestClose = () => {
     const dialog = dialogRef.current;
     const picture = figureRef.current;
@@ -257,7 +327,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         shrinkTo(paperRef.current!, paperTransform, source.paper, target.card),
         shrinkTo(picture, figureTransform, source.figure, target.card),
         fadeOut(captionRef.current!),
-        fadeOut(closeRef.current!),
+        ...(dotsRef.current ? [fadeOut(dotsRef.current)] : []),
       ];
     });
   };
@@ -269,6 +339,12 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
       ref={dialogRef}
       onCancel={(event) => { event.preventDefault(); requestClose(); }}
       onClose={handleClose}
+      onKeyDown={(event) => {
+        if (!slides) return;
+        if (event.key === "ArrowRight") goTo((index + 1) % slides.length);
+        else if (event.key === "ArrowLeft") goTo((index + slides.length - 1) % slides.length);
+      }}
+      data-slides={slides ? "" : undefined}
       aria-label={image ? `Enlarged image: ${image.alt}` : "Image preview"}
     >
       {image && (
@@ -289,10 +365,16 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
           <picture className="lightbox-figure" ref={figureRef}
             style={{ backgroundImage: thumbnailBackground, backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
             {image.avif && <source type="image/avif" srcSet={image.avif} />}
-            <img ref={fullRef} src={image.src} alt={image.alt} decoding="async"
+            <img ref={fullRef} src={shown?.src ?? image.src} alt={shown?.alt ?? image.alt} decoding="async"
               style={{ display: "block", width: "100%", height: "100%", maxWidth: "none", objectFit: "fill", borderRadius: "inherit", opacity: thumbnail ? 0 : 1 }} />
           </picture>
-          <p className="lightbox-caption" ref={captionRef} aria-hidden="true">{image.alt}</p>
+          <p className="lightbox-caption" ref={captionRef} aria-hidden="true">{shown?.caption ?? image.alt}</p>
+          {slides && <div className="lightbox-dots" ref={dotsRef} role="group" aria-label="Photos">
+            {slides.map((slide, i) => (
+              <button key={slide.src} type="button" aria-label={`Show photo ${i + 1} of ${slides.length}`}
+                aria-current={i === index ? "true" : undefined} onClick={() => goTo(i)} />
+            ))}
+          </div>}
           <button className="glass-close lightbox-close" ref={closeRef} type="button" onClick={requestClose}
             aria-label="Close image preview" title="Close image preview" autoFocus>
             <X size={20} strokeWidth={2} aria-hidden="true" />

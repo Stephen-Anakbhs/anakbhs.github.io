@@ -122,6 +122,18 @@ export type CareerEntry = {
   description: string;
 };
 
+// A featured certificate or photo in the Honors & Awards gallery; each thumb and full share one framing.
+export type HonorHighlight = {
+  id: string;
+  title: string;
+  venue: string;
+  /** Several images play as a slow crossfade carousel; the first is the cover. */
+  /** `label` is printed over the photo (and added to the viewer caption), e.g. the year of a recurring award. */
+  images: { thumb: string; full: string; width: number; height: number; alt?: string; fit?: "cover" | "contain"; label?: { year: string; name: string } }[];
+  /** Photos fill the card; certificates are shown whole (an image may override this). */
+  fit: "cover" | "contain";
+};
+
 const scholarProfile = "https://scholar.google.com/citations?user=qM5-vjQAAAAJ&hl=zh-CN&oi=sra";
 
 export const emoji = {
@@ -263,10 +275,49 @@ export const site = {
       description: ""
     }
   ] satisfies CareerEntry[],
+  honors: [
+    { id: "president-gold-medal", title: "President's Gold Medal", venue: "MUST, 2026", fit: "cover",
+      images: [
+        { thumb: "/media/honors/president-gold-medal-1.thumb.webp", full: "/media/honors/president-gold-medal-1.full.webp", width: 2000, height: 1499, alt: "President's Gold Medal, certificate and medal case with Brick But Agile" },
+        { thumb: "/media/honors/president-gold-medal-2.thumb.webp", full: "/media/honors/president-gold-medal-2.full.webp", width: 2000, height: 1500, alt: "The engraved President's Gold Medal held by Brick But Agile" },
+        { thumb: "/media/honors/president-gold-medal-3.thumb.webp", full: "/media/honors/president-gold-medal-3.full.webp", width: 1707, height: 1280, alt: "President's Medalists announced at the 2026 MUST congregation" }
+      ] },
+    { id: "first-class-honor-cord", title: "First Class Honor Cord", venue: "MUST, 2026", fit: "cover",
+      images: [
+        { thumb: "/media/honors/first-class-honor-cord-1.thumb.webp", full: "/media/honors/first-class-honor-cord-1.full.webp", width: 2000, height: 1500, alt: "First Class Honor Cord and certificate" },
+        { thumb: "/media/honors/first-class-honor-cord-2.thumb.webp", full: "/media/honors/first-class-honor-cord-2.full.webp", width: 2000, height: 1500, alt: "Receiving the certificate at the Faculty of Innovation Engineering graduation ceremony" },
+        { thumb: "/media/honors/first-class-honor-cord-3.thumb.webp", full: "/media/honors/first-class-honor-cord-3.full.webp", width: 2000, height: 1500, alt: "Graduate representative at the 2026 faculty graduation ceremony" },
+        { thumb: "/media/honors/first-class-honor-cord-4.thumb.webp", full: "/media/honors/first-class-honor-cord-4.full.webp", width: 2000, height: 1500, alt: "Speaking on behalf of the graduates" }
+      ] },
+    { id: "institutional-scholarships", title: "Institutional Scholarships", venue: "MUST, 2023, 2024, 2025", fit: "cover",
+      images: [
+        { thumb: "/media/honors/institutional-scholarships-1.thumb.webp", full: "/media/honors/institutional-scholarships-1.full.webp", width: 1200, height: 900, alt: "At the 2023 MUST scholarship and grant awards ceremony", label: { year: "2023", name: "O Man Cheong Scholarship" } },
+        { thumb: "/media/honors/institutional-scholarships-2.thumb.webp", full: "/media/honors/institutional-scholarships-2.full.webp", width: 1248, height: 936, alt: "With the certificate at the 2024 MUST scholarship and grant awards ceremony", label: { year: "2024", name: "Henry Fok Foundation Scholarship" } },
+        { thumb: "/media/honors/institutional-scholarships-3.thumb.webp", full: "/media/honors/institutional-scholarships-3.full.webp", width: 1640, height: 1230, alt: "At the 2025 MUST scholarship and grant awards ceremony", label: { year: "2025", name: "Henry Fok Foundation Scholarship" } }
+      ] },
+    { id: "prcv-outstanding-paper", title: "Outstanding Student Paper Award", venue: "PRCV 2026", fit: "contain",
+      images: [{ thumb: "/media/honors/prcv-outstanding-paper.thumb.webp", full: "/media/honors/prcv-outstanding-paper.full.webp", width: 2000, height: 1414 }] },
+    { id: "afol-best-technic", title: "Award for Best Technic", venue: "8th China AFOL Festival, 2026", fit: "cover",
+      images: [
+        { thumb: "/media/honors/afol-best-technic-1.thumb.webp", full: "/media/honors/afol-best-technic-1.full.webp", width: 2000, height: 1500, alt: "Award for Best Technic trophy held by Brick But Agile" },
+        { thumb: "/media/honors/afol-best-technic-2.thumb.webp", full: "/media/honors/afol-best-technic-2.full.webp", width: 2000, height: 1500, alt: "With the Brick But Agile poster and trophy at the 8th China AFOL Festival" }
+      ] },
+    { id: "iet-prize", title: "IET Prize", venue: "IET Hong Kong, 2024", fit: "contain",
+      images: [
+        { thumb: "/media/honors/iet-prize-1.thumb.webp", full: "/media/honors/iet-prize-1.full.webp", width: 1449, height: 2000, alt: "IET Prize 2024 certificate of excellence" },
+        { thumb: "/media/honors/iet-prize-2.thumb.webp", full: "/media/honors/iet-prize-2.full.webp", width: 1440, height: 1080, alt: "Receiving the IET Prize at the IET Hong Kong ceremony", fit: "cover" },
+        { thumb: "/media/honors/iet-prize-3.thumb.webp", full: "/media/honors/iet-prize-3.full.webp", width: 1704, height: 1278, alt: "With fellow awardees at the IET Hong Kong dinner", fit: "cover" }
+      ] },
+    { id: "cumcm-second-prize", title: "National Second Prize", venue: "CUMCM 2024", fit: "contain",
+      images: [{ thumb: "/media/honors/cumcm-second-prize.thumb.webp", full: "/media/honors/cumcm-second-prize.full.webp", width: 2000, height: 1300 }] },
+    { id: "hku-best-presentation", title: "Best Group Presentation Award", venue: "HKU Summer Institute, 2023", fit: "contain",
+      images: [{ thumb: "/media/honors/hku-best-presentation.thumb.webp", full: "/media/honors/hku-best-presentation.full.webp", width: 2000, height: 1419 }] }
+  ] satisfies HonorHighlight[],
   awards: [
     { date: "Sep. 2026", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
     { date: "Aug. 2026", lead: "RSC-GestureNet won an", title: "Outstanding Student Paper Award", detail: "at PRCV 2026.", emoji: emoji.trophy },
     { date: "Aug. 2026", lead: "Brick But Agile won the", title: "Award for Best Technic", detail: "at the 8th China AFOL Festival.", emoji: emoji.trophy },
+    { date: "Jun. 2026", lead: "Received the", title: "First Class Honor Cord", detail: "and spoke as the graduate representative at MUST." },
     { date: "May 2026", lead: "Won the", title: "President's Gold Medal", detail: "at MUST (2 of ~3,000 graduates; top ~0.067%).", href: "https://2026-congregation.must.edu.mo/page/award-president.html?locale=en_US", emoji: emoji.medal },
     { date: "Mar. 2026", lead: "LC4-DViT was named a", title: "Best Student Paper Finalist", detail: "at IGARSS 2026." },
     { date: "Nov. 2025", lead: "Awarded the", title: "Henry Fok Foundation Scholarship", detail: "at MUST." },

@@ -3,10 +3,12 @@ import { ArrowUpRight } from "lucide-react";
 import { AboutIntro } from "../components/home/AboutIntro";
 import { CareerList } from "../components/home/CareerList";
 import { Hero } from "../components/home/Hero";
+import { AwardsList, HonorsGallery } from "../components/home/Honors";
 import { MembershipList } from "../components/home/MembershipList";
 import { ProjectGallery } from "../components/portfolio/ProjectGallery";
 import { PublicationList } from "../components/research/PublicationList";
-import { Emoji, InlineText } from "../components/ui/InlineText";
+import { GlassSurface } from "../components/ui/GlassSurface";
+import { InlineText } from "../components/ui/InlineText";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { site } from "../content/site";
 
@@ -41,9 +43,13 @@ export function HomePage() {
           <span id="research" className="anchor-alias" aria-hidden="true" />
           <SectionHeading title="Selected Publications" />
           <PublicationList publications={site.publications.filter((publication) => publication.selected)} />
-          <Link className="text-link publication-index-link" to="/publications">
-            View full publication list <ArrowUpRight size={18} aria-hidden="true" />
-          </Link>
+          <div className="publication-index-link">
+            <GlassSurface tone="light">
+              <Link className="glass-action" to="/publications">
+                View full publication list <ArrowUpRight size={18} aria-hidden="true" />
+              </Link>
+            </GlassSurface>
+          </div>
         </div>
       </section>
 
@@ -63,20 +69,9 @@ export function HomePage() {
       </section>
 
       <section className="page-section awards-section" id="awards" data-nav-section="about">
-        <SectionHeading title="Awards & Honors" />
-        <ul className="awards-list">
-          {site.awards.map((award) => (
-            <li key={`${award.date}-${award.title}`} className={award.title === "President's Gold Medal" ? "award-gold" : undefined}>
-              <span className="award-date">{award.date}</span>
-              <p>
-                {award.lead}{" "}
-                <strong>{"href" in award ? <a href={award.href} target="_blank" rel="noopener noreferrer">{award.title}</a> : award.title}</strong>
-                {award.emoji && <Emoji src={award.emoji} />}{" "}
-                {award.detail}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <SectionHeading title="Honors & Awards" />
+        <HonorsGallery honors={site.honors} />
+        <AwardsList awards={site.awards} />
       </section>
 
       <section className="page-section membership-section" id="membership" data-nav-section="about">

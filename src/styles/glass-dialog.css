@@ -90,6 +90,7 @@
 .lightbox-paper,
 .lightbox-figure,
 .lightbox-caption,
+.lightbox-dots,
 .lightbox-close {
   position: absolute;
   transform-origin: 0 0;
@@ -106,6 +107,26 @@
   text-wrap: pretty;
 }
 .lightbox-close { width: 40px; height: 40px; }
+/* Dialogs close by clicking outside the sheet or with Esc; the close button only appears for keyboard focus. */
+.lightbox-close, .project-close { opacity: 0; pointer-events: none; }
+.lightbox-close:focus-visible, .project-close:focus-visible { opacity: 1; pointer-events: auto; }
+.image-lightbox[data-slides] .lightbox-caption { padding-right: 120px; }
+.lightbox-dots { display: flex; align-items: flex-start; justify-content: flex-end; pointer-events: none; }
+.lightbox-dots button {
+  width: 22px;
+  height: 22px;
+  padding: 7px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(29, 33, 38, 0.28);
+  background-clip: content-box;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: width 320ms ease, background-color 320ms ease;
+}
+.lightbox-dots button:hover { background-color: rgba(29, 33, 38, 0.5); }
+.lightbox-dots button[aria-current="true"] { width: 36px; background-color: #1d2126; }
+.lightbox-dots button:focus-visible { outline: 2px solid #1d2126; outline-offset: -3px; }
 
 /* Project detail: a frosted reading sheet, centred by layout and scrolled inside. */
 .project-sheet {

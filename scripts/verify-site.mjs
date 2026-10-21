@@ -67,7 +67,7 @@ try {
     assert.ok(glass.ink.every(x => x === glass.ink[0]));
     await page.screenshot({ path: `${output}/projects.png` });
     await button.click(); assert.equal(await page.getByRole('dialog').isVisible(), true);
-    await page.getByRole('button', { name: 'Close project', exact: true }).click();
+    await page.mouse.click(8, 8); // dialogs close by clicking outside the sheet; there is no visible close button
     await page.locator('.project-dialog').waitFor({ state: 'hidden' });
     await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Open project: LEGO Technic Bus');
     return glass;
