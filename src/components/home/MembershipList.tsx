@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Globe } from "lucide-react";
 import type { Membership } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 
@@ -16,9 +16,12 @@ export function MembershipList({ items }: { items: Membership[] }) {
             <p className="membership-subtitle">{item.subtitle}</p>
             <p>{item.body}</p>
             <div className="membership-links">
-              {item.links.map((link) => <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">
-                {link.label}<ArrowUpRight size={14} aria-hidden="true" />
-              </a>)}
+              {item.links.map((link) => <GlassSurface tone="light" key={link.label}>
+                <a className="glass-action" href={link.href} target="_blank" rel="noopener noreferrer">
+                  {link.label === "Website" ? <Globe size={17} strokeWidth={1.8} aria-hidden="true" /> : <ArrowUpRight size={17} strokeWidth={1.8} aria-hidden="true" />}
+                  <span>{link.label}</span>
+                </a>
+              </GlassSurface>)}
             </div>
           </div>
         </article>

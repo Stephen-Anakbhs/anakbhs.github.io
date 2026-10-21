@@ -631,6 +631,18 @@ textarea {
   color: var(--muted);
 }
 
+.career-entry .career-facts {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.career-facts strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.career-facts-dot { color: var(--dim); }
+
 .career-entry .career-description {
   max-width: 75ch;
   margin-top: 12px;
@@ -972,10 +984,19 @@ textarea {
 
 .publication-info > :is(h2, h3) {
   margin: 0;
-  color: #242b31;
+  color: #1b2126;
   font-size: var(--type-title);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.publication-logo {
+  display: inline-block;
+  height: 1.8em;
+  width: auto;
+  margin: 0 0.3em 0 0;
+  vertical-align: -0.5em;
 }
 
 .publication-info > :is(h2, h3) a:hover {
@@ -990,9 +1011,31 @@ textarea {
   line-height: 1.6;
 }
 
-.publication-authors strong {
-  color: #172127;
-  font-weight: 600;
+/* The owner's name: heaviest weight and underlined; co-authors with homepages link there. */
+.publication-authors .publication-me {
+  color: #11181d;
+  font-weight: 750;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.publication-author a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.publication-author a:hover,
+.publication-author a:focus-visible {
+  color: #2553a6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.publication-venue strong {
+  color: #1b2126;
+  font-weight: 700;
 }
 
 .publication-venue em {
@@ -1097,9 +1140,8 @@ textarea {
 .membership-heading h3 { flex: 1 1 360px; margin: 0; font-size: var(--type-title); line-height: 1.4; font-weight: 600; }
 .membership-entry p { margin: 10px 0; color: var(--muted); font-size: 17px; line-height: 1.65; }
 .membership-entry .membership-subtitle { margin-top: 4px; }
-.membership-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-.membership-links a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #bcc3c7; }
-.membership-links a:hover { text-decoration-color: currentColor; }
+.membership-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.membership-links .glass-action > svg { width: 1.0625rem; height: 1.0625rem; }
 
 .post-card p,
 .markdown-body {

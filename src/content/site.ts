@@ -83,6 +83,21 @@ export type Publication = {
   preview?: PublicationPreview;
   selected?: boolean;
   links?: { label: string; href: string }[];
+  /** Small project logo shown before the title. */
+  logo?: string;
+  /** Colours for the words of the project name (the title up to its first colon). */
+  nameColors?: string[];
+};
+
+/** Co-author homepages: their names link there wherever they appear in a paper's author list. */
+export const authorHomepages: Record<string, string> = {
+  "Junxiang Yang": "https://cfdyang521.github.io/",
+  "Xiangjie Kong": "https://xiangjie-kong.github.io/",
+  "Boyi Fu": "https://boyifu-ai.github.io/",
+  "Cheng Li": "https://github.com/chengli24",
+  "Guyue Zhou": "https://air.tsinghua.edu.cn/en/info/1046/1196.htm",
+  "Dasa Gu": "https://dasagu.people.ust.hk/",
+  "Alexis Kai Hon Lau": "https://ce.hkust.edu.hk/node/2248"
 };
 
 export type ShowcaseItem = {
@@ -119,6 +134,8 @@ export type CareerEntry = {
   group: string;
   groupHref?: string;
   mentors?: { name: string; href?: string }[];
+  /** Short facts on one line, e.g. GPA and rank: the value is emphasised, label and note are not. */
+  facts?: { label?: string; value: string; note?: string }[];
   description: string;
 };
 
@@ -231,7 +248,7 @@ export const site = {
       period: "2025",
       institution: "The Hong Kong University of Science and Technology",
       href: "https://hkust.edu.hk/",
-      logo: "/media/logos/hkust.svg",
+      logo: "/media/logos/hkust-emblem.png",
       role: "Research Assistant",
       group: "Remote-sensing research",
       mentors: [{ name: "Prof. Dasa Gu", href: "https://dasagu.people.ust.hk/" }, { name: "Dr. Cheng Li", href: "https://github.com/chengli24" }],
@@ -264,14 +281,19 @@ export const site = {
   ] satisfies CareerEntry[],
   education: [
     {
-      period: "Class of 2026",
+      period: "2022 – 2026",
       institution: "Macau University of Science and Technology",
       href: "https://www.must.edu.mo/",
       logo: "/media/logos/must-highres.png",
       logoSources: logoImages("must-highres"),
-      role: "B.Sc. in Computer Science",
+      role: "B.S. in Computer Science",
       group: "Faculty of Innovation Engineering",
       groupHref: "https://fie.must.edu.mo/",
+      facts: [
+        { label: "GPA", value: "3.95/4.00" },
+        { label: "Rank", value: "1/246" },
+        { value: "President's Gold Medalist", note: "(top ~0.07%)" }
+      ],
       description: ""
     }
   ] satisfies CareerEntry[],
@@ -407,6 +429,8 @@ export const site = {
         { name: "Guyue Zhou", corresponding: true }
       ],
       venue: "In submission",
+      logo: "/media/logos/bba-hand.webp",
+      nameColors: ["#b8312b", "#c4930f", "#2553a6"],
       image: "/media/pub-brick-but-agile-transparent.webp",
       preview: publicationImages("pub-brick-but-agile-transparent", 2703, 886, [656, 894]),
       selected: true
@@ -633,7 +657,7 @@ export const site = {
       subtitle: "Recognized LEGO User Group, Shanghai",
       period: "Dec. 2022 - Present",
       links: [
-        { label: "Website", href: "https://www.heroeslug.com/" },
+        { label: "Website", href: "https://www.heroeslug.com/author/anakbhs/" },
         { label: "LEGO recognition", href: "https://lan.lego.com/clubs/21-heroes-club-lug-乐构英雄会lug/" }
       ],
       body:

@@ -42,7 +42,6 @@ html body:has(.site-backdrop) { background: transparent; }
 }
 
 .site-shell .publication-info > :is(h2, h3),
-.site-shell .publication-authors strong,
 .site-shell .site-header[data-tone="light"] .brand {
   color: var(--text);
 }

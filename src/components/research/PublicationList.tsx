@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { Code2, ExternalLink, FileText, Globe } from "lucide-react";
-import { emoji, type Publication, type PublicationAuthor } from "../../content/site";
+import { authorHomepages, emoji, type Publication, type PublicationAuthor } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 import { Emoji } from "../ui/InlineText";
 import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
@@ -17,7 +17,9 @@ function Authors({ authors }: { authors: PublicationAuthor[] }) {
         <span key={author.name}>
           {index > 0 && ", "}
           <span className="publication-author">
-            {author.name === "Renjun Gao" ? <strong>{author.name}</strong> : author.name}
+            {author.name === "Renjun Gao" ? <strong className="publication-me">{author.name}</strong>
+              : authorHomepages[author.name] ? <a href={authorHomepages[author.name]} target="_blank" rel="noopener noreferrer">{author.name}</a>
+              : author.name}
             {author.equalContribution && <sup title="Equal contribution" aria-label="Equal contribution">*</sup>}
             {author.corresponding && <sup title="Corresponding author" aria-label="Corresponding author">{"\u2020"}</sup>}
           </span>
@@ -25,6 +27,24 @@ function Authors({ authors }: { authors: PublicationAuthor[] }) {
       ))}
     </>
   );
+}
+
+// Venue abbreviations in parentheses, e.g. "(TOG)" or "(CAMWA)", are set in bold.
+function Venue({ text }: { text: string }) {
+  return <>{text.split(/(\([A-Z][A-Z0-9-]+\))/).map((part, index) => index % 2
+    ? <span key={index}>(<strong>{part.slice(1, -1)}</strong>)</span> : part)}</>;
+}
+
+// The project name before the colon gets one colour per word (Brick · But · Agile).
+function Title({ publication }: { publication: Publication }) {
+  const colors = publication.nameColors;
+  const colon = publication.title.indexOf(":");
+  if (!colors?.length || colon < 0) return <>{publication.title}</>;
+  const words = publication.title.slice(0, colon).split(" ");
+  return <>
+    {words.map((word, index) => <span key={index} style={{ color: colors[index % colors.length] }}>{index > 0 && " "}{word}</span>)}
+    {publication.title.slice(colon)}
+  </>;
 }
 
 type HeadingTag = "h2" | "h3";
@@ -74,12 +94,13 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
       </GlassSurface>
       <div className="publication-info">
         <Heading>
+          {publication.logo && <img className="publication-logo" src={publication.logo} alt="" aria-hidden="true" />}
           {primaryLink ? (
-            <a href={primaryLink.href} target="_blank" rel="noopener noreferrer">{publication.title}</a>
-          ) : publication.title}
+            <a href={primaryLink.href} target="_blank" rel="noopener noreferrer"><Title publication={publication} /></a>
+          ) : <Title publication={publication} />}
         </Heading>
         <p className="publication-authors"><Authors authors={publication.authors} /></p>
-        <p className="publication-venue"><em>{publication.venue}</em>{publication.year && <> · {publication.year}</>}</p>
+        <p className="publication-venue"><em><Venue text={publication.venue} /></em>{publication.year && <> · {publication.year}</>}</p>
         {publication.award && (
           <p className="publication-award">{publication.award}<Emoji src={emoji.trophy} /></p>
         )}

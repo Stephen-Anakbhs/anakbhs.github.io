@@ -25,6 +25,10 @@ export function CareerList({ items }: { items: CareerEntry[] }) {
                 ? <a href={mentor.href} target="_blank" rel="noopener noreferrer">{mentor.name}</a>
                 : mentor.name}</span>
             ))}</p>}
+            {item.facts && <p className="career-facts">{item.facts.map((fact, index) => (
+              <span key={fact.value}>{index > 0 && <span className="career-facts-dot" aria-hidden="true"> · </span>}
+                {fact.label && <>{fact.label} </>}<strong>{fact.value}</strong>{fact.note && <> {fact.note}</>}</span>
+            ))}</p>}
             {item.description && <p className="career-description">{item.description}</p>}
           </div>
         </article>
