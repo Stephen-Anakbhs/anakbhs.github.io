@@ -304,7 +304,7 @@ export const site = {
       ] },
     { id: "iet-prize", title: "IET Prize", venue: "IET Hong Kong, 2024", fit: "contain",
       images: [
-        { thumb: "/media/honors/iet-prize-1.thumb.webp", full: "/media/honors/iet-prize-1.full.webp", width: 1449, height: 2000, alt: "IET Prize 2024 certificate of excellence" },
+        { thumb: "/media/honors/iet-prize-1.thumb.webp", full: "/media/honors/iet-prize-1.full.webp", width: 1464, height: 2000, alt: "IET Prize 2024 certificate of excellence" },
         { thumb: "/media/honors/iet-prize-2.thumb.webp", full: "/media/honors/iet-prize-2.full.webp", width: 1440, height: 1080, alt: "Receiving the IET Prize at the IET Hong Kong ceremony", fit: "cover" },
         { thumb: "/media/honors/iet-prize-3.thumb.webp", full: "/media/honors/iet-prize-3.full.webp", width: 1704, height: 1278, alt: "With fellow awardees at the IET Hong Kong dinner", fit: "cover" }
       ] },
