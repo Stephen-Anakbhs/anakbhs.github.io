@@ -136,6 +136,7 @@ textarea {
   --navigation-edge: max(44px, calc((100vw - 1320px) / 2));
   --navigation-start: var(--navigation-edge);
   --navigation-top: 20px;
+  --navigation-brand-reserve: 132px;
   display: contents;
   pointer-events: none;
 }
@@ -178,6 +179,12 @@ textarea {
 .site-header .brand { left: var(--navigation-start); }
 .site-header .header-toggle { right: var(--navigation-edge); }
 .site-header .header-navigation { right: calc(var(--navigation-edge) + var(--navigation-height) + 12px); }
+@media (min-width: 641px) {
+  /* Inner pages show the brand on the left; the equal segments give way before overlapping it. */
+  .site-header:has(.brand) .header-navigation {
+    max-width: calc(100% - var(--navigation-start) - var(--navigation-edge) - var(--navigation-height) - 12px - var(--navigation-brand-reserve));
+  }
+}
 .site-header :is(.header-navigation, .header-toggle)[data-glass-enabled="true"] {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
@@ -229,9 +236,13 @@ textarea {
   visibility: hidden;
 }
 
+/* Equal segments, as in a segmented control: every link is as wide as the longest label.
+   When the header has no room for that, the longest keeps its width and the rest share the remainder. */
 .nav-links {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 2px;
   align-items: center;
   justify-content: center;
@@ -989,6 +1000,9 @@ textarea {
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.005em;
+  /* Drop the leading above the capitals so the thumbnail centres on the visible text, which ends flush at the buttons. */
+  text-box-trim: trim-start;
+  text-box-edge: cap alphabetic;
 }
 
 .publication-logo {
@@ -1056,6 +1070,11 @@ textarea {
   align-items: center;
   margin-top: 16px;
 }
+
+/* Every link shares the width of the widest, "Website": padding, icon, gap and that label
+   (3.9em, a hair over its measured width), so Paper and Code match it on every entry while
+   icon and label stay centered as one unit. */
+.publication-links .glass-action { min-width: calc(40px + 1.125rem + 7px + 3.9em); }
 
 .research-page > .research-index {
   padding-top: 140px;
