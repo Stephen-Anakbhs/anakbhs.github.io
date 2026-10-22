@@ -10,11 +10,24 @@ import "../../styles/glass-dialog.css";
 
 type Selection = { project: ShowcaseItem; origin: HTMLElement | null };
 
+// Projects: three large cards. Portfolio: four smaller cards in the Honors grid, same glass hover and detail sheet.
+const variants = {
+  projects: {
+    grid: "showcase-grid", label: "Selected projects", open: "Open project", close: "Close project", track: "project",
+    sizes: "(max-width: 640px) calc(100vw - 40px), (max-width: 740px) min(480px, calc(100vw - 48px)), (max-width: 920px) calc((100vw - 96px) / 3), min(358px, calc((100vw - 136px) / 3))",
+  },
+  portfolio: {
+    grid: "portfolio-grid", label: "Portfolio", open: "Open", close: "Close", track: "portfolio",
+    sizes: "(max-width: 860px) calc((100vw - 52px) / 2), min(270px, calc((100vw - 196px) / 4))",
+  },
+};
+type Variant = (typeof variants)[keyof typeof variants];
+
 // Memoised so opening or closing the dialog does not re-render every glass card.
-const ProjectCard = memo(function ProjectCard({ item, onOpen }: { item: ShowcaseItem; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
+const ProjectCard = memo(function ProjectCard({ item, variant, onOpen }: { item: ShowcaseItem; variant: Variant; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
   const prepare = () => { void preparePreview(item.detailSources?.src ?? item.detailImage); };
   return (
-    <article className="showcase-card" data-track-item={`project:${item.id}`}>
+    <article className="showcase-card" data-track-item={`${variant.track}:${item.id}`}>
       <button
         className="showcase-image"
         type="button"
@@ -22,12 +35,11 @@ const ProjectCard = memo(function ProjectCard({ item, onOpen }: { item: Showcase
         onFocus={prepare}
         onPointerDown={prepare}
         onClick={(event) => onOpen(item, event.currentTarget.closest<HTMLElement>(".showcase-card"))}
-        aria-label={`Open project: ${item.title}`}
+        aria-label={`${variant.open}: ${item.title}`}
         aria-haspopup="dialog"
         data-fit={item.imageFit || "cover"}
       >
-        <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet}
-          sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 740px) min(480px, calc(100vw - 48px)), (max-width: 920px) calc((100vw - 96px) / 3), min(358px, calc((100vw - 136px) / 3))"
+        <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet} sizes={variant.sizes}
           alt={item.title} loading="lazy" decoding="async" />
       </button>
       <div className="showcase-overlay" aria-hidden="true">
@@ -43,7 +55,8 @@ const ProjectCard = memo(function ProjectCard({ item, onOpen }: { item: Showcase
   );
 });
 
-export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
+export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseItem[]; kind?: keyof typeof variants }) {
+  const variant = variants[kind];
   const [selection, setSelection] = useState<Selection | null>(null);
   const openProject = useCallback((project: ShowcaseItem, origin: HTMLElement | null) => setSelection({ project, origin }), []);
   const { dialogRef, state, show, run, close, handleClose } = useMorphDialog(() => setSelection(null));
@@ -106,11 +119,11 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
 
   return (
     <>
-      <div className="showcase-grid" aria-label="Selected projects">
-        {items.map((item) => <ProjectCard key={item.id} item={item} onOpen={openProject} />)}
+      <div className={variant.grid} aria-label={variant.label}>
+        {items.map((item) => <ProjectCard key={item.id} item={item} variant={variant} onOpen={openProject} />)}
       </div>
       <dialog className="glass-dialog project-dialog" ref={dialogRef} data-liquid-ignore=""
-        aria-labelledby={project ? `project-${project.id}-title` : undefined}
+        aria-labelledby={project ? `${variant.track}-${project.id}-title` : undefined}
         onClose={handleClose}
         onCancel={(event) => { event.preventDefault(); requestClose(); }}>
         {project && <>
@@ -127,8 +140,8 @@ export function ProjectGallery({ items }: { items: ShowcaseItem[] }) {
             <span className="glass-sheet-tint" aria-hidden="true" />
             <article className="project-detail" ref={contentRef}>
               <header className="project-detail-heading">
-                <h2 id={`project-${project.id}-title`}>{project.title}</h2>
-                <button className="glass-close project-close" type="button" onClick={requestClose} aria-label="Close project" title="Close project" autoFocus>
+                <h2 id={`${variant.track}-${project.id}-title`}>{project.title}</h2>
+                <button className="glass-close project-close" type="button" onClick={requestClose} aria-label={variant.close} title={variant.close} autoFocus>
                   <X size={22} strokeWidth={1.8} aria-hidden="true" />
                 </button>
               </header>

@@ -79,6 +79,13 @@ export function HomePage() {
         <MembershipList items={site.memberships} />
       </section>
 
+      {site.portfolio.length > 0 && (
+        <section className="page-section portfolio-section" id="portfolio" data-nav-section="about">
+          <SectionHeading title="Portfolio" />
+          <ProjectGallery items={site.portfolio} kind="portfolio" />
+        </section>
+      )}
+
     </main>
   );
 }

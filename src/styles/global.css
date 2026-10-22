@@ -1119,6 +1119,30 @@ textarea {
 .showcase-summary { max-width: 28ch; font-size: 16px; line-height: 1.6; color: inherit; }
 .showcase-overlay-content > svg { flex-shrink: 0; }
 
+/* Portfolio: project cards laid out like the Honors gallery (four across, two below 860px). */
+.portfolio-section { padding-top: 32px; }
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+.portfolio-grid .showcase-image { aspect-ratio: 4 / 3; }
+.portfolio-grid .showcase-overlay { inset: 8px; }
+.portfolio-grid .showcase-overlay-content { gap: 6px; padding: 12px; }
+.portfolio-grid .showcase-title { font-size: 1.0625rem; }
+.portfolio-grid .showcase-summary { font-size: 14px; line-height: 1.5; }
+@media (max-width: 860px) {
+  .portfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .portfolio-section { padding-top: 24px; }
+  .portfolio-grid { gap: 14px 12px; }
+  .portfolio-grid .showcase-summary, .portfolio-grid .showcase-overlay-content > svg { display: none; }
+  .portfolio-grid .showcase-overlay { inset: auto 6px 6px; }
+  .portfolio-grid .showcase-overlay-content { padding: 7px 10px; }
+  .portfolio-grid .showcase-title { font-size: 13px; line-height: 1.3; }
+}
+
 .video-frame {
   overflow: hidden;
   border: 1px solid var(--line);

@@ -676,6 +676,9 @@ export const site = {
         "Active member and AFOL creator; participated in FULLBRICK events, festival exhibitions, and public STEM-facing LEGO communication."
     }
   ] satisfies Membership[],
+  /** Exhibition photos and stories under Membership, four per row; the section stays hidden while this is empty.
+   *  Same fields as a project: `image` is the card, `detailImage` and `body` fill the detail sheet. */
+  portfolio: [] as ShowcaseItem[],
   projectTracks: [
     {
       title: "Research workspace",
