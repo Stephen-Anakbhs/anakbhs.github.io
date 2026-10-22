@@ -51,9 +51,11 @@ declare module "liquid-gl" {
     /** The two halves of rasterise: a synchronous measure of the element, then chunked painting. */
     painter: {
       measure(element: Element, options?: RasteriseOptions): PaintPlan | null;
+      paint(plan: PaintPlan, canvas: HTMLCanvasElement): HTMLCanvasElement;
       paintChunked(plan: PaintPlan, canvas: HTMLCanvasElement, budgetMs?: number): Promise<HTMLCanvasElement>;
     };
   };
-  interface PaintPlan { assets: Promise<unknown>[] }
+  /** What measure() found: ops in document CSS px, `base` mapping them onto a `width` x `height` canvas. */
+  interface PaintPlan { assets: Promise<unknown>[]; base: number[]; width: number; height: number; scale: number }
   export default liquidGL;
 }

@@ -1,18 +1,22 @@
-/* ---------- Hero title as frosted glass (GlassTitle.tsx) ---------- */
-.hero-title { position: relative; }
+/* ---------- Hero lettering as frosted glass (GlassText.tsx) ---------- */
+/* The glyphs stay in the page for readers, search and selection; the glass layer shows them.
+   Its frost takes a little of the scene's glass color, so it changes with the wallpaper. */
+.hero [data-glass] { position: relative; }
+.hero [data-glass], .hero [data-glass] * { color: transparent; }
 
-/* The glyphs stay in the page for readers, search and selection; the glass layer shows them. */
-.hero h1[data-glass] { color: transparent; }
-
-.hero-title-glass {
+.glass-text-layer {
   --glyphs: none;
-  --frost: rgba(255, 255, 255, 0.44);
+  --glass-rim: 1.5px;
+  --glass-tint: color-mix(in srgb, var(--scene-glass, #ffffff) 22%, #ffffff);
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   display: none;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.64), var(--frost) 48%, rgba(255, 255, 255, 0.34));
+  background: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--glass-tint) 66%, transparent),
+    color-mix(in srgb, var(--glass-tint) 46%, transparent) 48%,
+    color-mix(in srgb, var(--glass-tint) 36%, transparent));
   -webkit-backdrop-filter: blur(9px) saturate(1.5) brightness(1.3);
   backdrop-filter: blur(9px) saturate(1.5) brightness(1.3);
   -webkit-mask-image: var(--glyphs);
@@ -23,13 +27,14 @@
   mask-repeat: no-repeat;
 }
 
-.hero h1[data-glass] + .hero-title-glass { display: block; }
+.hero [data-glass] > .glass-text-layer { display: block; }
+.hero-specialty > .glass-text-layer { --glass-rim: 1px; -webkit-backdrop-filter: blur(6px) saturate(1.5) brightness(1.3); backdrop-filter: blur(6px) saturate(1.5) brightness(1.3); }
 
 /* Light along the upper edges of the glyphs and shade along the lower ones: the glyph shape
    minus itself shifted, where the browser can subtract masks. */
 @supports (mask-composite: subtract) or (-webkit-mask-composite: source-out) {
-  .hero-title-glass::before,
-  .hero-title-glass::after {
+  .glass-text-layer::before,
+  .glass-text-layer::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -42,19 +47,22 @@
     -webkit-mask-composite: source-out;
     mask-composite: subtract;
   }
-  .hero-title-glass::before {
+  .glass-text-layer::before {
     background: rgba(255, 255, 255, 0.85);
-    -webkit-mask-position: 0 0, 0 1.5px;
-    mask-position: 0 0, 0 1.5px;
+    -webkit-mask-position: 0 0, 0 var(--glass-rim);
+    mask-position: 0 0, 0 var(--glass-rim);
   }
-  .hero-title-glass::after {
+  .glass-text-layer::after {
     background: rgba(10, 14, 20, 0.28);
-    -webkit-mask-position: 0 0, 0 -1.5px;
-    mask-position: 0 0, 0 -1.5px;
+    -webkit-mask-position: 0 0, 0 calc(-1 * var(--glass-rim));
+    mask-position: 0 0, 0 calc(-1 * var(--glass-rim));
   }
 }
 
+/* The typing cursor is a bar, not lettering: it stays as it is above the glass. */
+.hero [data-glass] .typing-cursor { position: relative; z-index: 1; }
+
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
-  .hero h1[data-glass] { color: inherit; }
-  .hero h1[data-glass] + .hero-title-glass { display: none; }
+  .hero [data-glass], .hero [data-glass] * { color: inherit; }
+  .hero [data-glass] > .glass-text-layer { display: none; }
 }

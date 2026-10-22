@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { site } from "../../content/site";
-import { GlassTitle } from "../hero/GlassTitle";
+import { GlassTextLayer, useGlassText } from "../hero/GlassText";
 import { TypewriterLine } from "../hero/TypewriterLine";
 import { useCoverSheet } from "./useCoverSheet";
 import "../../styles/hero-video.css";
@@ -18,6 +18,10 @@ export function Hero() {
   const heroRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const sheetRef = useRef<HTMLCanvasElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const specialtyRef = useRef<HTMLParagraphElement>(null);
+  useGlassText(titleRef);
+  useGlassText(specialtyRef);
   const navigate = useNavigate();
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
@@ -217,9 +221,10 @@ export function Hero() {
       <div className="hero-overlay" aria-hidden="true" />
       <canvas ref={sheetRef} className="cover-sheet" aria-hidden="true" data-liquid-ignore="" />
       <div className="hero-content">
-        <GlassTitle text={site.hero.title} />
-        <p className="hero-specialty">
+        <h1 ref={titleRef}>{site.hero.title}<GlassTextLayer /></h1>
+        <p ref={specialtyRef} className="hero-specialty">
           <TypewriterLine prefix={site.hero.prefix} words={site.hero.words} />
+          <GlassTextLayer />
         </p>
       </div>
       <a className="scroll-cue" href="#about" aria-label="Scroll to about">

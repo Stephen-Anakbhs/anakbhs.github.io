@@ -48,8 +48,5 @@
 
 :is(.cover-return, .cover-return-plain)[data-active] { visibility: visible; }
 
-/* Only iPhone and iPad screens are rounded; everywhere else the sheets keep square corners. */
-html[data-cover-corners] :is(.cover-return-plain, .hero[data-cover="css"] .hero-overlay) { border-radius: 0 0 44px 44px; }
-
 /* The icon image behind each masked icon, loaded for the returning sheet's snapshot only. */
 .brand-icon-flat { display: none; }

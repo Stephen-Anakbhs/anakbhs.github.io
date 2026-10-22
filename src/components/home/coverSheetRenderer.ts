@@ -9,7 +9,6 @@ export type CoverLayout = {
   width: number; // sheet size, CSS px
   height: number;
   scale: number; // device px per CSS px
-  radius: number; // lower corner radius; 0 keeps the sheet square
   source: CoverSource | null;
   cover: [number, number, number, number]; // where the source sits in the sheet, CSS px
   live: boolean; // re-upload the source every frame (video, animating canvas)
@@ -34,7 +33,6 @@ uniform float u_seeThrough;
 uniform float u_edge;
 uniform float u_glass;
 uniform float u_clear;
-uniform float u_radius;
 uniform float u_overhang;
 uniform float u_bevel;
 
@@ -54,11 +52,11 @@ float heroShade(float x) {
 void main() {
   vec2 p = vec2(gl_FragCoord.x, u_buffer - gl_FragCoord.y) / u_scale;
 
-  // Signed distance to the sheet: full width (its sides pushed off screen when the corners are
-  // square), open at the top, the lower corners rounded by u_radius.
-  float r = u_radius;
-  vec2 q = vec2(abs(p.x - u_size.x * 0.5) - u_size.x * 0.5 - u_overhang + r, p.y - u_edge + r);
-  float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+  // Signed distance to the sheet: wider than the screen (square corners, sides out of view),
+  // open at the top, closed by its lower edge.
+  float r = 0.0;
+  vec2 q = vec2(abs(p.x - u_size.x * 0.5) - u_size.x * 0.5 - u_overhang, p.y - u_edge);
+  float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
   float side = p.x < u_size.x * 0.5 ? -1.0 : 1.0;
   vec2 normal = q.x > 0.0 && q.y > 0.0 ? normalize(q) * vec2(side, 1.0) : (q.x > q.y ? vec2(side, 0.0) : vec2(0.0, 1.0));
 
@@ -130,13 +128,13 @@ export function createCoverRenderer(canvas: HTMLCanvasElement) {
   const at = (name: string) => gl.getUniformLocation(program, name);
   const uniforms = {
     hasSource: at("u_hasSource"), size: at("u_size"), scale: at("u_scale"), buffer: at("u_buffer"), cover: at("u_cover"), shade: at("u_shade"),
-    seeThrough: at("u_seeThrough"), edge: at("u_edge"), glass: at("u_glass"), clear: at("u_clear"), radius: at("u_radius"), overhang: at("u_overhang"),
-    bevel: at("u_bevel"),
+    seeThrough: at("u_seeThrough"), edge: at("u_edge"), glass: at("u_glass"), clear: at("u_clear"), overhang: at("u_overhang"), bevel: at("u_bevel"),
   };
   let layout: CoverLayout | null = null;
   let uploaded: CoverSource | null = null;
   let lost = false;
-  canvas.addEventListener("webglcontextlost", () => { lost = true; });
+  canvas.addEventListener("webglcontextlost", (event) => { event.preventDefault(); lost = true; });
+  canvas.addEventListener("webglcontextrestored", () => { renderers.delete(canvas); });
 
   const renderer: CoverRenderer = {
     get lost() { return lost; },
@@ -156,8 +154,7 @@ export function createCoverRenderer(canvas: HTMLCanvasElement) {
       gl.uniform4f(uniforms.cover, ...next.cover);
       const bevel = Math.min(32, Math.max(20, next.width * 0.024));
       gl.uniform1f(uniforms.bevel, bevel);
-      gl.uniform1f(uniforms.radius, next.radius);
-      gl.uniform1f(uniforms.overhang, next.radius > 0 ? 0 : bevel * 3);
+      gl.uniform1f(uniforms.overhang, bevel * 3);
     },
     draw(edge: number, glass: number, clear: number) {
       if (lost || !layout) return false;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
+import { flushSync } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { site } from "../../content/site";
@@ -28,6 +29,16 @@ export function SiteShell({ children }: PropsWithChildren) {
     setActiveSection(id);
     refreshScrollState.current();
   };
+  // The homepage cover (useCoverSheet) takes over section links and plays its transition before
+  // the page moves; it reports the choice here so the navigation reflects it at once, as
+  // synchronously as a click handled by the link itself would.
+  const selectRef = useRef(selectSection);
+  selectRef.current = selectSection;
+  useEffect(() => {
+    const onSelect = (event: Event) => flushSync(() => selectRef.current((event as CustomEvent<string>).detail));
+    document.addEventListener("rg-section-select", onSelect);
+    return () => document.removeEventListener("rg-section-select", onSelect);
+  }, []);
 
   useEffect(() => {
     let frame = 0;

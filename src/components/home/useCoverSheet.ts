@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import type liquidGL from "liquid-gl";
 import { closeMotion, openMotion } from "../ui/glassMorph";
 import { coverBox, createCoverRenderer, type CoverRenderer, type CoverSource } from "./coverSheetRenderer";
 
@@ -6,16 +7,18 @@ import { coverBox, createCoverRenderer, type CoverRenderer, type CoverSource } f
 // scroll or page down and it lifts on a glass edge with the video still playing beneath. A
 // drag released past the threshold carries on up and the next section comes in the way
 // home-screen icons do, short of it the cover springs back; a wheel or trackpad notch sends it
-// all the way at once. At About, the same gestures the other way pull a glass sheet down over
-// the page (a snapshot of the page bends into its edge),
-// and the video returns once the sheet is all the way down. Touch, trackpad, mouse wheel, mouse
-// drag, keys and section links all drive it.
+// all the way at once. At About (or from the Home link anywhere below), the same gestures the
+// other way pull a glass sheet down over the page, a snapshot of the page bending into its
+// edge, and the video returns once the sheet is all the way down. Touch, trackpad, mouse
+// wheel, mouse drag, keys and section links all drive it.
 type Mode = "lift" | "return";
 type Phase = "idle" | "drag" | "settle" | "commit" | "finish";
+type Painter = typeof liquidGL.painter;
 
 const SHARE = 0.3; // a drag released past this share of the screen completes
 const FLICK = 450; // px/s: a flick completes from anywhere past FLICK_MIN
 const FLICK_MIN = 24;
+const SEND = 1200; // px/s: how a notch, key or link sets the cover going
 const GLASS_IN = 56; // px of travel over which the glass rim appears
 const CLEAR_IN = 120; // px of travel over which the hero's shade clears out of the glass
 const POP_IN = ".section-heading, .about-text > p, .social-row > *, .about-portrait, .publication-item, .publication-index-link, .showcase-card";
@@ -23,8 +26,6 @@ const POP_IN = ".section-heading, .about-text > p, .social-row > *, .about-portr
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = "cubic-bezier(0.2, 0.7, 0.3, 1)";
-// iPhone and iPad screens have rounded corners for the sheet to follow; other screens are square.
-const roundedScreen = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const pixelScale = () => Math.min(window.devicePixelRatio || 1, 2);
 
 export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>, enabled: boolean, onLink: (href: string) => void) {
@@ -40,10 +41,8 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     const cue = hero.querySelector<HTMLElement>(".scroll-cue");
     const overlay = hero.querySelector<HTMLElement>(".hero-overlay");
     const phoneLayout = matchMedia("(max-width: 640px)");
-    const rounded = roundedScreen();
-    if (rounded) root.dataset.coverCorners = "";
-    // The sheet that comes back down over About: glass over a snapshot of the page, or, until
-    // there is one, a plain clear pane edged in light.
+    // The sheet that comes back down over the page: glass over a snapshot of the page, or,
+    // should the page painter be unavailable, a plain clear pane edged in light.
     const sheet = document.createElement("canvas");
     sheet.className = "cover-return";
     const pane = document.createElement("div");
@@ -57,9 +56,8 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let renderer: CoverRenderer | null = null;
     let returnRenderer: CoverRenderer | null = null;
     let returnLive = false;
+    let painter: Painter | null = null;
     let snapshot: { canvas: HTMLCanvasElement; key: string } | null = null;
-    let snapshotGeneration = 0;
-    let armTimer = 0;
     let mode: Mode = "lift";
     let phase: Phase = "idle";
     let offset = 0;
@@ -71,13 +69,21 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let swallowSign = 0; // wheel direction of the gesture under way, swallowed while its stream keeps coming
     let swallowEnd = 0;
     let lastWheel = 0;
+    let landedAt = 0;
     let lastY = window.scrollY;
+    let listening = false;
     let link: string | null = null;
     let samples: { time: number; offset: number }[] = [];
     let drag: { id: number; touch: boolean; mode: Mode; x: number; y: number; base: number; travel: number } | null = null;
 
-    // Compile ahead of the first gesture so it does not hitch.
-    const warm = window.setTimeout(() => { renderer ??= createCoverRenderer(canvas); }, 400);
+    // Compile both renderers and load the page painter ahead of the first gesture so it does not hitch.
+    const warm = window.setTimeout(() => {
+      renderer ??= createCoverRenderer(canvas);
+      returnRenderer ??= createCoverRenderer(sheet);
+    }, 400);
+    void import("liquid-gl").then(({ default: module }) => {
+      if (!disposed && typeof module.painter?.measure === "function") painter = module.painter;
+    });
 
     const free = () => !root.classList.contains("glass-dialog-open")
       && !(phoneLayout.matches && document.querySelector('.site-header[data-menu-open="true"]'));
@@ -101,54 +107,50 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       return photo?.complete && photo.naturalWidth ? photo : null;
     };
 
-    // The page at About is painted once it has settled there, so the returning sheet has
-    // something to refract. Anything that changes the view invalidates it.
+    // The view the returning sheet comes down over, painted as the gesture starts (only what is
+    // on screen, a few milliseconds) and kept while the view stays the same.
     const snapshotKey = () => [window.innerWidth, window.innerHeight, Math.round(window.scrollY),
       root.dataset.scene ?? "", root.dataset.sceneMode ?? "", root.dataset.look ?? ""].join("|");
-    const takeSnapshot = async (generation: number) => {
+    const takeSnapshot = () => {
       const key = snapshotKey();
-      const { default: liquidGL } = await import("liquid-gl");
-      if (typeof liquidGL.painter?.measure !== "function") return;
+      if (snapshot?.key === key) return snapshot.canvas;
+      if (!painter) return null;
       const width = window.innerWidth;
       const viewport = window.innerHeight;
       const top = Math.round(window.scrollY);
-      const scale = Math.min(pixelScale(), Math.sqrt(1e7 / (width * (top + viewport))));
+      const scale = pixelScale();
       // The painter cannot do glass lettering or masked icons (and reads styles as it goes, so
       // they cannot be restyled for it quietly): it skips them, and they are drawn in afterward.
       const standIn = (element: Element) => element.matches(".section-heading :is(h1, h2), .brand-icon");
-      const options = {
-        width, height: top + viewport, scale, backgroundColor: getComputedStyle(root).backgroundColor,
-        ignoreElements: (element: Element) => typeof element.hasAttribute === "function"
-          && (element.hasAttribute("data-liquid-ignore") || element.closest("[data-liquid-ignore]") !== null || standIn(element)),
+      const offScreen = (element: Element) => {
+        if (element === document.body || getComputedStyle(element).position === "fixed") return false;
+        const rect = element.getBoundingClientRect();
+        return rect.bottom < -4 || rect.top > viewport + 4;
       };
       let page: HTMLCanvasElement;
       try {
-        let plan = liquidGL.painter.measure(document.body, options);
-        if (!plan) return;
-        if (plan.assets.length) {
-          await Promise.all(plan.assets);
-          if (disposed || generation !== snapshotGeneration) return;
-          plan = liquidGL.painter.measure(document.body, options) ?? plan;
-        }
-        page = await liquidGL.painter.paintChunked(plan, document.createElement("canvas"), 6);
+        const plan = painter.measure(document.body, {
+          width, height: top + viewport, scale, backgroundColor: getComputedStyle(root).backgroundColor,
+          ignoreElements: (element) => typeof element.hasAttribute === "function"
+            && (element.hasAttribute("data-liquid-ignore") || element.closest("[data-liquid-ignore]") !== null || standIn(element) || offScreen(element)),
+        });
+        if (!plan) return null;
+        // Paint the viewport only: slide the page up by the scroll and keep a viewport-tall canvas.
+        plan.height = viewport;
+        plan.base[5] -= top * scale;
+        page = painter.paint(plan, document.createElement("canvas"));
       } catch {
-        return;
+        return null;
       }
-      if (disposed || generation !== snapshotGeneration || key !== snapshotKey()) return;
       drawStandIns(page, scale);
-      if (disposed || generation !== snapshotGeneration || key !== snapshotKey()) return;
-      const crop = document.createElement("canvas");
-      crop.width = Math.max(1, Math.round(width * scale));
-      crop.height = Math.max(1, Math.round(viewport * scale));
-      crop.getContext("2d")?.drawImage(page, 0, Math.round(top * scale), crop.width, crop.height, 0, 0, crop.width, crop.height);
-      snapshot = { canvas: crop, key };
+      snapshot = { canvas: page, key };
+      return page;
     };
     // Glass lettering as solid lettering in its glass color, masked icons as their image in ink.
     const drawStandIns = (page: HTMLCanvasElement, scale: number) => {
       const context = page.getContext("2d");
       if (!context) return;
-      const body = document.body.getBoundingClientRect();
-      context.setTransform(scale, 0, 0, scale, -body.left * scale, -body.top * scale);
+      context.setTransform(scale, 0, 0, scale, 0, 0);
       const onScreen = (rect: DOMRect) => rect.bottom > 0 && rect.top < window.innerHeight;
       for (const heading of document.querySelectorAll<HTMLElement>("main .section-heading :is(h1, h2)")) {
         const rect = heading.getBoundingClientRect();
@@ -190,32 +192,19 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       }
       context.setTransform(1, 0, 0, 1, 0, 0);
     };
-    const arm = (delay = 300) => {
-      window.clearTimeout(armTimer);
-      armTimer = window.setTimeout(() => {
-        if (phase !== "idle" || !atAbout() || snapshot?.key === snapshotKey()) return;
-        // Measuring the page walks every element; wait for a quiet moment on the main thread.
-        const generation = ++snapshotGeneration;
-        const start = () => { if (generation === snapshotGeneration && phase === "idle") void takeSnapshot(generation); };
-        if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(start, { timeout: 1500 });
-        else window.setTimeout(start, 50);
-      }, delay);
-    };
-    const forget = () => { snapshot = null; arm(); };
 
     const begin = () => {
       offset = 0;
       velocity = 0;
       samples = [];
       const width = window.innerWidth;
-      const radius = rounded ? Math.min(44, width * 0.11) : 0;
       if (mode === "return") {
         height = window.innerHeight;
-        const shot = snapshot?.key === snapshotKey() ? snapshot.canvas : null;
+        const shot = takeSnapshot();
         if (shot) {
           if (returnRenderer?.lost) returnRenderer = null;
           returnRenderer ??= createCoverRenderer(sheet);
-          returnRenderer?.layout({ width, height, scale: pixelScale(), radius, source: shot, cover: [0, 0, width, height], live: false, shade: [0, 0, 0], seeThrough: true });
+          returnRenderer?.layout({ width, height, scale: pixelScale(), source: shot, cover: [0, 0, width, height], live: false, shade: [0, 0, 0], seeThrough: true });
         }
         returnLive = Boolean(shot && returnRenderer && !returnRenderer.lost);
         return;
@@ -228,7 +217,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const shade = (name: string, fallback: number) => parseFloat(style?.getPropertyValue(name) ?? "") || fallback;
       const source = pickSource();
       renderer?.layout({
-        width: box.width, height, scale: pixelScale(), radius, source, live: true, seeThrough: false,
+        width: box.width, height, scale: pixelScale(), source, live: true, seeThrough: false,
         cover: source ? coverBox(source, box.width, height) : [0, 0, box.width, height],
         shade: [shade("--shade-start", 0.83), shade("--shade-mid", 0.36), shade("--shade-end", 0.2)],
       });
@@ -313,7 +302,8 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       clear();
       if (link) linkTarget.current(link);
       link = null;
-      arm(800);
+      landedAt = performance.now();
+      syncInput();
     };
 
     const finish = () => {
@@ -323,7 +313,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         const veil = returnLive ? sheet : pane;
         window.scrollTo({ top: 0, behavior: "instant" });
         reset();
-        popIn([content?.querySelector(".hero-title"), content?.querySelector(".hero-specialty")].filter((item): item is HTMLElement => Boolean(item)), 1.12);
+        popIn([content?.querySelector("h1"), content?.querySelector(".hero-specialty")].filter((item): item is HTMLElement => Boolean(item)), 1.12);
         cue?.animate({ opacity: [0, 1] }, { duration: 320, delay: 160, easing: settle, fill: "backwards" });
         fadeOut(veil, [{ opacity: 1 }, { opacity: 0 }], finished);
         return;
@@ -399,6 +389,14 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (samples.length > 12) samples.shift();
       run();
     };
+    // Brings the cover down from About over the current view, from wherever the page was.
+    const returnFrom = (top: number) => {
+      if (window.scrollY !== top) window.scrollTo({ top, behavior: "instant" });
+      lastY = top;
+      mode = "return";
+      begin();
+      commit(SEND);
+    };
 
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
@@ -407,7 +405,9 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const gap = now - lastWheel;
       lastWheel = now;
       if (phase === "commit" || phase === "finish") { event.preventDefault(); return; }
-      if (swallowSign && (now > swallowEnd || gap > 320 || Math.sign(delta) !== swallowSign)) swallowSign = 0;
+      // Right after landing, same-direction events are still the stream that got us here.
+      const settling = now - landedAt < 400;
+      if (swallowSign && (Math.sign(delta) !== swallowSign || (!settling && (now > swallowEnd || gap > 320)))) swallowSign = 0;
       if (swallowSign) { event.preventDefault(); return; }
       if (phase === "drag") {
         // A wheel turned mid-drag moves the same sheet instead of scrolling the page under it.
@@ -421,11 +421,19 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (phase !== "idle") return;
       if (delta > 0 && ready()) mode = "lift";
       else if (delta < 0 && atAbout()) mode = "return";
-      else return;
+      else {
+        // A notch that would carry the page up past About stops there and brings the cover down.
+        const top = delta < 0 && free() ? aboutTop() : null;
+        if (top !== null && window.scrollY > top + 2 && window.scrollY + delta < top) {
+          event.preventDefault();
+          returnFrom(top);
+        }
+        return;
+      }
       // One notch or flick sends the cover all the way; only a grab moves it by hand.
       event.preventDefault();
       begin();
-      commit(600);
+      commit(SEND);
     };
 
     const onTouchStart = (event: TouchEvent) => {
@@ -514,25 +522,27 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       else return;
       event.preventDefault();
       begin();
-      commit(0);
+      commit(SEND);
     };
 
     // From the top, any link to a section of this page lifts the cover first, then lands on that
-    // section; from About, the Home link brings the cover back. Other links behave as before.
+    // section; from anywhere below, the Home link brings the cover down over the current view.
+    // Other links behave as before.
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       if (phase !== "idle" || !(event.target instanceof Element)) return;
       const href = event.target.closest("a[href]")?.getAttribute("href") ?? "";
       const id = /^\/?#([\w-]+)$/.exec(href)?.[1];
       if (!id) return;
-      if (id === "home" && atAbout()) mode = "return";
+      if (id === "home" && window.scrollY > 2 && free()) mode = "return";
       else if (id !== "home" && ready() && document.getElementById(id)?.closest("main")) mode = "lift";
       else return;
       event.preventDefault();
       event.stopPropagation();
       link = `/#${id}`;
+      document.dispatchEvent(new CustomEvent("rg-section-select", { detail: id }));
       begin();
-      commit(0);
+      commit(SEND);
     };
 
     // Scrolling up out of About toward the hero, however it was scrolled (wheel inertia, scrollbar,
@@ -541,26 +551,38 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const y = window.scrollY;
       const top = aboutTop();
       if (phase === "idle" && top !== null && y > 2 && y < top - 1 && lastY >= top - 1 && free()) {
-        window.scrollTo({ top, behavior: "instant" });
-        lastY = top;
-        mode = "return";
-        begin();
-        commit(600);
+        returnFrom(top);
         return;
       }
       lastY = y;
-      arm();
+      syncInput();
     };
-    const onResize = () => { if (phase === "idle") forget(); };
     const onImageLoad = (event: Event) => {
-      if (event.target instanceof HTMLImageElement && event.target.closest("main")) forget();
+      if (event.target instanceof HTMLImageElement && event.target.closest("main")) snapshot = null;
     };
-    const sceneWatch = new MutationObserver(forget);
-    sceneWatch.observe(root, { attributes: true, attributeFilter: ["data-scene", "data-scene-mode", "data-look"] });
 
-    window.addEventListener("wheel", onWheel, { passive: false });
+    // Wheel and touch-move listeners that can cancel scrolling make every scroll wait for the
+    // main thread, so they are only on while the cover can respond: at the top, from About to a
+    // screen below it (where a notch can carry the page up past it), or during a gesture.
+    const syncInput = () => {
+      const top = aboutTop();
+      const nearAbout = top !== null && window.scrollY >= top - 2 && window.scrollY <= top + window.innerHeight;
+      const wanted = phase !== "idle" || window.scrollY <= 2 || nearAbout;
+      if (wanted === listening) return;
+      listening = wanted;
+      if (wanted) {
+        window.addEventListener("wheel", onWheel, { passive: false });
+        window.addEventListener("touchmove", onTouchMove, { passive: false });
+      } else {
+        window.removeEventListener("wheel", onWheel);
+        window.removeEventListener("touchmove", onTouchMove);
+      }
+    };
+    // Elsewhere a passive wheel listener still catches a notch that would cross About.
+    const onWheelPassive = (event: WheelEvent) => { if (!listening) onWheel(event); };
+
+    window.addEventListener("wheel", onWheelPassive, { passive: true });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
     window.addEventListener("touchcancel", onTouchEnd);
     hero.addEventListener("pointerdown", onPointerDown);
@@ -570,16 +592,14 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     window.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onClick, true);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
     document.addEventListener("load", onImageLoad, true);
-    arm();
+    syncInput();
     return () => {
       disposed = true;
       window.clearTimeout(warm);
-      window.clearTimeout(armTimer);
       window.clearTimeout(anchorTimer);
       cancelAnimationFrame(frame);
-      sceneWatch.disconnect();
+      window.removeEventListener("wheel", onWheelPassive);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
@@ -592,10 +612,8 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
       document.removeEventListener("load", onImageLoad, true);
       root.style.removeProperty("overflow-anchor");
-      delete root.dataset.coverCorners;
       delete hero.dataset.coverGrab;
       clear();
       sheet.remove();

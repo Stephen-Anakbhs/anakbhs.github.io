@@ -9014,6 +9014,7 @@ fn fs() -> @location(0) vec4<f32> {
     NaughtyDOM.rasteriseAsync(element, options);
   window.liquidGL.painter = {
     measure: NaughtyDOM.measure,
+    paint: NaughtyDOM.paint,
     paintChunked: NaughtyDOM.paintChunked,
   };
 

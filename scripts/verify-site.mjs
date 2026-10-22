@@ -175,7 +175,8 @@ try {
       const values = await page.evaluate(() => ({
         width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth,
         buttons: [...document.querySelectorAll('.publication-links .glass-action')].map(e => ({ ink: getComputedStyle(e).color, icon: getComputedStyle(e.querySelector('svg')).stroke })),
-        renderers: document.querySelectorAll('canvas').length,
+        // The homepage cover keeps two canvases of its own (hero cover, returning sheet); only lens renderers count here.
+        renderers: document.querySelectorAll('canvas:not(.cover-sheet, .cover-return)').length,
         navBlur: getComputedStyle(document.querySelector('.header-navigation')).backdropFilter,
       }));
       assert.equal(values.overflow, false); assert.ok(values.buttons.every(b => ['rgb(255, 255, 255)', 'rgb(32, 36, 40)'].includes(b.ink) && b.icon === b.ink));
