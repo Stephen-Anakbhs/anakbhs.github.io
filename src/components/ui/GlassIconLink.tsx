@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { GlassSurface } from "./GlassSurface";
 import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
+import { tooltipShift } from "./tooltipPlacement";
 
 type GlassIconLinkProps = {
   href: string;
@@ -12,24 +13,19 @@ type GlassIconLinkProps = {
   brand?: string;
 };
 
-const viewportMargin = 8;
-
 export function GlassIconLink({ href, label, icon: Icon, tone = "light", brand }: GlassIconLinkProps) {
   const tooltip = useRef<HTMLSpanElement>(null);
   const filterId = `tooltip-lens-${useId().replace(/:/g, "")}`;
   const [lens, setLens] = useState<{ width: number; height: number; map: string } | null>(null);
 
-  // Centre the label under its icon, nudge it back inside the viewport, and size its lens once.
+  // Centre the label under its icon (or align it with the icon's edge near the screen edge) and size its lens once.
   const prepareTooltip = () => {
     const element = tooltip.current;
     if (!element?.parentElement) return;
     const anchor = element.parentElement.getBoundingClientRect();
     const width = element.offsetWidth;
     const height = element.offsetHeight;
-    const left = anchor.left + anchor.width / 2 - width / 2;
-    const overflowLeft = viewportMargin - left;
-    const overflowRight = left + width - (document.documentElement.clientWidth - viewportMargin);
-    element.style.setProperty("--tooltip-shift", `${Math.max(0, overflowLeft) - Math.max(0, overflowRight)}px`);
+    element.style.setProperty("--tooltip-shift", `${tooltipShift(anchor, width)}px`);
     if (fullGlass && (lens?.width !== width || lens.height !== height)) setLens({ width, height, map: lensMap(width, height, height / 2) });
   };
 

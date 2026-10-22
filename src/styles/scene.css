@@ -44,12 +44,12 @@ html[data-scene-mode="dark"] .backdrop-calm[data-derived] { filter: contrast(0.6
 .scene-glyph[data-mode="dark"] .scene-glyph-sun { opacity: 0; transform: rotate(90deg) scale(0.5); }
 .scene-glyph[data-mode="dark"] .scene-glyph-moon { opacity: 1; transform: none; }
 
-/* Tooltip: the shared glass pill under the control; --tooltip-shift (set on hover) keeps it on screen. */
+/* Tooltip: the shared glass pill under the control; --tooltip-shift (set on hover) aligns it with the control edge near the screen edge. */
 .scene-tooltip { display: grid; gap: 2px; justify-items: center; }
 .scene-tooltip small { font-size: 11px; font-weight: 500; opacity: 0.72; }
 
 /* Over the hero video or a dark scene the label becomes dark glass with light text. */
-.site-header[data-tone="dark"] .scene-control:is(:hover, :focus-within) .scene-tooltip { color: #f4f6f8; }
+.site-header[data-tone="dark"] .scene-control:is(:hover, :has(:focus-visible)) .scene-tooltip { color: #f4f6f8; }
 .site-header[data-tone="dark"] .scene-tooltip::before { -webkit-backdrop-filter: blur(6px) saturate(1.4) brightness(0.7); backdrop-filter: blur(6px) saturate(1.4) brightness(0.7); }
 .site-header[data-tone="dark"] .scene-tooltip::after {
   background: linear-gradient(180deg, rgba(40, 44, 50, 0.5), rgba(20, 22, 26, 0.38));
@@ -62,7 +62,7 @@ html[data-scene-mode="dark"] .backdrop-calm[data-derived] { filter: contrast(0.6
 @media (prefers-reduced-motion: reduce) {
   .site-backdrop .backdrop-layer[data-entering] { animation-duration: 1ms; }
   .scene-glyph svg { transition: none; }
-  .scene-control .scene-tooltip, .scene-control:is(:hover, :focus-within) .scene-tooltip { transform: none; }
+  .scene-control .scene-tooltip, .scene-control:is(:hover, :has(:focus-visible)) .scene-tooltip { transform: none; }
 }
 
 /* ---------- Dark scenes: light text on the wallpaper; figures and logos keep a pale card. ---------- */

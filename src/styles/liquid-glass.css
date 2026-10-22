@@ -238,8 +238,8 @@
 }
 
 .icon-control { position: relative; display: inline-grid; }
-.icon-control:hover, .icon-control:focus-within { z-index: 2; }
-/* A small glass pill that grows out of its icon; --tooltip-shift keeps it on screen.
+.icon-control:hover, .icon-control:has(:focus-visible) { z-index: 2; }
+/* A small glass pill that grows out of its icon; --tooltip-shift aligns it with the icon edge near the screen edge.
    The pill's own opacity never changes, so its backdrop always sees the page. */
 .icon-tooltip {
   position: absolute;
@@ -285,16 +285,16 @@
     0 1px 3px rgba(18, 24, 32, 0.12);
 }
 .icon-tooltip > svg { position: absolute; width: 0; height: 0; }
-.icon-control:is(:hover, :focus-within) .icon-tooltip {
+.icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip {
   color: var(--brand-ink, #1b1f24);
   visibility: visible;
   transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0) scale(1);
   transition: color 160ms ease, transform 560ms var(--glass-spring), visibility 0s;
 }
-.icon-control:is(:hover, :focus-within) .icon-tooltip::before,
-.icon-control:is(:hover, :focus-within) .icon-tooltip::after { opacity: 1; }
+.icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip::before,
+.icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
-  .icon-tooltip, .icon-control:is(:hover, :focus-within) .icon-tooltip { transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0); transition: color 120ms ease, visibility 0s; }
+  .icon-tooltip, .icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip { transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0); transition: color 120ms ease, visibility 0s; }
 }
 
 .about-copy .social-row {
@@ -320,8 +320,8 @@
    click or a tap), --brand-on tints the button too, not only while the pointer is over it. */
 @property --brand-on { syntax: "<number>"; inherits: true; initial-value: 0; }
 .icon-control[data-brand] { transition: --brand-on 260ms ease; }
-.icon-control[data-brand]:is(:hover, :focus-within) { --brand-on: 1; }
-.icon-control[data-brand]:is(:hover, :focus-within) .social-glass .glass-action { color: var(--brand-ink, var(--glass-ink)); }
+.icon-control[data-brand]:is(:hover, :has(:focus-visible)) { --brand-on: 1; }
+.icon-control[data-brand]:is(:hover, :has(:focus-visible)) .social-glass .glass-action { color: var(--brand-ink, var(--glass-ink)); }
 .icon-control[data-brand] { --tooltip-tint: linear-gradient(var(--brand-angle, 135deg), var(--brand-a), var(--brand-b) 36%, var(--brand-c) 66%, var(--brand-d)); }
 .icon-control[data-brand="email"] { --brand-angle: 90deg; --brand-a: rgba(66, 133, 244, 0.62); --brand-b: rgba(234, 67, 53, 0.56); --brand-c: rgba(251, 188, 4, 0.6); --brand-d: rgba(52, 168, 83, 0.6); }
 .social-glass[data-glass-optics="lens"] .liquid-engine > .glass::after {
@@ -380,7 +380,7 @@
   .liquid-surface[data-glass-optics="lens"]::after,
   .icon-tooltip::before { display: none; }
   .icon-tooltip::after { background: #30353a; box-shadow: 0 0 0 1px #fff; }
-  .icon-control:is(:hover, :focus-within) .icon-tooltip { color: #fff; }
+  .icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip { color: #fff; }
 }
 
 @media (forced-colors: active) {
@@ -390,7 +390,7 @@
   .liquid-surface[data-glass-optics="lens"] .liquid-engine > .glass::after { background: Canvas; box-shadow: none; }
   .liquid-surface[data-glass-optics="lens"]::after, .icon-tooltip::before { display: none; }
   .icon-tooltip::after { background: Canvas; border: 1px solid CanvasText; box-shadow: none; }
-  .icon-control:is(:hover, :focus-within) .icon-tooltip { color: CanvasText; }
+  .icon-control:is(:hover, :has(:focus-visible)) .icon-tooltip { color: CanvasText; }
   .liquid-surface { color: ButtonText; box-shadow: none; border: 1px solid ButtonText; }
   .nav-links a, .glass-action { color: LinkText; }
   .nav-links a.active { color: Highlight; outline: 2px solid Highlight; }

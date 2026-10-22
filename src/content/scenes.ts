@@ -37,6 +37,8 @@ const STORAGE_KEY = "rg-scene";
 const byId = (id: string | null | undefined) => scenes.find((scene) => scene.id === id);
 
 function stored(): Scene {
+  const requested = byId(new URLSearchParams(location.search).get("scene"));
+  if (requested) return requested;
   try {
     return byId(localStorage.getItem(STORAGE_KEY)) ?? scenes[0];
   } catch {
