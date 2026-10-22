@@ -73,6 +73,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let lastY = window.scrollY;
     let listening = false;
     let link: string | null = null;
+    let pendingLink: string | null = null; // a section link clicked during a transition, honored when it ends
     let samples: { time: number; offset: number }[] = [];
     let drag: { id: number; touch: boolean; mode: Mode; x: number; y: number; base: number; travel: number } | null = null;
 
@@ -304,6 +305,17 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       link = null;
       landedAt = performance.now();
       syncInput();
+      const next = pendingLink;
+      pendingLink = null;
+      if (!next) return;
+      // A link clicked mid-transition: chain the next transition from here, or just go there.
+      const chain = next === "home" ? window.scrollY > 2 && free() : ready() && Boolean(document.getElementById(next)?.closest("main"));
+      if (chain) {
+        mode = next === "home" ? "return" : "lift";
+        link = `/#${next}`;
+        begin();
+        commit(SEND);
+      } else linkTarget.current(`/#${next}`);
     };
 
     const finish = () => {
@@ -530,12 +542,20 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     // Other links behave as before.
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      if (phase !== "idle" || !(event.target instanceof Element)) return;
+      if (!(event.target instanceof Element)) return;
       const href = event.target.closest("a[href]")?.getAttribute("href") ?? "";
       const id = /^\/?#([\w-]+)$/.exec(href)?.[1];
-      if (!id) return;
+      if (!id || !(id === "home" || document.getElementById(id)?.closest("main"))) return;
+      if (phase !== "idle") {
+        // Mid-transition, the page must not scroll under the sheet: keep the link for the end.
+        event.preventDefault();
+        event.stopPropagation();
+        pendingLink = id;
+        document.dispatchEvent(new CustomEvent("rg-section-select", { detail: id }));
+        return;
+      }
       if (id === "home" && window.scrollY > 2 && free()) mode = "return";
-      else if (id !== "home" && ready() && document.getElementById(id)?.closest("main")) mode = "lift";
+      else if (id !== "home" && ready()) mode = "lift";
       else return;
       event.preventDefault();
       event.stopPropagation();

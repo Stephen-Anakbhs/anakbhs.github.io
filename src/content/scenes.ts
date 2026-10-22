@@ -34,24 +34,30 @@ export const scenes: Scene[] = [
   { id: "silver-crystal", name: "Silver Crystal", mode: "light", image: "/media/scenes/silver-crystal.webp", base: "#d9dadb", glass: "#157f6e", headingFont: "Raleway" },
 ];
 
-const STORAGE_KEY = "rg-scene";
+const STORAGE_KEY = "rg-scene"; // the scene shown last, so the next visit opens on a different one
 const byId = (id: string | null | undefined) => scenes.find((scene) => scene.id === id);
+const draw = (pool: Scene[]) => pool[Math.floor(Math.random() * pool.length)] ?? scenes[0];
 
-function stored(): Scene {
+/** Every visit opens on a scene drawn at random, so the set gets noticed without the control:
+ * the first visit on one matching the system's light or dark preference, later visits on one
+ * other than the scene shown last. `?scene=` (dashboard previews) still names one outright. */
+function opening(): Scene {
   const requested = byId(new URLSearchParams(location.search).get("scene"));
   if (requested) return requested;
-  try {
-    return byId(localStorage.getItem(STORAGE_KEY)) ?? scenes[0];
-  } catch {
-    return scenes[0];
-  }
+  let last: Scene | undefined;
+  try { last = byId(localStorage.getItem(STORAGE_KEY)); } catch { /* private mode */ }
+  const scene = last
+    ? draw(scenes.filter((candidate) => candidate.id !== last.id))
+    : draw(scenes.filter((candidate) => candidate.mode === (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")));
+  if (!inLookEditor) try { localStorage.setItem(STORAGE_KEY, scene.id); } catch { /* private mode */ }
+  return scene;
 }
 
-let current: Scene = typeof window === "undefined" ? scenes[0] : stored();
+let current: Scene = typeof window === "undefined" ? scenes[0] : opening();
 const listeners = new Set<() => void>();
 const glassListeners = new Set<(scene: Scene) => void>();
 
-/** Page-wide attributes and variables; called before the first render so a stored scene never flashes. */
+/** Page-wide attributes and variables; called before the first render so the opening scene never flashes. */
 export function applyScene(scene: Scene = current) {
   const root = document.documentElement;
   root.dataset.scene = scene.id;
