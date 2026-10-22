@@ -5,8 +5,12 @@ import { site } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 import { LiquidNavigation } from "./LiquidNavigation";
 import { GlassScrollbar } from "./GlassScrollbar";
+import { SceneBackdrop } from "./SceneBackdrop";
+import { SceneButton } from "./SceneButton";
+import { useScene } from "../../content/scenes";
 import "../../styles/site-background.css";
 import "../../styles/readability.css";
+import "../../styles/scene.css";
 
 export function SiteShell({ children }: PropsWithChildren) {
   const [tone, setTone] = useState<"light" | "dark">("dark");
@@ -17,6 +21,7 @@ export function SiteShell({ children }: PropsWithChildren) {
   const [menuOpen, setMenuOpen] = useState(() => window.matchMedia("(min-width: 641px)").matches);
   const menuButton = useRef<HTMLButtonElement>(null);
   const location = useLocation();
+  const darkScene = useScene().mode === "dark";
 
   const selectSection = (id: string) => {
     pendingSection.current = id;
@@ -128,29 +133,27 @@ export function SiteShell({ children }: PropsWithChildren) {
   return (
     <div className="site-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <div className="site-backdrop" aria-hidden="true">
-        <img src="/media/cold-stone.webp" alt="" fetchPriority="high" />
-        <img className="backdrop-calm" src="/media/cold-stone-calm.webp" alt="" />
-      </div>
-      <GlassScrollbar tone="dark" />
-      <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"
+      <SceneBackdrop />
+      <GlassScrollbar tone={darkScene ? "light" : "dark"} />
+      <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={darkScene ? "dark" : tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"
         onKeyDown={(event) => {
           if (event.key === "Escape" && menuOpen) {
             setMenuOpen(false);
             menuButton.current?.focus();
           }
         }}>
+        <SceneButton tone={darkScene ? "dark" : tone} />
         {location.pathname !== "/" && (
           <Link className="brand" to="/#home" aria-label={`${site.name} home`}>
             {site.shortName}
           </Link>
         )}
         <div id="site-navigation" className="nav-reveal" inert={!menuOpen} aria-hidden={!menuOpen}>
-          <GlassSurface material="navigation" className="header-navigation" tone={tone} data-open={menuOpen}>
-            <LiquidNavigation tone={tone} activeSection={activeSection} onSelect={selectSection} open={menuOpen} />
+          <GlassSurface material="navigation" className="header-navigation" tone={darkScene ? "dark" : tone} data-open={menuOpen}>
+            <LiquidNavigation tone={darkScene ? "dark" : tone} activeSection={activeSection} onSelect={selectSection} open={menuOpen} />
           </GlassSurface>
         </div>
-        <GlassSurface material="navigation" glassType="toggle" className="header-toggle" tone={tone}>
+        <GlassSurface material="navigation" glassType="toggle" className="header-toggle" tone={darkScene ? "dark" : tone}>
           <button ref={menuButton} className="glass-action glass-icon" type="button" aria-controls="site-navigation"
             aria-expanded={menuOpen} aria-label={menuOpen ? "Collapse menu" : "Expand menu"}
             title={menuOpen ? "Collapse menu" : "Expand menu"} onClick={() => setMenuOpen((open) => !open)}>

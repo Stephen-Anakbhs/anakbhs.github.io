@@ -4,8 +4,10 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import "./styles/global.css";
 import { initSiteLook } from "./lib/siteLook";
+import { applyScene } from "./content/scenes";
 
 initSiteLook();
+applyScene();
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 if (import.meta.env.DEV && location.pathname.replace(/\/$/, '') === '/__glass') {

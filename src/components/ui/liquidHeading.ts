@@ -1,5 +1,6 @@
 import { useLayoutEffect, type RefObject } from "react";
 import { fullGlass } from "./glassQuality";
+import { onSceneGlass, type Scene } from "../../content/scenes";
 
 // Glass lettering, modelled on clear tinted glass rather than a bevel. Each heading is
 // filled with the wallpaper that sits behind it (aligned to the fixed backdrop), so the
@@ -62,7 +63,34 @@ function installFilter() {
 }
 installFilter();
 
-// The backdrop image is 2560x1520, object-fit: cover over the fixed viewport layer.
+// Clear glass and its thicker edges as per-channel transfer functions of the backdrop: over a light
+// wallpaper the tint multiplies it (stained glass); over a dark one it is added, so the letters glow.
+function tintGlass(scene: Scene) {
+  if (typeof document === "undefined") return;
+  const hex = scene.glass.replace("#", "");
+  const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const peak = Math.max(...rgb, 0.01);
+  const funcs = (result: string, value: (channel: number, index: number) => [number, number]) => {
+    document.querySelectorAll(`feComponentTransfer[result="${result}"]`).forEach((transfer) => {
+      transfer.querySelectorAll("feFuncR, feFuncG, feFuncB").forEach((func, index) => {
+        const [slope, intercept] = value(rgb[index], index);
+        func.setAttribute("slope", slope.toFixed(3));
+        func.setAttribute("intercept", intercept.toFixed(3));
+      });
+    });
+  };
+  if (scene.mode === "light") {
+    const clarity = scene.clarity ?? 0.2;
+    funcs("clear", (c) => [clarity + (1.04 - clarity) * (c / peak), 0]);
+    funcs("thick", (c) => [clarity * 0.3 + 0.8 * (c / peak), 0]);
+  } else {
+    funcs("clear", (c) => [0.3, 0.78 * c]);
+    funcs("thick", (c) => [0.22, 0.98 * c]);
+  }
+}
+onSceneGlass(tintGlass);
+
+// Every scene wallpaper is 2560x1520, object-fit: cover over the fixed viewport layer.
 const wallpaper = { width: 2560, height: 1520 };
 const visible = new Set<HTMLElement>();
 let observer: IntersectionObserver | undefined;

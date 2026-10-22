@@ -1,0 +1,104 @@
+/* Scenes ("domain randomization"): wallpaper crossfade, the scene control, and dark-scene colours. */
+
+html:has(.site-backdrop) { background: var(--scene-base, #d2d4d4); }
+.site-backdrop { background: var(--scene-base, #d2d4d4); transition: background-color 600ms ease; }
+.site-backdrop .backdrop-layer { position: absolute; inset: 0; }
+.site-backdrop img { position: absolute; inset: 0; }
+.site-backdrop .backdrop-layer[data-entering] { animation: scene-in 700ms ease both; }
+/* Scenes without a prepared calm copy get one from the wallpaper itself. */
+.backdrop-calm[data-derived] { filter: contrast(0.55) brightness(1.06) saturate(0.85); }
+html[data-scene-mode="dark"] .backdrop-calm[data-derived] { filter: contrast(0.6) brightness(0.8) saturate(0.85); }
+@keyframes scene-in { from { opacity: 0; } }
+
+/* The control sits alone at the leading edge, mirroring the menu toggle, with the brand after it. */
+.site-header .scene-control {
+  position: fixed;
+  top: var(--navigation-top);
+  left: var(--navigation-start);
+  z-index: 20;
+}
+.site-header .brand { left: calc(var(--navigation-start) + var(--navigation-height) + 14px); }
+.liquid-surface.scene-toggle { border-radius: var(--navigation-radius); }
+.scene-toggle .glass-action.glass-icon {
+  width: var(--navigation-height);
+  height: var(--navigation-height);
+  min-width: var(--navigation-height);
+}
+.site-header .scene-toggle[data-glass-enabled="true"] {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+}
+.site-header .scene-toggle > .liquid-engine > .glass > .glass__warp {
+  -webkit-backdrop-filter: blur(0px) !important;
+  backdrop-filter: blur(0px) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .scene-toggle { transition: transform 160ms ease; }
+  .scene-toggle:has(:active) { transform: scale(0.95); }
+}
+
+/* Sun for light scenes, moon for dark ones; each press turns the old glyph away as the new one arrives. */
+.scene-glyph { position: relative; display: block; width: 22px; height: 22px; }
+.scene-glyph svg { position: absolute; inset: 0; margin: auto; transition: opacity 260ms ease, transform 520ms var(--glass-spring, cubic-bezier(0.2, 0.8, 0.2, 1)); }
+.scene-glyph-moon { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+.scene-glyph[data-mode="dark"] .scene-glyph-sun { opacity: 0; transform: rotate(90deg) scale(0.5); }
+.scene-glyph[data-mode="dark"] .scene-glyph-moon { opacity: 1; transform: none; }
+
+/* Tooltip: the shared glass pill under the control; --tooltip-shift (set on hover) keeps it on screen. */
+.scene-tooltip { display: grid; gap: 2px; justify-items: center; }
+.scene-tooltip small { font-size: 11px; font-weight: 500; opacity: 0.72; }
+
+/* Over the hero video or a dark scene the label becomes dark glass with light text. */
+.site-header[data-tone="dark"] .scene-control:is(:hover, :focus-within) .scene-tooltip { color: #f4f6f8; }
+.site-header[data-tone="dark"] .scene-tooltip::before { -webkit-backdrop-filter: blur(6px) saturate(1.4) brightness(0.7); backdrop-filter: blur(6px) saturate(1.4) brightness(0.7); }
+.site-header[data-tone="dark"] .scene-tooltip::after {
+  background: linear-gradient(180deg, rgba(40, 44, 50, 0.5), rgba(20, 22, 26, 0.38));
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.35), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 640px) {
+  .site-header[data-menu-open="true"] .scene-control { visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-backdrop .backdrop-layer[data-entering] { animation-duration: 1ms; }
+  .scene-glyph svg { transition: none; }
+  .scene-control .scene-tooltip, .scene-control:is(:hover, :focus-within) .scene-tooltip { transform: none; }
+}
+
+/* ---------- Dark scenes: light text on the wallpaper; figures and logos keep a pale card. ---------- */
+html[data-scene-mode="dark"] .site-shell {
+  --text: #eef1f4;
+  --muted: #c9cfd6;
+  --dim: #a9b0b8;
+  --line: rgba(238, 241, 244, 0.18);
+  --accent: #9fd6c4;
+  color: var(--text);
+}
+[data-scene-mode="dark"] .site-shell :is(.publication-info > :is(h2, h3), .publication-venue strong) { color: var(--text); }
+[data-scene-mode="dark"] .site-shell .publication-info p,
+[data-scene-mode="dark"] .site-shell .publication-legend { color: var(--muted); }
+[data-scene-mode="dark"] .site-shell .publication-authors .publication-me { color: #fff; }
+[data-scene-mode="dark"] .site-shell .publication-author a:is(:hover, :focus-visible) { color: #9cc7ff; }
+[data-scene-mode="dark"] .site-shell :is(.publication-info .publication-award, .awards-list .award-gold strong) { color: #e8c37a; }
+[data-scene-mode="dark"] .site-shell .career-copy a,
+[data-scene-mode="dark"] .site-shell .about-copy > p a { text-decoration-color: rgba(238, 241, 244, 0.4); }
+[data-scene-mode="dark"] .site-shell .site-header .brand { color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4); }
+/* Project names coloured word by word (Brick · But · Agile) are lifted to stay bright on dark glass. */
+[data-scene-mode="dark"] .site-shell .publication-info > :is(h2, h3) span[style] { filter: brightness(1.75) saturate(1.15); }
+
+/* Transparent figures and dark logos need a light ground to stay legible on a dark wallpaper. */
+[data-scene-mode="dark"] .site-shell .publication-thumbnail,
+[data-scene-mode="dark"] .site-shell .honor-thumbnail { background: rgba(246, 247, 248, 0.92); }
+[data-scene-mode="dark"] .site-shell :is(.career-logo, .membership-logo) { background: rgba(246, 247, 248, 0.9); }
+
+/* Readability looks (readability.css) on a dark scene: dark halo, dark sheet, light body text. */
+html[data-scene-mode="dark"]:is([data-look="vibrancy"], [data-look="calm"], [data-look="sheets"]) .site-shell { --muted: #d4d9df; --dim: #b6bdc5; }
+html[data-scene-mode="dark"][data-look="vibrancy"] :is(.about-text > p, .news-list, .publication-info p, .publication-legend, .career-copy,
+  .awards-list, .membership-entry p, .membership-heading, .honor-card figcaption) {
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 0, 0, 0.55);
+}
+html[data-scene-mode="dark"][data-look="sheets"] .section-body::before {
+  background: rgba(16, 18, 22, 0.42);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 18px 40px -26px rgba(0, 0, 0, 0.6);
+}

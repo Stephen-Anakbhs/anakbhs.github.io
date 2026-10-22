@@ -1,6 +1,14 @@
 @import "./liquid-glass.css";
 
 @font-face {
+  font-family: "Raleway";
+  src: url("/fonts/raleway-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Inter";
   src: url("/fonts/inter-latin.woff2") format("woff2");
   font-style: normal;
@@ -472,13 +480,14 @@ textarea {
    them and the filter turns each stroke into clear, refracting red glass. Every device gets the
    same static filter; only how often the wallpaper is realigned differs by tier. */
 .section-heading :is(h1, h2) {
-  color: #c0262d;
+  color: var(--scene-glass, #c0262d);
+  font-family: var(--scene-heading-font, "Inter"), var(--font-heading);
   font-size: var(--type-display);
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1.18;
-  background: url("/media/cold-stone.webp") var(--wall-position, 50% 50%) / var(--wall-size, cover) no-repeat;
-  background-color: #d2d4d4;
+  background: var(--scene-wall, url("/media/cold-stone.webp")) var(--wall-position, 50% 50%) / var(--wall-size, cover) no-repeat;
+  background-color: var(--scene-base, #d2d4d4);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

@@ -6,6 +6,7 @@ import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 import { surfaceAppearance, useGlassProfile } from '../../content/glassStore';
 import type { GlassType } from '../../content/glassSchema';
+import { useScene } from '../../content/scenes';
 
 // Supplying both positions disables the library's per-mousemove state updates.
 const staticPointer = { x: 0, y: 0 };
@@ -99,6 +100,9 @@ export function GlassSurface({
 }: GlassSurfaceProps) {
   const surface = useRef<HTMLDivElement>(null);
   const componentType = glassType ?? material;
+  // Over a dark scene, glass that sits on the page (not on a photo, like the project overlays) turns dark.
+  const darkScene = useScene().mode === "dark";
+  if (darkScene && tone === "light" && material !== "overlay") tone = "dark";
   useGlassProfile(componentType);
   const appearance = surfaceAppearance(componentType, tone);
   const explicit = { blurPx, saturation, displacementScale, aberrationIntensity, elasticity, cornerRadius, mode, overLight, fill, ink, hoverFill, highlightOpacity, shadow, padding };
