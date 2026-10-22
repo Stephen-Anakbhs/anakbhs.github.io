@@ -7,14 +7,16 @@ import { SectionHeading } from "../ui/SectionHeading";
 export function AboutIntro() {
   return (
     <>
+      <SectionHeading title="About Me" />
       <div className="about-copy">
-        <SectionHeading title="About Me" />
-        {site.about.map((paragraph, index) => (
-          <p key={index}>
-            {paragraph.title && <><strong>{paragraph.title}</strong>{" "}</>}
-            <InlineText parts={paragraph.text} />
-          </p>
-        ))}
+        <div className="about-text section-body">
+          {site.about.map((paragraph, index) => (
+            <p key={index}>
+              {paragraph.title && <><strong>{paragraph.title}</strong>{" "}</>}
+              <InlineText parts={paragraph.text} />
+            </p>
+          ))}
+        </div>
         <div className="social-row">
           {site.socials.map((item) => <GlassIconLink key={item.label} {...item} />)}
         </div>

@@ -6,6 +6,7 @@ import { GlassSurface } from "../ui/GlassSurface";
 import { LiquidNavigation } from "./LiquidNavigation";
 import { GlassScrollbar } from "./GlassScrollbar";
 import "../../styles/site-background.css";
+import "../../styles/readability.css";
 
 export function SiteShell({ children }: PropsWithChildren) {
   const [tone, setTone] = useState<"light" | "dark">("dark");
@@ -129,6 +130,7 @@ export function SiteShell({ children }: PropsWithChildren) {
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="site-backdrop" aria-hidden="true">
         <img src="/media/cold-stone.webp" alt="" fetchPriority="high" />
+        <img className="backdrop-calm" src="/media/cold-stone-calm.webp" alt="" />
       </div>
       <GlassScrollbar tone="dark" />
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"

@@ -23,6 +23,7 @@ export function HomePage() {
 
       <section className="page-section news-section" id="news" data-nav-section="about">
         <SectionHeading title="News" />
+        <div className="section-body">
         <ul className="news-list">
           {site.news.map((item) => (
             <li key={`${item.date}-${item.href}`}>
@@ -36,12 +37,14 @@ export function HomePage() {
             </li>
           ))}
         </ul>
+        </div>
       </section>
 
       <section className="page-section publication-section" id="publications" data-nav-section="publications">
         <div className="section-inner">
           <span id="research" className="anchor-alias" aria-hidden="true" />
           <SectionHeading title="Selected Publications" />
+          <div className="section-body">
           <PublicationList publications={site.publications.filter((publication) => publication.selected)} />
           <div className="publication-index-link">
             <GlassSurface tone="light">
@@ -49,6 +52,7 @@ export function HomePage() {
                 View full publication list <ArrowUpRight size={18} aria-hidden="true" />
               </Link>
             </GlassSurface>
+          </div>
           </div>
         </div>
       </section>
@@ -60,23 +64,23 @@ export function HomePage() {
 
       <section className="page-section experience-section" id="experience" data-nav-section="about">
         <SectionHeading title="Experience" />
-        <CareerList items={site.experience} />
+        <div className="section-body"><CareerList items={site.experience} /></div>
       </section>
 
       <section className="page-section education-section" id="education" data-nav-section="about">
         <SectionHeading title="Education" />
-        <CareerList items={site.education} />
+        <div className="section-body"><CareerList items={site.education} /></div>
       </section>
 
       <section className="page-section awards-section" id="awards" data-nav-section="about">
         <SectionHeading title="Honors & Awards" />
         <HonorsGallery honors={site.honors} />
-        <AwardsList awards={site.awards} />
+        <div className="section-body"><AwardsList awards={site.awards} /></div>
       </section>
 
       <section className="page-section membership-section" id="membership" data-nav-section="about">
         <SectionHeading title="Membership" />
-        <MembershipList items={site.memberships} />
+        <div className="section-body"><MembershipList items={site.memberships} /></div>
       </section>
 
       {site.portfolio.length > 0 && (

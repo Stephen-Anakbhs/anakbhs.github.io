@@ -536,7 +536,7 @@ textarea {
   margin-bottom: 24px;
 }
 
-.about-copy > p {
+.about-text > p {
   max-width: 66ch;
   margin: 0 0 18px;
   color: var(--muted);
@@ -612,9 +612,9 @@ textarea {
 .career-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
 .career-heading h3 { flex: 1 1 320px; }
 .career-date { flex-shrink: 0; margin-bottom: 8px; }
-.career-copy a, .about-copy > p a { text-decoration: underline; text-decoration-color: #bcc3c7; text-underline-offset: 4px; }
-.career-copy a:hover, .about-copy > p a:hover { text-decoration-color: currentColor; }
-.about-copy > p strong { color: var(--text); }
+.career-copy a, .about-text > p a { text-decoration: underline; text-decoration-color: #bcc3c7; text-underline-offset: 4px; }
+.career-copy a:hover, .about-text > p a:hover { text-decoration-color: currentColor; }
+.about-text > p strong { color: var(--text); }
 .career-heading a { text-decoration: none; }
 .career-heading a:hover { text-decoration: underline; }
 .career-mentors { color: var(--muted); }
@@ -1389,7 +1389,7 @@ textarea {
 }
 
 @media (max-width: 640px) {
-  .about-copy > p {
+  .about-text > p {
     font-size: 17px;
   }
 
