@@ -433,8 +433,15 @@ export const site = {
       venue: "In submission",
       logo: "/media/logos/bba-hand.webp",
       nameColors: ["#b8312b", "#c4930f", "#2553a6"],
-      image: "/media/pub-brick-but-agile-transparent.webp",
-      preview: publicationImages("pub-brick-but-agile-transparent", 2703, 886, [656, 894]),
+      // Transparent loop: Blender build -> matched cut to the real hand -> eight grasps -> 33-grasp taxonomy -> visual teleoperation.
+      image: "/media/derived/pub-brick-but-agile-anim.full.webp",
+      preview: {
+        width: 1440, height: 810,
+        thumb: "/media/derived/pub-brick-but-agile-anim.thumb.webp",
+        full: "/media/derived/pub-brick-but-agile-anim.full.webp",
+        avifThumb: "/media/derived/pub-brick-but-agile-anim.thumb.avif",
+        avifFull: "/media/derived/pub-brick-but-agile-anim.full.avif"
+      },
       selected: true
     },
     {
