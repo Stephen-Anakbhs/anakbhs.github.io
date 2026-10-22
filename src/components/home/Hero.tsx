@@ -1,9 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { site } from "../../content/site";
+import { GlassTitle } from "../hero/GlassTitle";
 import { TypewriterLine } from "../hero/TypewriterLine";
+import { useCoverSheet } from "./useCoverSheet";
 import "../../styles/hero-video.css";
+import "../../styles/cover-sheet.css";
+import "../../styles/hero-glass.css";
 
 const HeroScene = lazy(() => import("../../scenes/hero/HeroScene").then((module) => ({ default: module.HeroScene })));
 const AnimatedHeroFallback = lazy(() => import("./AnimatedHeroFallback"));
@@ -12,6 +17,8 @@ export function Hero() {
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const heroRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sheetRef = useRef<HTMLCanvasElement>(null);
+  const navigate = useNavigate();
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
@@ -23,6 +30,8 @@ export function Hero() {
     update();
     return () => preference.removeEventListener('change', update);
   }, []);
+
+  useCoverSheet(heroRef, sheetRef, !reduceMotion, (href) => navigate(href));
 
   useEffect(() => {
     const video = videoRef.current;
@@ -135,12 +144,15 @@ export function Hero() {
     };
     const onPlaying = () => { clearTimeout(bridgeTimer); syncPlayback(); };
     refreshVisibility();
+    // Parked exactly at the next section, the hero's bottom edge touches the viewport top, which
+    // still counts as intersecting; the 1px inset makes that "out", matching refreshVisibility,
+    // so coming back from there is a change the observer reports.
     const observer = new IntersectionObserver(([entry]) => {
       const wasInView = inView;
       inView = entry.isIntersecting;
       if (inView && !wasInView) refreshVisibility();
       else syncPlayback();
-    }, { threshold: 0 });
+    }, { threshold: 0, rootMargin: '-1px 0px' });
     observer.observe(hero);
     video.addEventListener('canplay', syncPlayback);
     video.addEventListener('loadeddata', syncPlayback);
@@ -203,8 +215,9 @@ export function Hero() {
       )}
       {!reduceMotion && !site.hero.media.video && <Suspense fallback={null}><HeroScene /></Suspense>}
       <div className="hero-overlay" aria-hidden="true" />
+      <canvas ref={sheetRef} className="cover-sheet" aria-hidden="true" data-liquid-ignore="" />
       <div className="hero-content">
-        <h1>{site.hero.title}</h1>
+        <GlassTitle text={site.hero.title} />
         <p className="hero-specialty">
           <TypewriterLine prefix={site.hero.prefix} words={site.hero.words} />
         </p>

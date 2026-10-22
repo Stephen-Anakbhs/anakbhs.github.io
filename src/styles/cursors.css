@@ -1,0 +1,9 @@
+/* ---------- Glass cursors (glassCursor.ts): Windows pointers only; macOS and touch keep their own. ---------- */
+html[data-glass-cursor] { cursor: url("/media/cursors/arrow.svg") 5 3, auto; }
+html[data-glass-cursor] .hero { cursor: url("/media/cursors/grab.svg") 16 15, grab; }
+html[data-glass-cursor] :is(a, button, [role="button"], summary, label, .glass-action, .glass-close, .showcase-image, .honor-dots button, .lightbox-dots button) {
+  cursor: url("/media/cursors/pointer.svg") 13 3, pointer;
+}
+html[data-glass-cursor] :is(.honor-thumbnail, .publication-thumbnail) { cursor: url("/media/cursors/zoom-in.svg") 12 12, zoom-in; }
+html[data-glass-cursor] .hero[data-cover-grab],
+html[data-glass-cursor] .hero[data-cover-grab] * { cursor: url("/media/cursors/grabbing.svg") 16 17, grabbing; }

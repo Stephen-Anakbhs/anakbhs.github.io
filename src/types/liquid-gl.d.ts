@@ -36,6 +36,24 @@ declare module "liquid-gl" {
     tint: string;
     zIndex: number;
   }
-  const liquidGL: (options: LiquidOptions) => LiquidLens | LiquidLens[] | undefined;
+  interface RasteriseOptions {
+    width?: number;
+    height?: number;
+    scale?: number;
+    budgetMs?: number;
+    backgroundColor?: string | null;
+    ignoreElements?: (element: Element) => boolean;
+  }
+  const liquidGL: {
+    (options: LiquidOptions): LiquidLens | LiquidLens[] | undefined;
+    /** Paints an element into a canvas in CSS-pixel document space, in main-thread slices. */
+    rasterise(element: Element, options?: RasteriseOptions): Promise<HTMLCanvasElement>;
+    /** The two halves of rasterise: a synchronous measure of the element, then chunked painting. */
+    painter: {
+      measure(element: Element, options?: RasteriseOptions): PaintPlan | null;
+      paintChunked(plan: PaintPlan, canvas: HTMLCanvasElement, budgetMs?: number): Promise<HTMLCanvasElement>;
+    };
+  };
+  interface PaintPlan { assets: Promise<unknown>[] }
   export default liquidGL;
 }

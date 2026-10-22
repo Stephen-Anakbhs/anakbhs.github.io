@@ -39,7 +39,9 @@ export function GlassIconLink({ href, label, icon: Icon, tone = "light", brand }
         <a className="glass-action glass-icon" href={href} aria-label={label}
           {...(href.startsWith("mailto:") ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
           {typeof Icon === "string"
-            ? <span className="brand-icon" style={{ maskImage: `url("${Icon}")` }} aria-hidden="true" />
+            ? <span className="brand-icon" style={{ maskImage: `url("${Icon}")` }} aria-hidden="true">
+                <img className="brand-icon-flat" src={Icon} alt="" />
+              </span>
             : <Icon size={21} strokeWidth={1.8} aria-hidden="true" />}
         </a>
       </GlassSurface>

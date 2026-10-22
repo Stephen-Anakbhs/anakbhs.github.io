@@ -1,0 +1,60 @@
+/* ---------- Hero title as frosted glass (GlassTitle.tsx) ---------- */
+.hero-title { position: relative; }
+
+/* The glyphs stay in the page for readers, search and selection; the glass layer shows them. */
+.hero h1[data-glass] { color: transparent; }
+
+.hero-title-glass {
+  --glyphs: none;
+  --frost: rgba(255, 255, 255, 0.44);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.64), var(--frost) 48%, rgba(255, 255, 255, 0.34));
+  -webkit-backdrop-filter: blur(9px) saturate(1.5) brightness(1.3);
+  backdrop-filter: blur(9px) saturate(1.5) brightness(1.3);
+  -webkit-mask-image: var(--glyphs);
+  mask-image: var(--glyphs);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.hero h1[data-glass] + .hero-title-glass { display: block; }
+
+/* Light along the upper edges of the glyphs and shade along the lower ones: the glyph shape
+   minus itself shifted, where the browser can subtract masks. */
+@supports (mask-composite: subtract) or (-webkit-mask-composite: source-out) {
+  .hero-title-glass::before,
+  .hero-title-glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    -webkit-mask-image: var(--glyphs), var(--glyphs);
+    mask-image: var(--glyphs), var(--glyphs);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-composite: source-out;
+    mask-composite: subtract;
+  }
+  .hero-title-glass::before {
+    background: rgba(255, 255, 255, 0.85);
+    -webkit-mask-position: 0 0, 0 1.5px;
+    mask-position: 0 0, 0 1.5px;
+  }
+  .hero-title-glass::after {
+    background: rgba(10, 14, 20, 0.28);
+    -webkit-mask-position: 0 0, 0 -1.5px;
+    mask-position: 0 0, 0 -1.5px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  .hero h1[data-glass] { color: inherit; }
+  .hero h1[data-glass] + .hero-title-glass { display: none; }
+}

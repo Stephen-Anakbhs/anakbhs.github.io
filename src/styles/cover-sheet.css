@@ -1,0 +1,55 @@
+/* The homepage cover: while it is lifted, a WebGL glass sheet stands in for the hero's shade. */
+.cover-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hero:is([data-cover="lift"], [data-cover="ghost"]) .cover-sheet { visibility: visible; }
+
+/* After the lift its last frame stays behind the page while the next section comes in. */
+.hero[data-cover="ghost"] { z-index: -1; }
+.hero[data-cover="ghost"] .cover-sheet { position: fixed; }
+
+.hero[data-cover-grab] { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+
+/* Without WebGL the shade itself lifts, edged with a highlight. */
+.hero[data-cover="css"] .hero-overlay {
+  box-shadow: inset 0 -1.5px 0 rgba(255, 255, 255, 0.6), inset 0 -14px 18px -12px rgba(255, 255, 255, 0.25), 0 16px 32px rgba(0, 0, 0, 0.28);
+}
+
+/* Coming back from About: a clear glass sheet pulled down over the page, under the navigation.
+   The canvas bends a snapshot of the page into its edge; the plain pane stands in until there
+   is one. The video appears once the sheet is all the way down. */
+.cover-return,
+.cover-return-plain {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cover-return-plain {
+  --rim: 0;
+  background: rgba(255, 255, 255, calc(0.05 + var(--rim) * 0.04));
+  box-shadow:
+    inset 0 -1.5px 0 rgba(255, 255, 255, calc(var(--rim) * 0.8)),
+    inset 0 -24px 26px -22px rgba(255, 255, 255, calc(var(--rim) * 0.45)),
+    0 18px 44px rgba(0, 0, 0, calc(var(--rim) * 0.28));
+  will-change: transform;
+}
+
+:is(.cover-return, .cover-return-plain)[data-active] { visibility: visible; }
+
+/* Only iPhone and iPad screens are rounded; everywhere else the sheets keep square corners. */
+html[data-cover-corners] :is(.cover-return-plain, .hero[data-cover="css"] .hero-overlay) { border-radius: 0 0 44px 44px; }
+
+/* The icon image behind each masked icon, loaded for the returning sheet's snapshot only. */
+.brand-icon-flat { display: none; }

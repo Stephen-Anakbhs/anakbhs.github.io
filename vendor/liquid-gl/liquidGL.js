@@ -9007,6 +9007,16 @@ fn fs() -> @location(0) vec4<f32> {
 
     return { lenis, locomotiveScroll: loco };
   };
+  /* --------------------------------------------------
+   *  Public helper: rasterise an element the way snapshots are taken
+   * ------------------------------------------------*/
+  window.liquidGL.rasterise = (element, options) =>
+    NaughtyDOM.rasteriseAsync(element, options);
+  window.liquidGL.painter = {
+    measure: NaughtyDOM.measure,
+    paintChunked: NaughtyDOM.paintChunked,
+  };
+
   return window.liquidGL;
 })();
 
