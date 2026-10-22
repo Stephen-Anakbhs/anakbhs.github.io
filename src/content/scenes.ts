@@ -16,18 +16,19 @@ export type Scene = {
   glass: string;
   /** Light scenes: how much backdrop shows through untinted (higher = paler glass). */
   clarity?: number;
-  headingFont: "Inter" | "Raleway";
+  /** "system" keeps the site's own heading font (SF on Apple devices, Inter elsewhere). */
+  headingFont: "system" | "Raleway";
 };
 
 // Photos (Unsplash License): glacier Heather Shevlin (photo-1504988102213), dune photo-1504548840739,
 // night sea Max Muselmann (photo-1752058950030), silk photo-1686175600613, labradorite THLT LCX
 // (photo-1611071821769). Cold stone: Scott Webb. Silver crystal reuses the site's earlier silver-strata crop.
 export const scenes: Scene[] = [
-  { id: "stone", name: "Cold Stone", mode: "light", image: "/media/cold-stone.webp", calm: "/media/cold-stone-calm.webp", base: "#d2d4d4", glass: "#c0262d", clarity: 0.42, headingFont: "Inter" },
+  { id: "stone", name: "Cold Stone", mode: "light", image: "/media/cold-stone.webp", calm: "/media/cold-stone-calm.webp", base: "#d2d4d4", glass: "#c0262d", clarity: 0.42, headingFont: "system" },
   { id: "night-sea", name: "Night Sea", mode: "dark", image: "/media/scenes/night-sea.webp", base: "#0b1015", glass: "#8fd3ff", headingFont: "Raleway" },
   { id: "glacier", name: "Glacier", mode: "light", image: "/media/scenes/glacier.webp", base: "#e6ecef", glass: "#1d5fd0", headingFont: "Raleway" },
-  { id: "silk", name: "Black Silk", mode: "dark", image: "/media/scenes/silk.webp", base: "#0c0c0d", glass: "#e8c37a", headingFont: "Inter" },
-  { id: "dune", name: "Dune", mode: "light", image: "/media/scenes/dune.webp", base: "#cfccc6", glass: "#b2440f", headingFont: "Inter" },
+  { id: "silk", name: "Black Silk", mode: "dark", image: "/media/scenes/silk.webp", base: "#0c0c0d", glass: "#e8c37a", headingFont: "system" },
+  { id: "dune", name: "Dune", mode: "light", image: "/media/scenes/dune.webp", base: "#cfccc6", glass: "#b2440f", headingFont: "system" },
   { id: "labradorite", name: "Labradorite", mode: "dark", image: "/media/scenes/labradorite.webp", base: "#0e1420", glass: "#f2b84b", headingFont: "Raleway" },
   { id: "silver-crystal", name: "Silver Crystal", mode: "light", image: "/media/scenes/silver-crystal.webp", base: "#d9dadb", glass: "#157f6e", headingFont: "Raleway" },
 ];
@@ -55,7 +56,8 @@ export function applyScene(scene: Scene = current) {
   root.style.setProperty("--scene-wall", `url("${scene.image}")`);
   root.style.setProperty("--scene-base", scene.base);
   root.style.setProperty("--scene-glass", scene.glass);
-  root.style.setProperty("--scene-heading-font", `"${scene.headingFont}"`);
+  if (scene.headingFont === "system") root.style.removeProperty("--scene-heading-font");
+  else root.style.setProperty("--scene-heading-font", `"${scene.headingFont}", var(--font-heading)`);
   root.style.colorScheme = scene.mode;
   glassListeners.forEach((listener) => listener(scene));
 }

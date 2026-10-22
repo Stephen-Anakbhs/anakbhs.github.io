@@ -481,7 +481,7 @@ textarea {
    same static filter; only how often the wallpaper is realigned differs by tier. */
 .section-heading :is(h1, h2) {
   color: var(--scene-glass, #c0262d);
-  font-family: var(--scene-heading-font, "Inter"), var(--font-heading);
+  font-family: var(--scene-heading-font, var(--font-heading));
   font-size: var(--type-display);
   font-weight: 800;
   letter-spacing: 0;

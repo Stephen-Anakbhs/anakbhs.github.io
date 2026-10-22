@@ -107,15 +107,21 @@ function useOneLine(container: RefObject<HTMLElement | null>, lines: string, var
       element.style.setProperty(variable, String(scale < 1 ? Math.max(0.5, scale * 0.98) : 1));
     };
     // Watch one line's box: it changes both with the container and when the grid changes its column count.
+    // Fit before the first paint, and refit a frame after a resize: resizing text inside the observer
+    // callback would itself be a resize the observer cannot deliver (WebKit reports a ResizeObserver loop).
     const probe = element.querySelector<HTMLElement>(lines) ?? element;
+    let frame = 0;
+    width = probe.clientWidth;
+    fit();
     const observer = new ResizeObserver(() => {
       if (Math.abs(probe.clientWidth - width) < 0.5) return;
       width = probe.clientWidth;
-      fit();
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
     });
     observer.observe(probe);
-    void document.fonts?.ready.then(fit);
-    return () => observer.disconnect();
+    void document.fonts?.ready.then(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); });
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
   }, []);
 }
 
