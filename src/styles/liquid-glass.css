@@ -175,9 +175,12 @@
   content: "";
 }
 .liquid-surface[data-glass-optics="lens"] .liquid-engine > .glass::after {
+  /* Both white layers composite the same in either order; a tint goes between them so the
+     pointer glow shines through colored glass instead of bleaching it. */
   background:
-    radial-gradient(circle at var(--glass-pointer-x, 50%) var(--glass-pointer-y, 0%), rgba(255, 255, 255, calc(0.4 * var(--glass-glow))), rgba(255, 255, 255, 0) 72px),
     linear-gradient(160deg, rgba(255, 255, 255, calc(0.26 * var(--glass-highlight-opacity))), rgba(255, 255, 255, 0) 36%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, calc(0.12 * var(--glass-highlight-opacity)))),
+    var(--glass-tint, linear-gradient(transparent, transparent)),
+    radial-gradient(circle at var(--glass-pointer-x, 50%) var(--glass-pointer-y, 0%), rgba(255, 255, 255, calc(0.4 * var(--glass-glow))), rgba(255, 255, 255, 0) 72px),
     var(--glass-fill);
   box-shadow:
     inset 0 1px 1.5px rgba(255, 255, 255, 0.42),
@@ -273,7 +276,7 @@
   filter: var(--tooltip-lens, none);
 }
 .icon-tooltip::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
+  background: var(--tooltip-tint, linear-gradient(transparent, transparent)), linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
   box-shadow:
     inset 0 1px 0.5px rgba(255, 255, 255, 0.95),
     inset 0 -1px 0.5px rgba(255, 255, 255, 0.4),
@@ -283,7 +286,7 @@
 }
 .icon-tooltip > svg { position: absolute; width: 0; height: 0; }
 .icon-control:is(:hover, :focus-within) .icon-tooltip {
-  color: #1b1f24;
+  color: var(--brand-ink, #1b1f24);
   visibility: visible;
   transform: translate(calc(-50% + var(--tooltip-shift, 0px)), 0) scale(1);
   transition: color 160ms ease, transform 560ms var(--glass-spring), visibility 0s;
@@ -303,6 +306,31 @@
 .social-glass .glass-action.glass-icon { width: 100%; height: 48px; }
 .social-glass .brand-icon { width: 23px; height: 23px; }
 .social-glass .glass-action { color: var(--glass-ink); }
+
+/* On hover the social glass takes on its platform's color. The tint sits between the
+   refracted backdrop and the specular highlights and follows --glass-glow, so it fades
+   in with the rim light. Strong tints switch the icon to white. */
+.icon-control[data-brand="scholar"] { --brand-a: rgba(66, 133, 244, 0.46); --brand-b: rgba(66, 133, 244, 0.38); --brand-c: rgba(120, 170, 250, 0.34); --brand-d: rgba(138, 180, 248, 0.3); }
+.icon-control[data-brand="github"] { --brand-a: rgba(48, 54, 61, 0.78); --brand-b: rgba(36, 41, 47, 0.72); --brand-c: rgba(22, 27, 34, 0.68); --brand-d: rgba(13, 17, 23, 0.64); --brand-ink: #fff; }
+.icon-control[data-brand="linkedin"] { --brand-a: rgba(10, 102, 194, 0.8); --brand-b: rgba(10, 102, 194, 0.72); --brand-c: rgba(0, 85, 170, 0.68); --brand-d: rgba(0, 76, 153, 0.64); --brand-ink: #fff; }
+.icon-control[data-brand="bilibili"] { --brand-a: rgba(251, 114, 153, 0.58); --brand-b: rgba(251, 114, 153, 0.5); --brand-c: rgba(255, 150, 182, 0.42); --brand-d: rgba(255, 170, 196, 0.36); }
+.icon-control[data-brand="youtube"] { --brand-a: rgba(255, 0, 51, 0.8); --brand-b: rgba(255, 0, 51, 0.72); --brand-c: rgba(230, 0, 35, 0.68); --brand-d: rgba(204, 0, 0, 0.64); --brand-ink: #fff; }
+/* The label pill under the button wears the same color (it only shows while hovered). */
+.icon-control[data-brand] { --tooltip-tint: linear-gradient(var(--brand-angle, 135deg), var(--brand-a), var(--brand-b) 36%, var(--brand-c) 66%, var(--brand-d)); }
+.icon-control[data-brand="email"] { --brand-angle: 90deg; --brand-a: rgba(66, 133, 244, 0.62); --brand-b: rgba(234, 67, 53, 0.56); --brand-c: rgba(251, 188, 4, 0.6); --brand-d: rgba(52, 168, 83, 0.6); }
+.social-glass[data-glass-optics="lens"] .liquid-engine > .glass::after {
+  --tint-amount: calc(min(var(--glass-glow), 1) * 100%);
+  --glass-tint: linear-gradient(var(--brand-angle, 135deg),
+    color-mix(in srgb, var(--brand-a, transparent) var(--tint-amount), transparent),
+    color-mix(in srgb, var(--brand-b, transparent) var(--tint-amount), transparent) 36%,
+    color-mix(in srgb, var(--brand-c, transparent) var(--tint-amount), transparent) 66%,
+    color-mix(in srgb, var(--brand-d, transparent) var(--tint-amount), transparent));
+}
+.social-glass .glass-action:is(:hover, :active) { background: transparent; }
+@media (hover: hover) {
+  .social-glass[data-glass-pressable]:hover .glass-action { color: var(--brand-ink, var(--glass-ink)); }
+}
+.social-glass[data-glass-pressable]:has(:active) .glass-action { color: var(--brand-ink, var(--glass-ink)); }
 .liquid-surface[data-material="control"] .glass-action { min-height: 48px; padding-inline: 20px; }
 .liquid-surface[data-material="control"] .glass-icon { padding: 0; }
 .liquid-surface[data-material="logo"] { align-self: start; }
@@ -323,7 +351,8 @@
 }
 
 @media (max-width: 440px) {
-  .about-copy .social-row { grid-template-columns: repeat(3, 56px); }
+  /* Keep all six on one row; the buttons narrow instead of wrapping. */
+  .about-copy .social-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {

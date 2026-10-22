@@ -25,6 +25,8 @@ export type SocialItem = {
   label: string;
   href: string;
   icon: LucideIcon | string;
+  /** Selects the platform color the glass takes on when hovered (liquid-glass.css). */
+  brand: "scholar" | "github" | "linkedin" | "bilibili" | "youtube" | "email";
 };
 
 export type FeatureItem = {
@@ -187,12 +189,12 @@ export const site = {
     { id: "projects", label: "Projects", href: "/#projects" }
   ] satisfies NavItem[],
   socials: [
-    { label: "Google Scholar", href: scholarProfile, icon: "/media/icons/googlescholar.svg" },
-    { label: "GitHub", href: "https://github.com/Stephen-Anakbhs", icon: "/media/icons/github.svg" },
-    { label: "LinkedIn", href: "https://www.linkedin.com/in/renjun-gao/", icon: "/media/icons/linkedin.svg" },
-    { label: "Bilibili", href: "https://space.bilibili.com/162983506", icon: "/media/icons/bilibili.svg" },
-    { label: "YouTube", href: "https://www.youtube.com/@anakbhs2782", icon: "/media/icons/youtube.svg" },
-    { label: "Email", href: "mailto:renjgao@gmail.com", icon: Mail }
+    { label: "Google Scholar", href: scholarProfile, icon: "/media/icons/googlescholar.svg", brand: "scholar" },
+    { label: "GitHub", href: "https://github.com/Stephen-Anakbhs", icon: "/media/icons/github.svg", brand: "github" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/renjun-gao/", icon: "/media/icons/linkedin.svg", brand: "linkedin" },
+    { label: "Bilibili", href: "https://space.bilibili.com/162983506", icon: "/media/icons/bilibili.svg", brand: "bilibili" },
+    { label: "YouTube", href: "https://www.youtube.com/@anakbhs2782", icon: "/media/icons/youtube.svg", brand: "youtube" },
+    { label: "Email", href: "mailto:renjgao@gmail.com", icon: Mail, brand: "email" }
   ] satisfies SocialItem[],
   about: [
     {
