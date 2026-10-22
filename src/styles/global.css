@@ -509,9 +509,10 @@ textarea {
   font-size: 18px;
 }
 
-.about-band {
+.about-band { scroll-margin-top: 0; }
+
+.about-body {
   display: grid;
-  scroll-margin-top: 0;
   grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
   gap: 48px;
   align-items: start;
@@ -1383,7 +1384,7 @@ textarea {
     justify-self: center;
   }
 
-  .about-band {
+  .about-body {
     grid-template-columns: 1fr;
     gap: 32px;
   }

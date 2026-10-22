@@ -3,6 +3,8 @@
 // scroll depth, clicks, opened dialogs, copied text, embedded-video focus, errors and load timing.
 // Only on the live domain (or a local endpoint given by VITE_VISITS_ENDPOINT), so ordinary dev runs are not logged.
 // Open https://renjun.one/?me once in a browser to mark it as the owner's (hidden in the log by default).
+import { inLookEditor } from "./lookEditor";
+
 const LOCAL_ENDPOINT = import.meta.env.VITE_VISITS_ENDPOINT as string | undefined;
 const ENDPOINT = LOCAL_ENDPOINT || "https://stats.renjun.one/v";
 const LIVE_HOSTS = new Set(["renjun.one", "www.renjun.one"]);
@@ -303,7 +305,7 @@ function start() {
 }
 
 export async function trackPageView(path: string) {
-  if (!LOCAL_ENDPOINT && !LIVE_HOSTS.has(location.hostname)) return;
+  if ((!LOCAL_ENDPOINT && !LIVE_HOSTS.has(location.hostname)) || inLookEditor) return;
   try {
     const params = new URLSearchParams(location.search);
     if (params.has("me")) storage("rg-owner", "1");

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { inLookEditor } from "../lib/lookEditor";
 
 // "Domain randomization": each scene pairs a wallpaper with a heading glass tint and font. Every wallpaper
 // is cropped to the same 2560x1520 frame, which the heading glass aligns to (liquidHeading.ts).
@@ -67,7 +68,7 @@ export function applyScene(scene: Scene = current) {
 export function setScene(scene: Scene) {
   if (scene.id === current.id) return;
   current = scene;
-  try { localStorage.setItem(STORAGE_KEY, scene.id); } catch { /* private mode: keep it for this visit */ }
+  if (!inLookEditor) try { localStorage.setItem(STORAGE_KEY, scene.id); } catch { /* private mode: keep it for this visit */ }
   applyScene(scene);
   listeners.forEach((listener) => listener());
 }
