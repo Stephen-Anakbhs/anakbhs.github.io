@@ -8,8 +8,9 @@ export function AboutIntro() {
   return (
     <>
       <SectionHeading title="About Me" />
+      <div className="about-body section-body">
       <div className="about-copy">
-        <div className="about-text section-body">
+        <div className="about-text">
           {site.about.map((paragraph, index) => (
             <p key={index}>
               {paragraph.title && <><strong>{paragraph.title}</strong>{" "}</>}
@@ -24,6 +25,7 @@ export function AboutIntro() {
       <GlassSurface material="media" glassType="portrait" className="about-portrait">
         <img src="/media/profile-lego-exhibition.jpg" alt="Renjun Gao at a LEGO exhibition" loading="lazy" decoding="async" width={481} height={571} />
       </GlassSurface>
+      </div>
     </>
   );
 }

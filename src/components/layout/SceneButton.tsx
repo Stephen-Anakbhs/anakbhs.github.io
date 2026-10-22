@@ -4,6 +4,7 @@ import { getScene, nextScene, preloadScene, setScene, useScene, type Scene } fro
 import { GlassSurface } from "../ui/GlassSurface";
 import { fullGlass } from "../ui/glassQuality";
 import { lensMap } from "../ui/lensMap";
+import { tooltipShift } from "../ui/tooltipPlacement";
 
 // A standalone glass control at the leading edge of the bar, apart from the navigation group. Each press
 // flips light/dark and draws a new scene (wallpaper, heading glass tint and font); the icon shows the mode.
@@ -15,7 +16,7 @@ export function SceneButton({ tone }: { tone: "light" | "dark" }) {
   const [lens, setLens] = useState<{ width: number; height: number; map: string } | null>(null);
 
   // Pick and fetch the next scene ahead of the click, so the swap is a crossfade rather than a load;
-  // centre the label under the control and nudge it back inside the viewport (same as the social icons).
+  // centre the label under the control, or align it with the control's edge when it can't be centred.
   const prepare = () => {
     upcoming.current ??= nextScene(getScene());
     void preloadScene(upcoming.current);
@@ -23,10 +24,7 @@ export function SceneButton({ tone }: { tone: "light" | "dark" }) {
     if (!element?.parentElement) return;
     const anchor = element.parentElement.getBoundingClientRect();
     const width = element.offsetWidth, height = element.offsetHeight;
-    const left = anchor.left + anchor.width / 2 - width / 2;
-    const overflowLeft = 8 - left;
-    const overflowRight = left + width - (document.documentElement.clientWidth - 8);
-    element.style.setProperty("--tooltip-shift", `${Math.max(0, overflowLeft) - Math.max(0, overflowRight)}px`);
+    element.style.setProperty("--tooltip-shift", `${tooltipShift(anchor, width)}px`);
     if (fullGlass && (lens?.width !== width || lens.height !== height)) setLens({ width, height, map: lensMap(width, height, height / 2) });
   };
 

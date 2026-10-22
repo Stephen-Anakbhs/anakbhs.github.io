@@ -59,7 +59,7 @@ export function HomePage() {
 
       <section className="page-section image-showcase" id="projects" data-nav-section="projects">
         <SectionHeading title="Projects" />
-        <ProjectGallery items={site.showcase} />
+        <div className="section-body media-body"><ProjectGallery items={site.showcase} /></div>
       </section>
 
       <section className="page-section experience-section" id="experience" data-nav-section="about">
@@ -74,8 +74,10 @@ export function HomePage() {
 
       <section className="page-section awards-section" id="awards" data-nav-section="about">
         <SectionHeading title="Honors & Awards" />
-        <HonorsGallery honors={site.honors} />
-        <div className="section-body"><AwardsList awards={site.awards} /></div>
+        <div className="section-body media-body">
+          <HonorsGallery honors={site.honors} />
+          <AwardsList awards={site.awards} />
+        </div>
       </section>
 
       <section className="page-section membership-section" id="membership" data-nav-section="about">
@@ -86,7 +88,7 @@ export function HomePage() {
       {site.portfolio.length > 0 && (
         <section className="page-section portfolio-section" id="portfolio" data-nav-section="about">
           <SectionHeading title="Portfolio" />
-          <ProjectGallery items={site.portfolio} kind="portfolio" />
+          <div className="section-body media-body"><ProjectGallery items={site.portfolio} kind="portfolio" /></div>
         </section>
       )}
 
