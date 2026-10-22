@@ -316,10 +316,16 @@
 .icon-control[data-brand="bilibili"] { --brand-a: rgba(251, 114, 153, 0.58); --brand-b: rgba(251, 114, 153, 0.5); --brand-c: rgba(255, 150, 182, 0.42); --brand-d: rgba(255, 170, 196, 0.36); }
 .icon-control[data-brand="youtube"] { --brand-a: rgba(255, 0, 51, 0.8); --brand-b: rgba(255, 0, 51, 0.72); --brand-c: rgba(230, 0, 35, 0.68); --brand-d: rgba(204, 0, 0, 0.64); --brand-ink: #fff; }
 /* The label pill under the button wears the same color (it only shows while hovered). */
+/* The button and its label light up together: whenever the label shows (hover, or focus left by a
+   click or a tap), --brand-on tints the button too, not only while the pointer is over it. */
+@property --brand-on { syntax: "<number>"; inherits: true; initial-value: 0; }
+.icon-control[data-brand] { transition: --brand-on 260ms ease; }
+.icon-control[data-brand]:is(:hover, :focus-within) { --brand-on: 1; }
+.icon-control[data-brand]:is(:hover, :focus-within) .social-glass .glass-action { color: var(--brand-ink, var(--glass-ink)); }
 .icon-control[data-brand] { --tooltip-tint: linear-gradient(var(--brand-angle, 135deg), var(--brand-a), var(--brand-b) 36%, var(--brand-c) 66%, var(--brand-d)); }
 .icon-control[data-brand="email"] { --brand-angle: 90deg; --brand-a: rgba(66, 133, 244, 0.62); --brand-b: rgba(234, 67, 53, 0.56); --brand-c: rgba(251, 188, 4, 0.6); --brand-d: rgba(52, 168, 83, 0.6); }
 .social-glass[data-glass-optics="lens"] .liquid-engine > .glass::after {
-  --tint-amount: calc(min(var(--glass-glow), 1) * 100%);
+  --tint-amount: calc(min(max(var(--glass-glow), var(--brand-on)), 1) * 100%);
   --glass-tint: linear-gradient(var(--brand-angle, 135deg),
     color-mix(in srgb, var(--brand-a, transparent) var(--tint-amount), transparent),
     color-mix(in srgb, var(--brand-b, transparent) var(--tint-amount), transparent) 36%,
