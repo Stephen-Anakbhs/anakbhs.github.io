@@ -72,6 +72,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let landedAt = 0;
     let lastY = window.scrollY;
     let anchorY = 0; // where the page sits under a returning sheet
+    let restTimer = 0;
     let listening = false;
     let link: string | null = null;
     let pendingLink: string | null = null; // a section link clicked during a transition, honored when it ends
@@ -581,6 +582,20 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       }
       lastY = y;
       syncInput();
+      window.clearTimeout(restTimer);
+      restTimer = window.setTimeout(settled, 180);
+    };
+    // The page must never rest part-way into the hero (a scrollbar drag, a key, a scroll during a
+    // fade, a restored scroll position): once it stops there, show the hero whole or park at About.
+    const settled = () => {
+      restTimer = 0;
+      if (phase !== "idle" || !free()) return;
+      const top = aboutTop();
+      const y = window.scrollY;
+      if (top === null || y <= 2 || y >= top - 1) return;
+      window.scrollTo({ top: y < top / 2 ? 0 : top, behavior: "instant" });
+      lastY = window.scrollY;
+      syncInput();
     };
     const onImageLoad = (event: Event) => {
       if (event.target instanceof HTMLImageElement && event.target.closest("main")) snapshot = null;
@@ -619,9 +634,11 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("load", onImageLoad, true);
     syncInput();
+    restTimer = window.setTimeout(settled, 400);
     return () => {
       disposed = true;
       window.clearTimeout(warm);
+      window.clearTimeout(restTimer);
       window.clearTimeout(anchorTimer);
       cancelAnimationFrame(frame);
       window.removeEventListener("wheel", onWheelPassive);
