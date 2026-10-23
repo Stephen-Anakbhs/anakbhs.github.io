@@ -106,6 +106,9 @@ a {
 
 .publication-thumbnail:focus-visible { outline-color: #234a42; outline-offset: -4px; }
 main:focus { outline: none; }
+/* Focus handed back by a dialog closed with a pointer (glassMorph.ts): no ring, the pointer user did not ask for one. */
+[data-quiet-focus]:focus-visible, [data-quiet-focus]:focus { outline: none; }
+.liquid-surface:has([data-quiet-focus]:focus-visible) { outline: none; }
 ::selection { background: #c6e6dd; color: #172923; }
 .skip-link {
   position: fixed;
@@ -304,6 +307,7 @@ textarea {
   display: grid;
   min-height: 100vh;
   min-height: 100svh;
+  min-height: 100dvh; /* after a scripted return to the top, phone toolbars may still be collapsed */
   place-items: center;
   overflow: hidden;
   isolation: isolate;
@@ -777,7 +781,7 @@ textarea {
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--glass-radius, 14px); /* fills its glass card edge to edge */
   background: rgba(255, 255, 255, 0.72);
   cursor: zoom-in;
 }
@@ -986,7 +990,7 @@ textarea {
   border: 0;
   place-items: center;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: var(--glass-radius, 8px); /* the figure fills its glass card edge to edge */
   background: #fff;
   cursor: zoom-in;
 }
@@ -1399,6 +1403,14 @@ textarea {
 }
 
 @media (max-width: 640px) {
+  /* Every entry's links share one row of three equal columns, the same width on every entry
+     (two columns of two with four links). */
+  .publication-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .publication-links:has(> :nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .publication-links > .liquid-surface { display: block; width: 100%; min-width: 0; }
+  .publication-links > .liquid-surface :is(.liquid-engine, .glass, .glass > div:not(.glass__warp), .glass-plain-content) { width: 100%; }
+  .publication-links .glass-action { width: 100%; min-width: 0; padding-inline: 10px; }
+
   .about-text > p {
     font-size: 17px;
   }

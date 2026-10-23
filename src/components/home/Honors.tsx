@@ -42,7 +42,7 @@ const HonorCard = memo(function HonorCard({ honor, onPreview }: { honor: HonorHi
     <figure className="honor-card" data-track-item={`honor:${honor.id}`}
       onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}
       onFocus={() => setHeld(true)} onBlur={() => setHeld(false)}>
-      <GlassSurface material="media" className="honor-media">
+      <GlassSurface material="media" className="honor-media" padding="0px">
         <button
           ref={frameRef}
           className="honor-thumbnail"

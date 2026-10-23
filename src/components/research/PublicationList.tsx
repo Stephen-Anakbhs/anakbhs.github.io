@@ -61,7 +61,7 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
   const prepare = () => { if (image && !image.avifFull) void preparePreview(image.full); };
   return (
     <article className="publication-item" data-publication-id={publication.id}>
-      <GlassSurface material="media" className="publication-media">
+      <GlassSurface material="media" className="publication-media" padding="0px">
         <button
           className="publication-thumbnail"
           type="button"

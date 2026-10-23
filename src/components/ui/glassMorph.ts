@@ -56,6 +56,13 @@ export function currentTransform(element: Element) {
 const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.finished.catch(() => undefined)));
 
 const openDialogs = new Set<HTMLDialogElement>();
+// Whether the last input was a keyboard: focus handed back after a pointer-driven close gets
+// no ring (WebKit shows one for scripted focus), a keyboard user keeps theirs.
+let keyboardInput = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (event) => { if (!event.metaKey && !event.ctrlKey && !event.altKey) keyboardInput = true; }, true);
+  window.addEventListener("pointerdown", () => { keyboardInput = false; }, true);
+}
 const releaseScrollLock = (dialog: HTMLDialogElement) => {
   if (!openDialogs.delete(dialog)) return;
   document.documentElement.classList.toggle("glass-dialog-open", openDialogs.size > 0);
@@ -141,7 +148,12 @@ export function useMorphDialog(onClosed: () => void) {
     // Native dialog focus cleanup and React's close update must finish first.
     cancelAnimationFrame(focusFrame.current);
     focusFrame.current = requestAnimationFrame(() => {
-      if (target?.isConnected && !dialogRef.current?.open) target.focus({ preventScroll: true });
+      if (!target?.isConnected || dialogRef.current?.open) return;
+      if (!keyboardInput) {
+        target.dataset.quietFocus = "";
+        target.addEventListener("blur", () => { delete target.dataset.quietFocus; }, { once: true });
+      }
+      target.focus({ preventScroll: true });
     });
   }, []);
 

@@ -71,6 +71,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let lastWheel = 0;
     let landedAt = 0;
     let lastY = window.scrollY;
+    let anchorY = 0; // where the page sits under a returning sheet
     let listening = false;
     let link: string | null = null;
     let pendingLink: string | null = null; // a section link clicked during a transition, honored when it ends
@@ -201,6 +202,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const width = window.innerWidth;
       if (mode === "return") {
         height = window.innerHeight;
+        anchorY = window.scrollY;
         const shot = takeSnapshot();
         if (shot) {
           if (returnRenderer?.lost) returnRenderer = null;
@@ -363,6 +365,8 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         step(dt);
         remaining -= dt;
       }
+      // Touch momentum can carry the page on under a returning sheet; hold it where the sheet started.
+      if (mode === "return" && phase !== "idle" && Math.abs(window.scrollY - anchorY) > 1) window.scrollTo({ top: anchorY, behavior: "instant" });
       render();
       if (phase === "commit" && offset >= height) { finish(); return; }
       if (phase !== "idle") frame = requestAnimationFrame(tick);
