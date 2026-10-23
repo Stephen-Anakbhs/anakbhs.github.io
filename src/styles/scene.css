@@ -86,18 +86,20 @@ html[data-scene-mode="dark"] .site-shell {
 /* Project names coloured word by word (Brick · But · Agile) are lifted to stay bright on dark glass. */
 [data-scene-mode="dark"] .site-shell .publication-info > :is(h2, h3) span[style] { filter: brightness(1.75) saturate(1.15); }
 
-/* Dark logos need a light ground to stay legible on a dark wallpaper; figures keep the glass clear. */
-[data-scene-mode="dark"] .site-shell :is(.career-logo, .membership-logo) { background: rgba(246, 247, 248, 0.9); }
-/* On a dark wallpaper each publication's glass takes its own tint, so the entries read apart. */
+/* On a dark wallpaper nothing gets a white card. Each entry's glass takes its own tint instead:
+   a clear one behind figures, a pale one behind logos and certificates so dark marks stay legible. */
 [data-scene-mode="dark"] .site-shell .publication-media {
   --glass-tint: linear-gradient(160deg, hsl(var(--entry-hue) 72% 62% / 0.26), hsl(var(--entry-hue) 72% 62% / 0.1) 55%, hsl(var(--entry-hue) 72% 62% / 0.2));
 }
-.publication-item:nth-child(6n + 1) { --entry-hue: 206; }
-.publication-item:nth-child(6n + 2) { --entry-hue: 28; }
-.publication-item:nth-child(6n + 3) { --entry-hue: 152; }
-.publication-item:nth-child(6n + 4) { --entry-hue: 268; }
-.publication-item:nth-child(6n + 5) { --entry-hue: 348; }
-.publication-item:nth-child(6n + 6) { --entry-hue: 48; }
+[data-scene-mode="dark"] .site-shell :is(.career-logo, .membership-logo, .honor-thumbnail) {
+  background: linear-gradient(160deg, hsl(var(--entry-hue) 66% 80% / 0.52), hsl(var(--entry-hue) 66% 80% / 0.36));
+}
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 1) { --entry-hue: 206; }
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 2) { --entry-hue: 28; }
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 3) { --entry-hue: 152; }
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 4) { --entry-hue: 268; }
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 5) { --entry-hue: 348; }
+:is(.publication-item, .career-entry, .membership-entry, .honor-card):nth-child(6n + 6) { --entry-hue: 48; }
 
 /* Readability looks (readability.css) on a dark scene: dark halo, dark sheet, light body text. */
 html[data-scene-mode="dark"]:is([data-look="vibrancy"], [data-look="calm"], [data-look="sheets"]) .site-shell { --muted: #d4d9df; --dim: #b6bdc5; }
