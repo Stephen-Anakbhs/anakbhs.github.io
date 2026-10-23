@@ -15,7 +15,12 @@
 .hero[data-cover="ghost"] { z-index: -1; }
 .hero[data-cover="ghost"] .cover-sheet { position: fixed; }
 
-.hero[data-cover-grab] { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+/* Only the lower part of the hero is a handle for the mouse (the lettering above stays selectable);
+   touch lifts the cover from anywhere, so the handle exists for fine pointers only. */
+.hero-grab { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; display: none; height: 32%; cursor: grab; }
+@media (pointer: fine) { .hero-grab { display: block; } }
+.hero[data-cover-grab] { user-select: none; -webkit-user-select: none; }
+.hero[data-cover-grab], .hero[data-cover-grab] * { cursor: grabbing; }
 
 /* Without WebGL the shade itself lifts, edged with a highlight. */
 .hero[data-cover="css"] .hero-overlay {

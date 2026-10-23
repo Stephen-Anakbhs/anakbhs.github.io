@@ -227,6 +227,7 @@ export function Hero() {
           <GlassTextLayer />
         </p>
       </div>
+      <div className="hero-grab" aria-hidden="true" />
       <a className="scroll-cue" href="#about" aria-label="Scroll to about">
         <ChevronDown size={42} strokeWidth={2.2} />
       </a>

@@ -500,9 +500,10 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (event.pointerType === "touch" || event.button !== 0) return;
       const regrab = phase === "settle" && mode === "lift";
       if (!(phase === "idle" || regrab)) return;
-      if (!(event.target instanceof Element) || !hero.contains(event.target) || event.target.closest("a, button")) return;
+      // Only the handle strip at the foot of the hero starts a mouse drag; the lettering stays selectable.
+      if (!(event.target instanceof Element) || !event.target.closest(".hero-grab")) return;
       if (phase === "idle" && !ready()) return;
-      event.preventDefault(); // keep the drag from selecting the title
+      event.preventDefault();
       drag = { id: event.pointerId, touch: false, mode: "lift", x: event.clientX, y: event.clientY, base: regrab ? offset : 0, travel: 0 };
       if (regrab) { phase = "drag"; samples = []; }
     };
