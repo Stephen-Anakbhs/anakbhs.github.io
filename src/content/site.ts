@@ -137,6 +137,8 @@ export type CareerEntry = {
   group: string;
   groupHref?: string;
   mentors?: { name: string; href?: string }[];
+  /** Kept here but not shown on the site (set to false, or remove, to show it again). */
+  hidden?: boolean;
   /** Short facts on one line, e.g. GPA and rank: the value is emphasised, label and note are not. */
   facts?: { label?: string; value: string; note?: string }[];
   description: string;
@@ -249,6 +251,7 @@ export const site = {
     },
     {
       period: "2025",
+      hidden: true,
       institution: "The Hong Kong University of Science and Technology",
       href: "https://hkust.edu.hk/",
       logo: "/media/logos/hkust-emblem.png",

@@ -64,7 +64,7 @@ export function HomePage() {
 
       <section className="page-section experience-section" id="experience" data-nav-section="about">
         <SectionHeading title="Experience" />
-        <div className="section-body"><CareerList items={site.experience} /></div>
+        <div className="section-body"><CareerList items={site.experience.filter((item) => !item.hidden)} /></div>
       </section>
 
       <section className="page-section education-section" id="education" data-nav-section="about">

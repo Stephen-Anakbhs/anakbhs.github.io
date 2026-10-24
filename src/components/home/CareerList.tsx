@@ -21,7 +21,7 @@ export function CareerList({ items }: { items: CareerEntry[] }) {
             <p className="career-group">{item.groupHref
               ? <a href={item.groupHref} target="_blank" rel="noopener noreferrer">{item.group}</a>
               : item.group}</p>
-            {item.mentors && <p className="career-mentors">Advised by {item.mentors.map((mentor, index) => (
+            {item.mentors && <p className="career-mentors">PI: {item.mentors.map((mentor, index) => (
               <span key={mentor.name}>{index > 0 && " and "}{mentor.href
                 ? <a href={mentor.href} target="_blank" rel="noopener noreferrer">{mentor.name}</a>
                 : mentor.name}</span>
