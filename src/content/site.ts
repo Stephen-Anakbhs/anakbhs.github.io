@@ -471,8 +471,7 @@ export const site = {
       ],
       venue: "In submission",
       image: "/media/pub-marscanon-transparent.webp",
-      preview: publicationImages("pub-marscanon-transparent", 3519, 2153, [626, 881]),
-      selected: true
+      preview: publicationImages("pub-marscanon-transparent", 3519, 2153, [626, 881])
     },
     {
       id: "RSC",
@@ -537,7 +536,6 @@ export const site = {
       year: "2025",
       image: "/media/pub-two-lower-bounds.png",
       preview: publicationImages("pub-two-lower-bounds", 2153, 1604, [651, 894]),
-      selected: true,
       links: [{ label: "Paper", href: "https://doi.org/10.1016/j.cnsns.2025.108649" }]
     },
     {
