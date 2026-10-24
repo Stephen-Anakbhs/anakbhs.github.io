@@ -236,7 +236,7 @@ export const site = {
   ],
   experience: [
     {
-      period: "2025",
+      period: "Jul. - Aug. 2025",
       institution: "University of Southern California",
       href: "https://www.usc.edu/",
       logo: "/media/logos/psi-lab.svg",
