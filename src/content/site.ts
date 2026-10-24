@@ -127,7 +127,8 @@ export type Membership = {
 };
 
 export type CareerEntry = {
-  period: string;
+  /** One period, or several (newest first) for a position held more than once. */
+  period: string | string[];
   institution: string;
   href: string;
   logo: string;
@@ -257,7 +258,7 @@ export const site = {
       description: "Land-cover recognition and vision-language models for remote-sensing imagery, including LC4-DViT and MVT."
     },
     {
-      period: "Jul. - Dec. 2024",
+      period: ["Feb. 2026 - Present", "Jul. - Dec. 2024"],
       institution: "Tsinghua University",
       href: "https://air.tsinghua.edu.cn/en/",
       logo: "/media/logos/tsinghua-air-transparent-hq.webp",

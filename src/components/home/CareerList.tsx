@@ -14,7 +14,8 @@ export function CareerList({ items }: { items: CareerEntry[] }) {
           <div className="career-copy">
             <div className="career-heading">
               <h3><a href={item.href} target="_blank" rel="noopener noreferrer">{item.institution}</a></h3>
-              <span className="career-date">{item.period}</span>
+              <span className="career-date">{typeof item.period === "string" ? item.period
+                : item.period.map((period) => <span key={period}>{period}</span>)}</span>
             </div>
             <p className="career-role">{item.role}</p>
             <p className="career-group">{item.groupHref

@@ -625,7 +625,18 @@ textarea {
 .career-copy { min-width: 0; }
 .career-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
 .career-heading h3 { flex: 1 1 320px; }
-.career-date { flex-shrink: 0; margin-bottom: 8px; }
+.career-date { flex-shrink: 0; margin-bottom: 8px; text-align: end; }
+.career-date > span { display: block; }
+/* A position held more than once lists each period, newest first; the extra lines sit beside the role
+   instead of pushing it down. */
+@media (min-width: 641px) {
+  .career-copy:has(.career-date > span) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 24px; }
+  .career-copy:has(.career-date > span) > * { grid-column: 1 / -1; }
+  .career-copy:has(.career-date > span) > .career-heading { display: contents; }
+  .career-copy:has(.career-date > span) h3 { grid-column: 1; grid-row: 1; align-self: baseline; }
+  .career-copy:has(.career-date > span) .career-date { grid-column: 2; grid-row: 1 / span 2; align-self: baseline; margin: 0; }
+  .career-copy:has(.career-date > span) > .career-role { grid-column: 1; grid-row: 2; }
+}
 .career-copy a, .about-text > p a { text-decoration: underline; text-decoration-color: #bcc3c7; text-underline-offset: 4px; }
 .career-copy a:hover, .about-text > p a:hover { text-decoration-color: currentColor; }
 .about-text > p strong { color: var(--text); }
@@ -1430,7 +1441,7 @@ textarea {
   .membership-logo { width: 144px; height: 96px; }
   .membership-heading h3 { font-size: 18px; }
   .career-heading { display: block; }
-  .career-date { display: block; font-size: 14px; }
+  .career-date { display: block; font-size: 14px; text-align: start; }
   .career-entry p, .news-list p { font-size: 17px; }
 
   .career-entry h3 {
