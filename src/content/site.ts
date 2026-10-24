@@ -270,7 +270,7 @@ export const site = {
       group: "Institute for AI Industry Research, DISCOVER Lab",
       groupHref: "https://www.discover-lab.com/",
       mentors: [{ name: "Prof. Guyue Zhou", href: "https://air.tsinghua.edu.cn/en/info/1046/1196.htm" }],
-      description: "Mechanical design and integration of a LEGO-based wheel-legged robot, with custom motor adapters, ESP32 electronics, IMU state estimation, and low-level stabilization experiments."
+      description: "Sole creator of Brick But Agile, the first human-scale, tendon-driven LEGO dexterous hand (all 33 GRASP taxonomy grasps, 10/10 Kapandji), from mechanism design to simulation and teleoperation. Earlier: a LEGO-based wheel-legged robot with ESP32 electronics and IMU state estimation."
     },
     {
       period: "From Oct. 2023",
