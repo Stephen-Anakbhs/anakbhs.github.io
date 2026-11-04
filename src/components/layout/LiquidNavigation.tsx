@@ -175,11 +175,31 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       lens.current = Array.isArray(instance) ? instance[0] : instance ?? null;
       lens.current?.setTint(rgba(String(profileRef.current.tintColor), Number(profileRef.current.tintOpacity)));
       lens.current?.renderer?.setSuspended(!openState.current);
+      // A phone can take the WebGL context away (a tab in the background); its programs and textures
+      // go with it, so the lens stands down until there is a context again, then starts over.
+      lensCanvas?.removeEventListener('webglcontextlost', onContextLost);
+      lensCanvas?.removeEventListener('webglcontextrestored', onContextRestored);
+      lensCanvas = lens.current?.renderer?.canvas ?? null;
+      lensCanvas?.addEventListener('webglcontextlost', onContextLost);
+      lensCanvas?.addEventListener('webglcontextrestored', onContextRestored);
       wake();
+    };
+    let lensCanvas: HTMLCanvasElement | null = null;
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      lens.current?.renderer?.setSuspended(true);
+    };
+    const onContextRestored = () => {
+      if (disposed) return;
+      lens.current?.destroy();
+      lens.current = null;
+      void initialize();
     };
     void initialize();
     return () => {
       disposed = true;
+      lensCanvas?.removeEventListener('webglcontextlost', onContextLost);
+      lensCanvas?.removeEventListener('webglcontextrestored', onContextRestored);
       stopVideo();
       clearTimeout(captureTimer);
       videoEvents.forEach(name => document.removeEventListener(name, wake, true));
