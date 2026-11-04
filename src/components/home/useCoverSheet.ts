@@ -539,9 +539,16 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       follow(drag.base + travel, event.timeStamp);
     };
     const onTouchEnd = (event: TouchEvent) => {
-      if (!drag?.touch || !Array.from(event.changedTouches).some((item) => item.identifier === drag?.id)) return;
+      const started = drag;
+      const point = started?.touch ? Array.from(event.changedTouches).find((item) => item.identifier === started.id) : null;
+      if (!started || !point) return;
       drag = null;
-      if (phase === "drag") release(recentSpeed(event.timeStamp));
+      if (phase === "drag") { release(recentSpeed(event.timeStamp)); return; }
+      // On a busy page (still loading, say) a quick flick can arrive with no move before its end.
+      const travel = started.mode === "lift" ? started.y - point.clientY : point.clientY - started.y;
+      if (event.type === "touchend" && phase === "idle" && travel > 40 && Math.abs(point.clientX - started.x) < travel) {
+        turn(started.mode, null, started.mode === "lift" ? TO_CONTENT : TO_COVER);
+      }
     };
 
     const onPointerDown = (event: PointerEvent) => {

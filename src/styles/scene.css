@@ -17,7 +17,7 @@ html[data-scene-mode="dark"] .backdrop-calm[data-derived] { filter: contrast(0.6
   left: var(--navigation-start);
   z-index: 20;
 }
-.site-header .brand { left: calc(var(--navigation-start) + var(--navigation-height) + 14px); }
+.site-shell .site-header .brand { left: calc(var(--navigation-start) + var(--navigation-height) + 14px); }
 .liquid-surface.scene-toggle { border-radius: var(--navigation-radius); }
 .scene-toggle .glass-action.glass-icon {
   width: var(--navigation-height);
