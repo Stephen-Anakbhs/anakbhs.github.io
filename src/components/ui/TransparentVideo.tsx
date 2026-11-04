@@ -29,7 +29,8 @@ void main() {
 
 type Source = TexImageSource;
 
-function createPainter(canvas: HTMLCanvasElement) {
+/** A WebGL context can be taken away at any time (iOS does when a tab has been in the background). */
+function createPainter(canvas: HTMLCanvasElement, onLost: () => void) {
   const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: "low-power" }) as WebGLRenderingContext | null;
   if (!gl || gl.isContextLost()) return null;
   const compile = (type: number, text: string) => {
@@ -38,25 +39,37 @@ function createPainter(canvas: HTMLCanvasElement) {
     gl.compileShader(shader);
     return shader;
   };
-  const program = gl.createProgram()!;
-  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX));
-  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
-  gl.useProgram(program);
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const position = gl.getAttribLocation(program, "a_position");
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.clearColor(0, 0, 0, 0);
+  const prepare = () => {
+    const program = gl.createProgram()!;
+    gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const position = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(position);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.clearColor(0, 0, 0, 0);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    return true;
+  };
+  if (!prepare()) return null;
+  let lost = false;
+  const handleLost = (event: Event) => { event.preventDefault(); lost = true; onLost(); };
+  const handleRestored = () => { lost = !prepare(); };
+  canvas.addEventListener("webglcontextlost", handleLost);
+  canvas.addEventListener("webglcontextrestored", handleRestored);
   return {
+    /** False when there is no context to draw with right now. */
     draw(source: Source, width: number, height: number) {
+      if (lost) return false;
       const rows = Math.round(height / 2);
       if (canvas.width !== width || canvas.height !== rows) {
         canvas.width = width;
@@ -66,8 +79,13 @@ function createPainter(canvas: HTMLCanvasElement) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, source);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      return true;
     },
-    release() { gl.getExtension("WEBGL_lose_context")?.loseContext(); },
+    release() {
+      canvas.removeEventListener("webglcontextlost", handleLost);
+      canvas.removeEventListener("webglcontextrestored", handleRestored);
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    },
   };
 }
 
@@ -98,7 +116,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     surface.setAttribute("aria-hidden", "true");
     surface.dataset.liquidIgnore = "";
     box.insertBefore(surface, element);
-    const painter = createPainter(surface);
+    const painter = createPainter(surface, () => giveUp());
     if (!painter) { surface.remove(); return; }
 
     // The muted state has to be on the element before its first load, or a phone refuses to play it.
@@ -145,8 +163,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
       const signal = decoding.signal;
       void import("../home/canvasHeroPlayback").then(({ playDecodedFrames }) => playDecodedFrames(src, signal, resumeAt, (decoded, end) => {
         resumeAt = end;
-        painter.draw(decoded, decoded.displayWidth, decoded.displayHeight);
-        announce(end);
+        if (painter.draw(decoded, decoded.displayWidth, decoded.displayHeight)) announce(end);
       })).catch(() => {
         if (!signal.aborted) giveUp();
       });
@@ -155,8 +172,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     const paint = () => {
       if (element.readyState < 2 || !element.videoWidth) return;
       try {
-        painter.draw(element, element.videoWidth, element.videoHeight);
-        announce(element.currentTime);
+        if (painter.draw(element, element.videoWidth, element.videoHeight)) announce(element.currentTime);
       } catch {
         fallBack();
       }
