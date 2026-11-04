@@ -7,10 +7,12 @@ import "./styles/cursors.css";
 import { initSiteLook } from "./lib/siteLook";
 import { applyScene } from "./content/scenes";
 import { initGlassCursor } from "./lib/glassCursor";
+import { keepPageTop } from "./lib/siteView";
 
 initSiteLook();
 applyScene();
 initGlassCursor();
+keepPageTop();
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 if (import.meta.env.DEV && location.pathname.replace(/\/$/, '') === '/__glass') {

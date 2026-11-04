@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 import { SiteShell } from "./components/layout/SiteShell";
-import { getView, setView, viewFor } from "./lib/siteView";
+import { getView, pageTop, setView, viewFor } from "./lib/siteView";
 import { trackPageView } from "./lib/visits";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
@@ -36,7 +36,7 @@ function ScrollPosition() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (saved !== undefined) window.scrollTo({ top: saved, behavior: "instant" });
     else if (target) target.scrollIntoView({ block: "start", behavior: samePage && !reduced ? "smooth" : "instant" });
-    else window.scrollTo({ top: 0, behavior: "instant" });
+    else window.scrollTo({ top: pageTop(), behavior: "instant" });
   }, [pathname, hash, key]);
   return null;
 }

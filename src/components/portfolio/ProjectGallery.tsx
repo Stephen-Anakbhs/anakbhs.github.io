@@ -145,7 +145,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
                 ? <div className="project-detail-media" data-kind="film">
                     {/* Phones already hold the card's file, sharp enough at their width. */}
                     <TransparentVideo className="project-film" src={matchMedia("(max-width: 640px)").matches ? project.film.card : project.film.detail}
-                      poster={project.film.poster} alt={project.title} posterWhileLoading={false} />
+                      poster={project.film.poster} alt={project.title} />
                   </div>
                 : <div className="project-detail-media" data-kind="image">
                     <img className="project-detail-image" src={project.detailSources?.src ?? project.detailImage}

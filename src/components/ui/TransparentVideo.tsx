@@ -71,14 +71,13 @@ function createPainter(canvas: HTMLCanvasElement) {
   };
 }
 
-export function TransparentVideo({ src, poster, alt, className = "", active = true, posterWhileLoading = true }: {
+export function TransparentVideo({ src, poster, alt, className = "", active = true }: {
   src: string;
   poster: string;
   alt: string;
   className?: string;
   /** False while something else (an open detail sheet) has taken over. */
   active?: boolean;
-  posterWhileLoading?: boolean;
 }) {
   const host = useRef<HTMLSpanElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -86,13 +85,12 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
   activeNow.current = active;
   const syncRef = useRef<() => void>(() => {});
   const [playing, setPlaying] = useState(false);
-  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     const element = video.current;
     const box = host.current;
     if (!element || !box) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setStuck(true); return; }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // A canvas keeps its WebGL context for life and the page may only hold a few at once, so each run
     // gets its own canvas and gives the context back when it ends.
     const surface = document.createElement("canvas");
@@ -101,7 +99,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     surface.dataset.liquidIgnore = "";
     box.insertBefore(surface, element);
     const painter = createPainter(surface);
-    if (!painter) { surface.remove(); setStuck(true); return; }
+    if (!painter) { surface.remove(); return; }
 
     // The muted state has to be on the element before its first load, or a phone refuses to play it.
     element.muted = true;
@@ -122,17 +120,16 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     let announced = false;
     let lastSeen = -1;
     let lastProgress = 0;
-    const announce = () => {
-      if (announced || disposed) return;
+    // The film opens by fading in from nothing, so the poster stays until there is something to see.
+    const announce = (time: number) => {
+      if (announced || disposed || time < 0.4) return;
       announced = true;
       setPlaying(true);
-      setStuck(false);
     };
     const giveUp = () => {
       if (disposed) return;
       announced = false;
       setPlaying(false);
-      setStuck(true);
     };
     const shouldPlay = () => inView && activeNow.current && !document.hidden && getView() === "content";
 
@@ -149,7 +146,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
       void import("../home/canvasHeroPlayback").then(({ playDecodedFrames }) => playDecodedFrames(src, signal, resumeAt, (decoded, end) => {
         resumeAt = end;
         painter.draw(decoded, decoded.displayWidth, decoded.displayHeight);
-        announce();
+        announce(end);
       })).catch(() => {
         if (!signal.aborted) giveUp();
       });
@@ -159,7 +156,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
       if (element.readyState < 2 || !element.videoWidth) return;
       try {
         painter.draw(element, element.videoWidth, element.videoHeight);
-        announce();
+        announce(element.currentTime);
       } catch {
         fallBack();
       }
@@ -265,11 +262,10 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
 
   useEffect(() => { syncRef.current(); }, [active]);
 
-  const showPoster = !playing && (posterWhileLoading || stuck);
   return (
     <span ref={host} className={`transparent-video ${className}`} data-playing={playing}>
       <img className="transparent-video-poster" src={poster} alt={alt} draggable={false} loading="lazy" decoding="async"
-        data-shown={showPoster} />
+        data-shown={!playing} />
       <video ref={video} className="transparent-video-source" muted playsInline loop preload="none" disablePictureInPicture
         disableRemotePlayback tabIndex={-1} aria-hidden="true" data-liquid-ignore="" />
     </span>

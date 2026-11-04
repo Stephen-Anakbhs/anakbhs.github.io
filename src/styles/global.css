@@ -342,16 +342,17 @@ textarea {
 }
 html[data-view="content"] .hero:not([data-cover="ghost"]) { visibility: hidden; }
 
-/* iOS Safari shows the page behind its status bar and toolbar only as far as the page has content there
-   and is scrolled: at the very top of a document the status bar stands on a flat color, and a fixed layer
-   never reaches past the layout viewport (measured on iOS 26.2 and 26.5). So on iOS the cover is a
-   part of the document, a little taller than the screen, with the document resting a little way down
-   it: the picture then runs under the Dynamic Island and the toolbar. Nothing can scroll it away,
-   useCoverSheet holds the page in place. */
+/* iOS Safari shows the page behind its status bar only once the document is scrolled that far: at the very
+   top of a document the bar stands on a flat color, with a hard edge under it (measured on iOS 26.2).
+   So on iOS every page rests a little way down the document (keepPageTop in lib/siteView.ts). A fixed
+   layer also stops at the layout viewport, so the cover is part of the document there, a little taller
+   than the screen, and its picture runs under the Dynamic Island and the toolbar; nothing can scroll it
+   away, useCoverSheet holds the page in place. The wallpaper does the same (site-background.css). */
 @supports (-webkit-touch-callout: none) {
   :root { --runway: 80px; --toolbar-bleed: 70px; }
   .hero { position: absolute; }
   .hero[data-cover="ghost"] { position: fixed; top: calc(-1 * var(--runway)); }
+  .site-shell { padding-top: var(--runway); }
 }
 
 /* Nothing of the content shows or takes focus under the cover. It stays laid out, so the first lift has

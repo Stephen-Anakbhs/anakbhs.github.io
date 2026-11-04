@@ -9,7 +9,7 @@ import { GlassScrollbar } from "./GlassScrollbar";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { SceneButton } from "./SceneButton";
 import { useScene } from "../../content/scenes";
-import { getView, onViewChange } from "../../lib/siteView";
+import { getView, onViewChange, pageTop } from "../../lib/siteView";
 import "../../styles/site-background.css";
 import "../../styles/readability.css";
 import "../../styles/scene.css";
@@ -54,7 +54,7 @@ export function SiteShell({ children }: PropsWithChildren) {
         measureLayout = false;
       }
       const cover = location.pathname === "/" && getView() === "cover";
-      setScrolled(!cover && y > 96);
+      setScrolled(!cover && y - pageTop() > 96);
       setTone(cover ? "dark" : "light");
       const pending = pendingSection.current;
       if (pending) {

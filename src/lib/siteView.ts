@@ -24,5 +24,24 @@ export function onViewChange(listener: () => void) {
   return () => document.removeEventListener(EVENT, listener);
 }
 
-/** Where the document rests under the cover: 0, except on iOS (see --runway in global.css). */
-export const coverTop = () => parseFloat(getComputedStyle(root).getPropertyValue("--runway")) || 0;
+/** Where the top of the page rests: 0, except on iOS (see --runway in global.css). */
+export const pageTop = () => parseFloat(getComputedStyle(root).getPropertyValue("--runway")) || 0;
+
+/** On iOS the document may overshoot its resting top like a rubber band; it comes back once let go. */
+export function keepPageTop() {
+  if (!pageTop()) return;
+  let timer = 0;
+  let touching = false;
+  const settle = () => {
+    if (!touching && window.scrollY < pageTop() - 1) window.scrollTo({ top: pageTop(), behavior: "smooth" });
+  };
+  const later = () => {
+    window.clearTimeout(timer);
+    if (window.scrollY < pageTop() - 1) timer = window.setTimeout(settle, 120);
+  };
+  window.addEventListener("scroll", later, { passive: true });
+  window.addEventListener("touchstart", () => { touching = true; }, { passive: true });
+  const release = () => { touching = false; later(); };
+  window.addEventListener("touchend", release, { passive: true });
+  window.addEventListener("touchcancel", release, { passive: true });
+}

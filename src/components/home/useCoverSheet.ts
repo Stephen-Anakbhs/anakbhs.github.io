@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import type liquidGL from "liquid-gl";
 import { closeMotion, openMotion } from "../ui/glassMorph";
-import { coverTop, getView, isCoverHash, onViewChange, setView } from "../../lib/siteView";
+import { getView, isCoverHash, onViewChange, pageTop, setView } from "../../lib/siteView";
 import { coverBox, createCoverRenderer, type CoverRenderer, type CoverSource } from "./coverSheetRenderer";
 
 // The way between the homepage's two pages, the cover and the content (siteView.ts). The hero
@@ -45,7 +45,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
   const followHash = useRef<(next: string) => void>(() => {});
 
   // Before the first paint, so the cover opens in its final place.
-  useLayoutEffect(() => { if (getView() === "cover") hold(coverTop()); }, []);
+  useLayoutEffect(() => { if (getView() === "cover") hold(pageTop()); }, []);
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -108,7 +108,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     const free = () => !root.classList.contains("glass-dialog-open")
       && !(phoneLayout.matches && document.querySelector('.site-header[data-menu-open="true"]'));
     const ready = () => getView() === "cover" && free();
-    const atPageTop = () => window.scrollY <= 2;
+    const atPageTop = () => window.scrollY <= pageTop() + 2;
     const atTop = () => getView() === "content" && atPageTop() && free();
 
     const pickSource = (): CoverSource | null => {
@@ -338,7 +338,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       holdAnchor();
       if (mode === "return") {
         setView("cover");
-        hold(coverTop());
+        hold(pageTop());
         if (document.activeElement instanceof HTMLElement && document.activeElement.closest("main")) document.activeElement.blur();
         reset();
         return null;
@@ -621,7 +621,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     // The page stays put under the cover and under a returning sheet, however it was asked to move.
     const onScroll = () => {
       lastScroll = performance.now();
-      if (getView() === "cover") hold(coverTop());
+      if (getView() === "cover") hold(pageTop());
       else if (mode === "return" && phase !== "idle") hold(anchorY);
       syncInput();
     };
@@ -647,7 +647,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     // Below the top a passive listener keeps the wheel's timing, so the turn that follows a scroll
     // up to the top can tell whether it is still the same stream.
     const onWheelPassive = () => { if (!listening) lastWheel = performance.now(); };
-    const keepInPlace = () => { if (getView() === "cover") hold(coverTop()); };
+    const keepInPlace = () => { if (getView() === "cover") hold(pageTop()); };
     const stopView = onViewChange(syncInput);
 
     window.addEventListener("wheel", onWheelPassive, { passive: true });
