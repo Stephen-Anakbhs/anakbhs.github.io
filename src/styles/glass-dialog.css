@@ -154,16 +154,18 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
-/* The picture leads, the words follow. A film runs edge to edge and melts into the sheet at its foot, so
-   the sheet itself is its frame; a figure sits inside the margins. */
+/* The picture leads, the words follow. A film sits whole on the sheet with no frame around it, every edge
+   melting into the glass; a figure sits inside the margins. */
 .project-detail-media { position: relative; margin: 0 -32px; }
-.project-detail-media[data-kind="film"] {
-  --film-fit: cover;
+.project-detail-media[data-kind="film"] { display: flex; justify-content: center; }
+.project-detail-media .project-film {
+  width: min(100%, calc(46dvh * 16 / 9));
+  height: auto;
   aspect-ratio: 16 / 9;
-  max-height: 46dvh;
-  width: calc(100% + 64px);
-  -webkit-mask-image: linear-gradient(#000 90%, transparent);
-  mask-image: linear-gradient(#000 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 5%, #000 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 5%, #000 90%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 .project-detail-media[data-kind="image"] { margin: 32px 0 0; }
 .project-detail-image { display: block; width: 100%; height: auto; max-height: 56dvh; margin: 0 auto; object-fit: contain; border-radius: 12px; }
@@ -187,7 +189,6 @@
   .project-sheet { width: calc(100% - 24px); max-height: 92dvh; border-radius: 22px; }
   .project-detail { max-height: 92dvh; padding: 0 18px 22px; }
   .project-detail-media { margin: 0 -18px; }
-  .project-detail-media[data-kind="film"] { width: calc(100% + 36px); }
   .project-detail-media[data-kind="image"] { margin: 18px 0 0; }
   .project-detail-heading { margin-top: 14px; }
   .project-detail h2 { font-size: 23px; }

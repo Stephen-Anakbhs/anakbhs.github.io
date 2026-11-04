@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import { getView, onViewChange } from "../../lib/siteView";
 
 type TypewriterLineProps = {
   prefix: string;
@@ -18,15 +19,17 @@ export function TypewriterLine({ prefix, words }: TypewriterLineProps) {
     const line = lineRef.current;
     if (!line || reduceMotion) return;
     let inView = false;
-    const sync = () => setActive(inView && !document.hidden);
+    const sync = () => setActive(inView && !document.hidden && getView() === "cover");
     const observer = new IntersectionObserver(([entry]) => {
       inView = entry.isIntersecting;
       sync();
     });
     observer.observe(line);
+    const stopView = onViewChange(sync);
     document.addEventListener("visibilitychange", sync);
     return () => {
       observer.disconnect();
+      stopView();
       document.removeEventListener("visibilitychange", sync);
     };
   }, [reduceMotion]);

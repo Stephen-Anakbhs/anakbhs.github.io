@@ -120,6 +120,8 @@ function tick() {
     return;
   }
   if (innerHeight <= 0) return;
+  // The content lies laid out but hidden under the homepage cover.
+  if (document.documentElement.dataset.view === "cover") { add("section:home", "section", "home"); return; }
   const middle = innerHeight * 0.4;
   const sections = document.querySelectorAll<HTMLElement>("#main-content > section, #main-content section[id], .site-footer");
   for (const section of sections) {
