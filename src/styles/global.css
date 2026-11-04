@@ -341,7 +341,7 @@ textarea {
   .hero {
     height: calc(var(--runway) + 100lvh + var(--toolbar-bleed));
     padding-top: var(--runway);
-    padding-bottom: calc(100lvh - 100dvh + var(--toolbar-bleed));
+    padding-bottom: calc(100lvh - var(--visible-height, 100dvh) + var(--toolbar-bleed));
   }
 }
 html[data-view="content"] .hero:not([data-cover="ghost"]) { visibility: hidden; }
@@ -487,7 +487,7 @@ html[data-view="cover"]:has(.site-backdrop) { background: #05080a; }
   opacity: 0.65;
 }
 @supports (height: 100dvh) {
-  .scroll-cue { top: calc(var(--runway) + 100dvh - 79px); bottom: auto; }
+  .scroll-cue { top: calc(var(--runway) + var(--visible-height, 100dvh) - 79px); bottom: auto; }
 }
 
 .page-section,

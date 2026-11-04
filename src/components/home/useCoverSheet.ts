@@ -44,8 +44,19 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
   linkTarget.current = onLink;
   const followHash = useRef<(next: string) => void>(() => {});
 
-  // Before the first paint, so the cover opens in its final place.
-  useLayoutEffect(() => { if (getView() === "cover") hold(pageTop()); }, []);
+  // Before the first paint, so the cover opens in its final place. Its lettering and chevron go by what
+  // is visible now: in iPhone landscape 100dvh leaves out Safari's tab bar (measured on iOS 26.2).
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const measure = () => root.style.setProperty("--visible-height", `${window.innerHeight}px`);
+    measure();
+    window.addEventListener("resize", measure);
+    if (getView() === "cover") hold(pageTop());
+    return () => {
+      window.removeEventListener("resize", measure);
+      root.style.removeProperty("--visible-height");
+    };
+  }, []);
 
   useEffect(() => {
     const hero = heroRef.current;
