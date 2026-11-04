@@ -327,14 +327,18 @@ textarea {
   z-index: 1;
   display: grid;
   height: 100vh;
-  height: calc(var(--runway) + 100lvh + var(--toolbar-bleed));
-  padding-top: var(--runway);
-  padding-bottom: calc(100lvh - 100dvh + var(--toolbar-bleed));
   place-items: center;
   overflow: hidden;
   isolation: isolate;
   color: #fff;
   touch-action: pinch-zoom;
+}
+@supports (height: 100lvh) {
+  .hero {
+    height: calc(var(--runway) + 100lvh + var(--toolbar-bleed));
+    padding-top: var(--runway);
+    padding-bottom: calc(100lvh - 100dvh + var(--toolbar-bleed));
+  }
 }
 html[data-view="content"] .hero:not([data-cover="ghost"]) { visibility: hidden; }
 
@@ -463,7 +467,7 @@ html[data-view="cover"]:has(.site-backdrop) { background: #05080a; }
 .scroll-cue {
   position: absolute;
   left: 50%;
-  top: calc(var(--runway) + 100dvh - 79px);
+  bottom: 25px;
   z-index: 3;
   display: grid;
   width: 54px;
@@ -476,6 +480,9 @@ html[data-view="cover"]:has(.site-backdrop) { background: #05080a; }
 
 .scroll-cue:hover {
   opacity: 0.65;
+}
+@supports (height: 100dvh) {
+  .scroll-cue { top: calc(var(--runway) + 100dvh - 79px); bottom: auto; }
 }
 
 .page-section,

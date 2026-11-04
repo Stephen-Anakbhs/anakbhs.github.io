@@ -21,7 +21,10 @@ const SHARE = 0.3; // a drag released past this share of the screen completes
 const FLICK = 450; // px/s: a flick completes from anywhere past FLICK_MIN
 const FLICK_MIN = 24;
 const SEND = 1200; // px/s: how a notch, key or link sets the cover going
-const FRESH = 140; // ms of quiet before a wheel turn at the top of the content is a new request: inertia that carried the page there must not also turn it over
+// A wheel turn at the top of the content is a new request only after this much quiet in the wheel stream
+// and the scrolling: inertia that carried the page there must not also turn it over.
+const FRESH_WHEEL = 140; // ms
+const FRESH_SCROLL = 300; // ms
 const TO_COVER = "/";
 const TO_CONTENT = "/#about";
 const GLASS_IN = 56; // px of travel over which the glass rim appears
@@ -81,6 +84,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let swallowSign = 0; // wheel direction of the gesture under way, swallowed while its stream keeps coming
     let swallowEnd = 0;
     let lastWheel = 0;
+    let lastScroll = 0;
     let landedAt = 0;
     let anchorY = 0; // where the page sits under a returning sheet
     let listening = false;
@@ -482,7 +486,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (delta > 0 && ready()) {
         event.preventDefault();
         turn("lift", null, TO_CONTENT);
-      } else if (delta < 0 && gap > FRESH && atTop()) {
+      } else if (delta < 0 && gap > FRESH_WHEEL && now - lastScroll > FRESH_SCROLL && atTop()) {
         event.preventDefault();
         turn("return", null, TO_COVER);
       } else if (getView() === "cover") event.preventDefault();
@@ -573,7 +577,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
       const focus = event.target;
       if (focus instanceof HTMLElement && (focus.isContentEditable || focus.closest("a, button, input, textarea, select, [role='button']"))) return;
       const down = event.key === "PageDown" || event.key === "ArrowDown" || event.key === "End" || (event.key === " " && !event.shiftKey);
@@ -616,6 +620,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
 
     // The page stays put under the cover and under a returning sheet, however it was asked to move.
     const onScroll = () => {
+      lastScroll = performance.now();
       if (getView() === "cover") hold(coverTop());
       else if (mode === "return" && phase !== "idle") hold(anchorY);
       syncInput();

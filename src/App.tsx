@@ -16,12 +16,15 @@ function ScrollPosition() {
   const navigation = useNavigationType();
   const previousPath = useRef<string | null>(null);
   const positions = useRef(new Map<string, number>());
+  const currentKey = useRef(key);
   useEffect(() => {
-    const remember = () => { if (getView() === "content") positions.current.set(key, window.scrollY); };
+    // Scroll events arrive late: by then a route change has already moved on to its own entry.
+    const remember = () => { if (getView() === "content") positions.current.set(currentKey.current, window.scrollY); };
     window.addEventListener("scroll", remember, { passive: true });
     return () => window.removeEventListener("scroll", remember);
-  }, [key]);
+  }, []);
   useLayoutEffect(() => {
+    currentKey.current = key;
     const samePage = previousPath.current === pathname;
     previousPath.current = pathname;
     if (!samePage) setView(viewFor(pathname, hash));
