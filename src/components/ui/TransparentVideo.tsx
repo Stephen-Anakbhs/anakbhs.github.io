@@ -119,13 +119,27 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     let decoding: AbortController | null = null;
     let resumeAt = 0;
     let refused = false;
-    const announce = () => { if (!disposed) { setPlaying(true); setStuck(false); } };
+    let announced = false;
+    let lastSeen = -1;
+    let lastProgress = 0;
+    const announce = () => {
+      if (announced || disposed) return;
+      announced = true;
+      setPlaying(true);
+      setStuck(false);
+    };
+    const giveUp = () => {
+      if (disposed) return;
+      announced = false;
+      setPlaying(false);
+      setStuck(true);
+    };
     const shouldPlay = () => inView && activeNow.current && !document.hidden && getView() === "content";
 
     // Native playback was refused: decode the frames ourselves, or keep the poster.
     const fallBack = () => {
       if (decoding || disposed) return;
-      if (typeof VideoDecoder === "undefined") { setStuck(true); return; }
+      if (typeof VideoDecoder === "undefined") { giveUp(); return; }
       element.pause();
       element.removeAttribute("src");
       element.load();
@@ -137,7 +151,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
         painter.draw(decoded, decoded.displayWidth, decoded.displayHeight);
         announce();
       })).catch(() => {
-        if (!signal.aborted && !disposed) setStuck(true);
+        if (!signal.aborted) giveUp();
       });
     };
 
@@ -160,8 +174,21 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const time = element.currentTime;
+      // Some in-app browsers neither play nor refuse: go by progress, not by the promise. A slow
+      // download is not a refusal.
+      const now = performance.now();
+      const buffering = element.networkState === element.NETWORK_LOADING && element.readyState < element.HAVE_FUTURE_DATA;
+      if (time !== lastSeen || buffering) {
+        lastSeen = time;
+        lastProgress = now;
+      } else if (now - lastProgress > 4000) {
+        refused = true;
+        stopLoop();
+        fallBack();
+        return;
+      }
       // A browser that stops reporting frames for a video it thinks nobody sees still advances the clock.
-      const quiet = performance.now() - lastCallback > 400;
+      const quiet = now - lastCallback > 400;
       if (freshFrame || (quiet && time !== lastTime)) {
         freshFrame = false;
         lastTime = time;
@@ -175,7 +202,10 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
       frameCallback = 0;
     };
     const startLoop = () => {
-      if (!frame) frame = requestAnimationFrame(tick);
+      if (!frame) {
+        lastProgress = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
       if (!frameCallback && typeof element.requestVideoFrameCallback === "function") frameCallback = element.requestVideoFrameCallback(callbackFrame);
     };
 
@@ -199,8 +229,9 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
         if (disposed || error.name === "AbortError") return;
         if (error.name === "NotAllowedError") {
           refused = true;
+          stopLoop();
           if (shouldPlay()) fallBack();
-        } else setStuck(true);
+        } else giveUp();
       });
     };
     syncRef.current = sync;
