@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getView, onViewChange } from '../../lib/siteView';
 
 const notify = () => document.dispatchEvent(new Event('hero-media-change'));
 
@@ -13,18 +14,12 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const hero = host.current?.closest('.hero');
-    if (!hero) return;
-    const refresh = () => {
-      const r = hero.getBoundingClientRect();
-      setActive(!document.hidden && r.bottom > 0 && r.top < innerHeight);
-    };
-    const observer = new IntersectionObserver(refresh);
-    observer.observe(hero);
+    const refresh = () => setActive(!document.hidden && getView() === 'cover');
+    const stopView = onViewChange(refresh);
     document.addEventListener('visibilitychange', refresh);
     refresh();
     notify();
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', refresh); notify(); };
+    return () => { stopView(); document.removeEventListener('visibilitychange', refresh); notify(); };
   }, []);
 
   useEffect(() => {

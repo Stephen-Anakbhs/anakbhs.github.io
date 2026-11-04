@@ -9,6 +9,7 @@ import { GlassScrollbar } from "./GlassScrollbar";
 import { SceneBackdrop } from "./SceneBackdrop";
 import { SceneButton } from "./SceneButton";
 import { useScene } from "../../content/scenes";
+import { getView, onViewChange } from "../../lib/siteView";
 import "../../styles/site-background.css";
 import "../../styles/readability.css";
 import "../../styles/scene.css";
@@ -43,27 +44,26 @@ export function SiteShell({ children }: PropsWithChildren) {
   useEffect(() => {
     let frame = 0;
     let measureLayout = true;
-    let heroBottom: number | null = null;
     let sections: { id: string; top: number }[] = [];
     const updateTone = () => {
       const y = window.scrollY;
       if (measureLayout) {
-        const hero = document.querySelector(".hero");
-        heroBottom = hero ? hero.getBoundingClientRect().bottom + y : null;
         sections = Array.from(document.querySelectorAll<HTMLElement>("main [data-nav-section]"), (section) => ({
           id: section.dataset.navSection || "home", top: section.getBoundingClientRect().top + y,
         }));
         measureLayout = false;
       }
-      setScrolled(y > 96);
-      const overHero = location.pathname === "/" && heroBottom !== null && heroBottom - y > 72;
-      setTone(overHero ? "dark" : "light");
+      const cover = location.pathname === "/" && getView() === "cover";
+      setScrolled(!cover && y > 96);
+      setTone(cover ? "dark" : "light");
       const pending = pendingSection.current;
       if (pending) {
         // A click selects its destination immediately; sections crossed by the
         // smooth scroll must not pull the lens away from that destination.
-        const target = location.pathname === "/" ? document.getElementById(pending) : null;
-        if (target) {
+        const target = location.pathname === "/" && pending !== "home" ? document.getElementById(pending) : null;
+        if (pending === "home") {
+          if (cover) pendingSection.current = null;
+        } else if (target) {
           const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
           const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
           const targetY = Math.max(0, Math.min(maxY, target.getBoundingClientRect().top + y - margin));
@@ -72,8 +72,8 @@ export function SiteShell({ children }: PropsWithChildren) {
         setActiveSection(pending);
       } else if (location.pathname === "/") {
         const marker = Math.min(window.innerHeight * 0.3, 220);
-        let current = "home";
-        sections.forEach((section) => {
+        let current = cover ? "home" : sections[0]?.id ?? "about";
+        if (!cover) sections.forEach((section) => {
           if (section.top <= y + marker) current = section.id;
         });
         setActiveSection(current);
@@ -114,10 +114,12 @@ export function SiteShell({ children }: PropsWithChildren) {
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", scheduleMeasure);
+    const stopView = onViewChange(scheduleMeasure);
     const observer = new ResizeObserver(scheduleMeasure);
     observer.observe(document.body);
     return () => {
       cancelAnimationFrame(frame);
+      stopView();
       refreshScrollState.current = () => {};
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("scrollend", releaseSelection);
@@ -143,7 +145,7 @@ export function SiteShell({ children }: PropsWithChildren) {
 
   return (
     <div className="site-shell">
-      <a className="skip-link" href="#main-content">Skip to content</a>
+      <a className="skip-link" href="#main-content" data-liquid-ignore="">Skip to content</a>
       <SceneBackdrop />
       <GlassScrollbar tone={darkScene ? "light" : "dark"} />
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`} data-tone={darkScene ? "dark" : tone} data-menu-open={menuOpen} data-liquid-ignore="" aria-label="Primary navigation"

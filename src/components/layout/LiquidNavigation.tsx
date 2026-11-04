@@ -5,6 +5,7 @@ import { site } from "../../content/site";
 import type { LiquidLens } from "liquid-gl";
 import { useGlassProfile } from '../../content/glassStore';
 import { rgba, type GlassProfile } from '../../content/glassSchema';
+import { getView } from '../../lib/siteView';
 
 function lensSettings(p: GlassProfile) {
   return { refraction: Number(p.refraction), frost: Number(p.frost), aberration: Number(p.aberration),
@@ -96,18 +97,21 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       videoFrame = animationFrame = 0;
       if (disposed || !openState.current || document.hidden || !video) return;
       if (video instanceof HTMLVideoElement && video.paused) return;
-      const rect = video.getBoundingClientRect();
-      if (rect.bottom <= 0 || rect.top >= innerHeight) return;
+      if (getView() !== 'cover') return;
       lens.current?.renderer?.invalidate();
       if (video instanceof HTMLVideoElement && 'requestVideoFrameCallback' in video) videoFrame = video.requestVideoFrameCallback(drawVideo);
       else if (!(video instanceof HTMLCanvasElement)) animationFrame = requestAnimationFrame(drawVideo);
     };
     const watchVideo = () => {
       stopVideo();
-      video = document.querySelector<HTMLVideoElement | HTMLImageElement | HTMLCanvasElement>('.hero-video, .hero-fallback[data-media-ready="true"]');
+      // The cover's picture is drawn over the page's own snapshot, which lies at the same place in
+      // the document; once the cover has gone, the snapshot takes its place again.
+      video = getView() === 'cover' ? document.querySelector<HTMLVideoElement | HTMLImageElement | HTMLCanvasElement>('.hero-video, .hero-fallback[data-media-ready="true"]') : null;
       const renderer = lens.current?.renderer;
       if (renderer && (renderer._videoNodes.length !== (video ? 1 : 0) || renderer._videoNodes[0] !== video)) {
+        const left = renderer._videoNodes.length > 0 && !video;
         renderer._videoNodes = video ? [video] : [];
+        if (left) renderer.restoreSnapshotBand();
       }
       if (renderer && video && openState.current && !document.hidden) drawVideo();
     };
@@ -139,7 +143,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       clearTimeout(captureTimer);
       captureTimer = window.setTimeout(recapture, 400);
     };
-    const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange', 'hero-media-change'];
+    const videoEvents = ['playing', 'pause', 'seeked', 'loadeddata', 'visibilitychange', 'hero-media-change', 'rg-view-change'];
     videoEvents.forEach(name => document.addEventListener(name, wake, true));
     const onMediaFrame = () => { if (openState.current) lens.current?.renderer?.invalidate(); };
     const onMediaScroll = () => {

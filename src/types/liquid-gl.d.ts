@@ -8,6 +8,7 @@ declare module "liquid-gl" {
       setSuspended(value: boolean): void;
       render(): void;
       captureSnapshot(): Promise<boolean | void>;
+      restoreSnapshotBand(cssHeight?: number): void;
     } | null;
     setTint(value: string): void;
     setShadow(enabled: boolean): void;

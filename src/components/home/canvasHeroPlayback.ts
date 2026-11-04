@@ -1,16 +1,11 @@
 import type { HeroFrameMessage } from './heroFrameWorker';
 
-/** Decode ahead off-thread, then present each original frame on its media timestamp. */
-export async function playCanvasHero(
-  canvas: HTMLCanvasElement, src: string, signal: AbortSignal, start: number,
-  onFrame: (time: number) => void,
+/** Decode ahead off-thread, then hand over each original frame on its media timestamp. */
+export async function playDecodedFrames(
+  src: string, signal: AbortSignal, start: number,
+  present: (frame: VideoFrame, endTime: number, item: HeroFrameMessage, drawMs: number) => void,
 ) {
   if (signal.aborted) return;
-  const context = canvas.getContext('2d', { alpha: false });
-  if (!context) throw new Error('Canvas is not supported');
-  const mediaCanvas = canvas as HTMLCanvasElement & { liquidVideoFrame?: VideoFrame };
-  // WebKit omits alpha from getContextAttributes(); this full-frame H.264 canvas is opaque.
-  canvas.dataset.mediaOpaque = 'true';
   const worker = new Worker(new URL('./heroFrameWorker.ts', import.meta.url), { type: 'module' });
   const capacity = 12;
   const queue: HeroFrameMessage[] = [];
@@ -45,7 +40,6 @@ export async function playCanvasHero(
     // A short queue absorbs bursty worker delivery without dropping frames or slowing playback.
     while (!signal.aborted && !failure && queue.length < capacity) await waitForData();
     let origin: number | undefined;
-    let frames = 0;
     let drawMs = 0;
     while (!signal.aborted) {
       if (failure) throw failure;
@@ -56,21 +50,9 @@ export async function playCanvasHero(
         origin ??= performance.now() - item.clock * 1000;
         await waitUntil(origin + item.clock * 1000);
         if (signal.aborted) return;
-        if (canvas.width !== item.frame.displayWidth) canvas.width = item.frame.displayWidth;
-        if (canvas.height !== item.frame.displayHeight) canvas.height = item.frame.displayHeight;
         const drawnAt = performance.now();
-        context.drawImage(item.frame, 0, 0, canvas.width, canvas.height);
+        present(item.frame, item.endTime, item, drawMs);
         drawMs += performance.now() - drawnAt;
-        // The glass renderer can sample the decoded frame without a slow canvas readback.
-        const previousFrame = mediaCanvas.liquidVideoFrame;
-        mediaCanvas.liquidVideoFrame = item.frame.clone();
-        previousFrame?.close();
-        canvas.dataset.frame = String(++frames);
-        canvas.dataset.time = String(item.time);
-        canvas.dataset.loop = String(item.loop);
-        canvas.dataset.decodeWaitMs = String(item.decodeWaitMs);
-        canvas.dataset.drawMs = String(drawMs);
-        onFrame(item.endTime);
       } finally { item.frame.close(); }
     }
   } finally {
@@ -79,6 +61,38 @@ export async function playCanvasHero(
     for (const item of queue) item.frame.close();
     worker.onmessage = null;
     worker.onerror = null;
+  }
+}
+
+/** The hero's opaque picture on a plain 2D canvas, also kept for the navigation glass to sample. */
+export async function playCanvasHero(
+  canvas: HTMLCanvasElement, src: string, signal: AbortSignal, start: number,
+  onFrame: (time: number) => void,
+) {
+  if (signal.aborted) return;
+  const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw new Error('Canvas is not supported');
+  const mediaCanvas = canvas as HTMLCanvasElement & { liquidVideoFrame?: VideoFrame };
+  // WebKit omits alpha from getContextAttributes(); this full-frame H.264 canvas is opaque.
+  canvas.dataset.mediaOpaque = 'true';
+  let frames = 0;
+  try {
+    await playDecodedFrames(src, signal, start, (frame, endTime, item, drawMs) => {
+      if (canvas.width !== frame.displayWidth) canvas.width = frame.displayWidth;
+      if (canvas.height !== frame.displayHeight) canvas.height = frame.displayHeight;
+      context.drawImage(frame, 0, 0, canvas.width, canvas.height);
+      // The glass renderer can sample the decoded frame without a slow canvas readback.
+      const previousFrame = mediaCanvas.liquidVideoFrame;
+      mediaCanvas.liquidVideoFrame = frame.clone();
+      previousFrame?.close();
+      canvas.dataset.frame = String(++frames);
+      canvas.dataset.time = String(item.time);
+      canvas.dataset.loop = String(item.loop);
+      canvas.dataset.decodeWaitMs = String(item.decodeWaitMs);
+      canvas.dataset.drawMs = String(drawMs);
+      onFrame(endTime);
+    });
+  } finally {
     mediaCanvas.liquidVideoFrame?.close();
     delete mediaCanvas.liquidVideoFrame;
   }

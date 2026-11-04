@@ -14,7 +14,8 @@ await mkdir(output, { recursive: true });
 for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
   if (!engines.includes(name)) continue;
   const browser = await engine.launch({ headless: true, ...(name === 'chrome' ? {
-    channel: 'chrome', args: ['--autoplay-policy=document-user-activation-required'],
+    // Branded Chrome started with its own profile trips Cold Turkey on the owner's Windows machine.
+    channel: process.platform === 'win32' ? 'chromium' : 'chrome', args: ['--autoplay-policy=document-user-activation-required'],
   } : {}) });
   try {
     for (const viewport of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
@@ -128,10 +129,13 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
           console.log(`PASS ${label} ${mode}: ${result.elapsedMs.toFixed(0)}ms, no input or activation`);
         }
         if (viewport.width === 390) {
-          await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
+          // The content is the other page: the cover's video stops when it lifts and resumes when it returns.
+          await page.evaluate(() => { location.hash = '#projects'; });
           await page.waitForFunction(() => document.querySelector('.hero-video').paused);
-          await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+          await page.waitForFunction(() => document.documentElement.dataset.view === 'content');
+          await page.evaluate(() => { location.hash = '#home'; });
           await page.waitForFunction(() => !document.querySelector('.hero-video').paused);
+          await page.waitForFunction(() => document.documentElement.dataset.view === 'cover');
           await page.screenshot({ path: `${output}/mobile-autoplay-${name}.png` });
           report.cases.push({ label, mode: 'offscreen-pause-and-home-resume', passed: true });
         }
@@ -165,10 +169,10 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
                 if (scenario === 'bridge-callback-hidden') {
                   Object.defineProperty(document, 'hidden', { value: true, configurable: true });
                   document.dispatchEvent(new Event('visibilitychange'));
-                } else document.querySelector('#projects').scrollIntoView({ behavior: 'instant' });
+                } else location.hash = '#projects';
               }, 0);
               setTimeout(() => {
-                if (interrupt) callbackWhileInactive = document.hidden || document.querySelector('.hero').getBoundingClientRect().bottom <= 0;
+                if (interrupt) callbackWhileInactive = document.hidden || document.documentElement.dataset.view === 'content';
                 inHostCallback = true;
                 try { callback({ err_msg: 'getNetworkType:wifi' }); }
                 finally { inHostCallback = false; }
@@ -177,9 +181,9 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
                   if (scenario === 'bridge-callback-hidden') {
                     delete document.hidden;
                     document.dispatchEvent(new Event('visibilitychange'));
-                  } else scrollTo({ top: 0, behavior: 'instant' });
+                  } else location.hash = '#home';
                 }, 250);
-              }, interrupt ? 500 : 200);
+              }, interrupt ? 2500 : 200);
             } };
           };
           if (scenario === 'bridge-callback-existing' || interrupted) { bridgeReady = true; installBridge(); }

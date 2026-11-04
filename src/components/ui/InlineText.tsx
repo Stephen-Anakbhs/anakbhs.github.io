@@ -10,5 +10,7 @@ export function InlineText({ parts }: { parts: InlineContent }) {
     ? part
     : "href" in part
       ? <a key={index} href={part.href} target="_blank" rel="noopener noreferrer">{part.label}</a>
-      : <Emoji key={index} src={part.emoji} />)}</>;
+      : "strong" in part
+        ? <strong key={index}>{part.strong}</strong>
+        : <Emoji key={index} src={part.emoji} />)}</>;
 }

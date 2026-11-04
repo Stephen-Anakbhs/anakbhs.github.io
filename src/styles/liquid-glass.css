@@ -144,8 +144,8 @@
 .liquid-surface[data-tone="dark"] { --glass-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 0, 0, 0.8); }
 .liquid-surface[data-tone="light"] { --glass-text-shadow: 0 1px 1px rgba(255, 255, 255, 0.45); }
 .nav-links a, .nav-links a.active { color: var(--glass-ink); }
-.nav-label, .showcase-overlay-content, .glass-action { text-shadow: var(--glass-text-shadow); }
-.glass-action svg, .showcase-overlay-content > svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
+.nav-label, .glass-action { text-shadow: var(--glass-text-shadow); }
+.glass-action svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
 
 /* Lens optics: the bezel refracts (lensMap.ts), the centre stays clear, and a
    specular rim faces the light. Hovering moves that light toward the pointer. */
@@ -344,13 +344,6 @@
 .membership-logo-glass { width: 160px; }
 .publication-links { gap: 12px; }
 .publication-links .glass-action > svg { width: 1.125rem; height: 1.125rem; }
-.showcase-overlay .showcase-glass {
-  width: 100%;
-  height: 100%;
-}
-.showcase-glass .liquid-engine,
-.showcase-glass .liquid-engine > .glass,
-.showcase-glass .liquid-engine > .glass > div:not(.glass__warp) { height: 100%; }
 
 @media (max-width: 640px) {
   .career-logo-glass, .membership-logo-glass { width: 144px; }
@@ -396,5 +389,4 @@
   .nav-links a.active { color: Highlight; outline: 2px solid Highlight; }
   .social-glass .glass-action { color: LinkText; }
   .brand-icon { forced-color-adjust: none; background: LinkText; }
-  .showcase-overlay { --text: CanvasText; --muted: CanvasText; }
 }

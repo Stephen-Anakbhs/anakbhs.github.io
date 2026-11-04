@@ -37,7 +37,7 @@ export type FeatureItem = {
 };
 
 export type InlineLink = { label: string; href: string };
-export type InlineContent = (string | InlineLink | { emoji: string })[];
+export type InlineContent = (string | InlineLink | { emoji: string } | { strong: string })[];
 
 export type AboutParagraph = {
   title?: string;
@@ -106,7 +106,11 @@ export type ShowcaseItem = {
   id: string;
   title: string;
   summary: string;
-  body: string;
+  body?: string;
+  /** Bullet points set like the CV; used instead of a body paragraph. */
+  points?: InlineContent[];
+  /** Stacked-alpha film: color above, alpha below (TransparentVideo). */
+  film?: { card: string; detail: string; poster: string };
   image: string;
   imageSources?: ImageSources;
   imageFit?: "cover" | "contain";
@@ -592,6 +596,7 @@ export const site = {
       ],
       venue: "IEEE International Geoscience and Remote Sensing Symposium (IGARSS)",
       year: "2026",
+      award: "Best Student Paper Finalist",
       image: "/media/lc4dvit.png",
       selected: true,
       preview: publicationImages("lc4dvit", 2590, 1224, [656, 876]),
@@ -640,13 +645,15 @@ export const site = {
     {
       id: "wheel-legged-robot",
       title: "Wheel-Legged Robot",
-      summary: "A five-link robot prototype built at Tsinghua AIR.",
-      body: "A desktop five-link wheel-legged prototype built with LEGO frames, custom adapters, PCB integration, and closed-loop balance control.",
-      image: "/media/project-wheel.png",
-      imageSources: { src: "/media/derived/project-wheel.thumb-640.webp" },
-      imageFit: "contain",
-      detailImage: "/media/wheel-robot.png",
-      detailSources: { src: "/media/derived/wheel-robot.full.webp", width: 1045, height: 615 }
+      summary: "Mechanical Design and Motion Control of a Wheel-Legged Robot",
+      points: [
+        [{ strong: "Conceived, designed, and built a 5-link, LEGO®-based wheel-legged robot" }, " (desktop scale), modeling the chassis in LEGO® Studio 2.0 and 3D-printing adapters in SolidWorks/Fusion 360 to mount third-party motors onto LEGO Technic frames."],
+        ["Programmed an ", { strong: "ESP32 microcontroller" }, " in C++ and designed a custom ", { strong: "PCB" }, " for closed-loop motor control and sensor feedback, implementing core locomotion functions (standing balance, leg articulation, forward/backward motion) with ", { strong: "PID-based" }, " posture stabilization."],
+        ["Resolved ", { strong: "CAD/PCB integration" }, " issues when adapting non-LEGO® motors to LEGO® frames and achieved stable self-balancing during leg-height changes, bidirectional locomotion, agile turning, and roll-axis stabilization on a functional tabletop prototype."]
+      ],
+      film: { card: "/media/wheel-film-card.mp4", detail: "/media/wheel-film-detail.mp4", poster: "/media/wheel-film-poster.webp" },
+      image: "/media/wheel-film-poster.webp",
+      detailImage: "/media/wheel-film-poster.webp"
     },
     {
       id: "dexterous-hand",

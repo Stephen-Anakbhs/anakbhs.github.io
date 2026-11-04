@@ -188,9 +188,10 @@ for (const [name, engine] of [['chrome', chromium], ['webkit', webkit]]) {
         await page.waitForTimeout(750);
         const second = await page.locator('.header-navigation').screenshot();
         assert(!first.equals(second), 'Glass must continue reflecting the animated background');
-        await page.evaluate(() => document.querySelector('#projects').scrollIntoView({ behavior: 'instant' }));
+        await page.evaluate(() => { location.hash = '#projects'; });
         await page.waitForFunction(() => !document.querySelector('.hero-fallback'));
-        await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+        await page.waitForFunction(() => document.documentElement.dataset.view === 'content');
+        await page.evaluate(() => { location.hash = '#home'; });
         await page.waitForFunction(() => document.querySelector('.hero-fallback[data-media-ready="true"]'));
         console.log(`PASS ${name} ${scenario}: ${JSON.stringify(result)}`);
       } catch (error) {

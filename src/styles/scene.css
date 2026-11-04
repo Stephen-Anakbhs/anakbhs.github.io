@@ -93,7 +93,7 @@ html[data-scene-mode="dark"] .site-shell {
   --card-tint: var(--scene-glass, #8fd3ff);
   --card-pale: color-mix(in srgb, var(--card-tint) 30%, #fff);
 }
-[data-scene-mode="dark"] .site-shell .publication-media {
+[data-scene-mode="dark"] .site-shell :is(.publication-media, .showcase-media) {
   --glass-tint: linear-gradient(160deg, color-mix(in srgb, var(--card-tint) 26%, transparent), color-mix(in srgb, var(--card-tint) 10%, transparent) 55%, color-mix(in srgb, var(--card-tint) 20%, transparent));
 }
 [data-scene-mode="dark"] .site-shell :is(.career-logo, .membership-logo, .honor-thumbnail) {

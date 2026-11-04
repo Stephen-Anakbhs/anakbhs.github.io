@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ChevronDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { site } from "../../content/site";
+import { getView, onViewChange } from "../../lib/siteView";
 import { GlassTextLayer, useGlassText } from "../hero/GlassText";
 import { TypewriterLine } from "../hero/TypewriterLine";
 import { useCoverSheet } from "./useCoverSheet";
@@ -23,6 +24,7 @@ export function Hero() {
   useGlassText(titleRef);
   useGlassText(specialtyRef);
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
@@ -35,12 +37,11 @@ export function Hero() {
     return () => preference.removeEventListener('change', update);
   }, []);
 
-  useCoverSheet(heroRef, sheetRef, !reduceMotion, (href) => navigate(href));
+  useCoverSheet(heroRef, sheetRef, hash, (href, landed) => navigate(href, landed ? { state: { landed } } : undefined));
 
   useEffect(() => {
     const video = videoRef.current;
-    const hero = heroRef.current;
-    if (!video || !hero || reduceMotion || fallbackReason) return;
+    if (!video || reduceMotion || fallbackReason) return;
     let inView = false;
     let disposed = false;
     let pending = false;
@@ -107,8 +108,7 @@ export function Hero() {
         bridge.invoke('getNetworkType', {}, () => {
           bridgePending = false;
           clearTimeout(bridgeTimer);
-          const rect = hero.getBoundingClientRect();
-          inView = rect.bottom > 0 && rect.top < window.innerHeight;
+          inView = getView() === 'cover';
           if (!shouldPlay()) {
             // A callback received offscreen has not spent the playback attempt.
             bridgeInvoked = false;
@@ -126,8 +126,7 @@ export function Hero() {
       else { cancelAnimationFrame(retryFrame); video.pause(); lastProgress = performance.now(); }
     };
     const refreshVisibility = () => {
-      const rect = hero.getBoundingClientRect();
-      inView = rect.bottom > 0 && rect.top < window.innerHeight;
+      inView = getView() === 'cover';
       // Retry a transient media failure only on a new entry, restore, or user gesture.
       if (shouldPlay() && video.error) {
         setVideoFailed(false);
@@ -140,24 +139,14 @@ export function Hero() {
     const onBridgeReady = () => {
       bridgeReady = true;
       clearTimeout(bridgeTimer);
-      const rect = hero.getBoundingClientRect();
-      inView = rect.bottom > 0 && rect.top < window.innerHeight;
+      inView = getView() === 'cover';
       // Keep play() on the host-event stack, even if its earlier promise is pending.
       startPlayback(true, true);
       requestBridgePlayback();
     };
     const onPlaying = () => { clearTimeout(bridgeTimer); syncPlayback(); };
     refreshVisibility();
-    // Parked exactly at the next section, the hero's bottom edge touches the viewport top, which
-    // still counts as intersecting; the 1px inset makes that "out", matching refreshVisibility,
-    // so coming back from there is a change the observer reports.
-    const observer = new IntersectionObserver(([entry]) => {
-      const wasInView = inView;
-      inView = entry.isIntersecting;
-      if (inView && !wasInView) refreshVisibility();
-      else syncPlayback();
-    }, { threshold: 0, rootMargin: '-1px 0px' });
-    observer.observe(hero);
+    const stopView = onViewChange(refreshVisibility);
     video.addEventListener('canplay', syncPlayback);
     video.addEventListener('loadeddata', syncPlayback);
     video.addEventListener('playing', onPlaying);
@@ -181,7 +170,7 @@ export function Hero() {
       clearTimeout(bridgeTimer);
       cancelAnimationFrame(retryFrame);
       if (readinessFrame) video.cancelVideoFrameCallback(readinessFrame);
-      observer.disconnect();
+      stopView();
       video.removeEventListener('canplay', syncPlayback);
       video.removeEventListener('loadeddata', syncPlayback);
       video.removeEventListener('playing', onPlaying);
@@ -195,7 +184,7 @@ export function Hero() {
   }, [reduceMotion, fallbackReason]);
 
   return (
-    <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-nav-section="home" data-media-fallback={fallbackReason || undefined} aria-label="Homepage introduction">
+    <section ref={heroRef} className={`hero${site.hero.media.video ? " hero--video" : ""}`} id="home" data-liquid-skip="" data-media-fallback={fallbackReason || undefined} aria-label="Homepage introduction">
       <img className="hero-photo" src={site.hero.media.poster} alt="" fetchPriority="high" aria-hidden="true"
         data-cover-player={Boolean(site.hero.media.video && !reduceMotion && !fallbackReason && !videoReady)} />
       {site.hero.media.video && !reduceMotion && !fallbackReason && (

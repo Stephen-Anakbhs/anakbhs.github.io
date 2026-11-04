@@ -154,27 +154,42 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
+/* The picture leads, the words follow. A film runs edge to edge and melts into the sheet at its foot, so
+   the sheet itself is its frame; a figure sits inside the margins. */
+.project-detail-media { position: relative; margin: 0 -32px; }
+.project-detail-media[data-kind="film"] {
+  --film-fit: cover;
+  aspect-ratio: 16 / 9;
+  max-height: 46dvh;
+  width: calc(100% + 64px);
+  -webkit-mask-image: linear-gradient(#000 90%, transparent);
+  mask-image: linear-gradient(#000 90%, transparent);
+}
+.project-detail-media[data-kind="image"] { margin: 32px 0 0; }
+.project-detail-image { display: block; width: 100%; height: auto; max-height: 56dvh; margin: 0 auto; object-fit: contain; border-radius: 12px; }
+
 .project-detail-heading {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
   gap: 20px;
   align-items: center;
-  margin: 0 -32px;
-  padding: 22px 32px 12px;
-  background: linear-gradient(rgba(252, 252, 253, 0.94) 70%, rgba(252, 252, 253, 0));
+  margin-top: 20px;
 }
 .project-detail h2 { flex: 1; margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 600; line-height: 1.3; }
-.project-close { flex-shrink: 0; width: 44px; height: 44px; }
-.project-detail p { margin: 6px 0 24px; color: #3b4148; font-size: 18px; line-height: 1.75; }
-.project-detail-image { width: 100%; max-height: 65vh; margin: 0 auto 24px; object-fit: contain; border-radius: 16px; }
+.project-close { flex-shrink: 0; width: 44px; height: 44px; margin: -6px 0; }
+.project-detail p { margin: 6px 0 24px; color: #3b4148; font-size: 17px; line-height: 1.65; }
+.project-detail .project-detail-lead { margin: 4px 0 16px; color: #565b63; font-size: 16px; line-height: 1.5; }
+.project-detail-points { display: grid; gap: 10px; margin: 0 0 8px; padding: 0 0 0 20px; color: #3b4148; font-size: 16px; line-height: 1.6; }
+.project-detail-points strong { color: #1d2126; font-weight: 600; }
+.project-detail .video-frame { margin-top: 4px; }
 .project-detail .text-link { margin-top: 20px; }
 
 @media (max-width: 640px) {
   .project-sheet { width: calc(100% - 24px); max-height: 92dvh; border-radius: 22px; }
   .project-detail { max-height: 92dvh; padding: 0 18px 22px; }
-  .project-detail-heading { margin: 0 -18px; padding: 14px 18px 10px; }
+  .project-detail-media { margin: 0 -18px; }
+  .project-detail-media[data-kind="film"] { width: calc(100% + 36px); }
+  .project-detail-media[data-kind="image"] { margin: 18px 0 0; }
+  .project-detail-heading { margin-top: 14px; }
   .project-detail h2 { font-size: 23px; }
 }
 
@@ -202,7 +217,6 @@
   .glass-veil { background: rgba(20, 24, 28, 0.82); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .glass-sheet-optics, .glass-sheet::after { display: none; }
   .glass-sheet-tint, .project-sheet .glass-sheet-tint { background: #f4f5f6; box-shadow: none; }
-  .project-detail-heading { background: #f4f5f6; }
   .lightbox-caption { color: #111; }
   .glass-close { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 0 0 1px currentColor; }
 }
@@ -211,7 +225,6 @@
   .glass-veil { background: Canvas; }
   .glass-sheet-optics, .glass-sheet-tint, .glass-sheet::after { display: none; }
   .glass-sheet { border: 1px solid CanvasText; background: Canvas; }
-  .project-detail-heading { background: Canvas; }
   .lightbox-caption { color: CanvasText; }
   .glass-close { color: ButtonText; background: ButtonFace; border: 1px solid ButtonText; }
 }

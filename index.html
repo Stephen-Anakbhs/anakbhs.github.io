@@ -2,7 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      // Which of the homepage's two pages this address is (lib/siteView.ts), settled before the first paint.
+      document.documentElement.dataset.view = location.pathname === "/" && /^(#|#home)?$/.test(location.hash) ? "cover" : "content";
+      history.scrollRestoration = "manual";
+    </script>
+    <style>html[data-view="cover"] { background: #05080a; }</style>
     <meta
       name="description"
       content="Renjun Gao's academic homepage, research profile, blog, portfolio, and interactive personal archive."
@@ -19,6 +25,7 @@
     <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" as="image" href="/media/cold-stone.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/media/hero-video-poster.webp" fetchpriority="high" />
     <title>Renjun Gao · Personal Homepage</title>
   </head>
   <body>

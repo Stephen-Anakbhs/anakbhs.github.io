@@ -13,7 +13,6 @@
 
 /* After the lift its last frame stays behind the page while the next section comes in. */
 .hero[data-cover="ghost"] { z-index: -1; }
-.hero[data-cover="ghost"] .cover-sheet { position: fixed; }
 
 /* Only the lower part of the hero is a handle for the mouse (the lettering above stays selectable);
    touch lifts the cover from anywhere, so the handle exists for fine pointers only. */

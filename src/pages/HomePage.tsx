@@ -14,9 +14,9 @@ import { site } from "../content/site";
 
 export function HomePage() {
   return (
+    <>
+    <Hero />
     <main id="main-content" tabIndex={-1}>
-      <Hero />
-
       <section className="page-section about-band" id="about" data-nav-section="about">
         <AboutIntro />
       </section>
@@ -93,5 +93,6 @@ export function HomePage() {
       )}
 
     </main>
+    </>
   );
 }

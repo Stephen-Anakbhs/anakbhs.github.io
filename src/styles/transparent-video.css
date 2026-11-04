@@ -1,0 +1,32 @@
+/* TransparentVideo: the canvas carries the picture. The source video stays laid out in the same box,
+   fully clear, because WebKit pauses a muted video it considers invisible (display: none, or
+   visibility: hidden, or off screen). */
+.transparent-video {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.transparent-video > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: var(--film-fit, contain);
+  object-position: center;
+  pointer-events: none;
+}
+
+.transparent-video-poster {
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+.transparent-video-poster[data-shown="true"] { opacity: 1; }
+
+.transparent-video-source { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .transparent-video-poster { transition: none; }
+}

@@ -1,16 +1,18 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import type liquidGL from "liquid-gl";
 import { closeMotion, openMotion } from "../ui/glassMorph";
+import { coverTop, getView, isCoverHash, onViewChange, setView } from "../../lib/siteView";
 import { coverBox, createCoverRenderer, type CoverRenderer, type CoverSource } from "./coverSheetRenderer";
 
-// The homepage hero behaves like a lock-screen cover. At the top of the page, drag, swipe,
-// scroll or page down and it lifts on a glass edge with the video still playing beneath. A
-// drag released past the threshold carries on up and the next section comes in the way
-// home-screen icons do, short of it the cover springs back; a wheel or trackpad notch sends it
-// all the way at once. At About (or from the Home link anywhere below), the same gestures the
-// other way pull a glass sheet down over the page, a snapshot of the page bending into its
-// edge, and the video returns once the sheet is all the way down. Touch, trackpad, mouse
-// wheel, mouse drag, keys and section links all drive it.
+// The way between the homepage's two pages, the cover and the content (siteView.ts). The hero
+// behaves like a lock-screen cover: drag, swipe, scroll or page down and it lifts on a glass edge
+// with the video still playing beneath. A drag released past the threshold carries on up and the
+// content comes in the way home-screen icons do, short of it the cover springs back; a wheel or
+// trackpad notch sends it all the way at once. At the top of the content (or from the Home link
+// anywhere in it), the same gestures the other way pull a glass sheet down over the page, a
+// snapshot of the page bending into its edge, and the cover returns once the sheet is all the way
+// down. Touch, trackpad, mouse wheel, mouse drag, keys, section links and Back/Forward all drive
+// it; with reduced motion the same requests change the page at once.
 type Mode = "lift" | "return";
 type Phase = "idle" | "drag" | "settle" | "commit" | "finish";
 type Painter = typeof liquidGL.painter;
@@ -19,6 +21,9 @@ const SHARE = 0.3; // a drag released past this share of the screen completes
 const FLICK = 450; // px/s: a flick completes from anywhere past FLICK_MIN
 const FLICK_MIN = 24;
 const SEND = 1200; // px/s: how a notch, key or link sets the cover going
+const FRESH = 140; // ms of quiet before a wheel turn at the top of the content is a new request: inertia that carried the page there must not also turn it over
+const TO_COVER = "/";
+const TO_CONTENT = "/#about";
 const GLASS_IN = 56; // px of travel over which the glass rim appears
 const CLEAR_IN = 120; // px of travel over which the hero's shade clears out of the glass
 const POP_IN = ".section-heading, .about-text > p, .social-row > *, .about-portrait, .publication-item, .publication-index-link, .showcase-card";
@@ -27,15 +32,22 @@ const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, v
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const pixelScale = () => Math.min(window.devicePixelRatio || 1, 2);
+const instant = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const hold = (y: number) => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "instant" }); };
 
-export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>, enabled: boolean, onLink: (href: string) => void) {
+/** `onLink` receives where a finished transition landed (`landed`), or a place still to be scrolled to. */
+export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>, hash: string, onLink: (href: string, landed: boolean) => void) {
   const linkTarget = useRef(onLink);
   linkTarget.current = onLink;
+  const followHash = useRef<(next: string) => void>(() => {});
+
+  // Before the first paint, so the cover opens in its final place.
+  useLayoutEffect(() => { if (getView() === "cover") hold(coverTop()); }, []);
 
   useEffect(() => {
     const hero = heroRef.current;
     const canvas = canvasRef.current;
-    if (!enabled || !hero || !canvas) return;
+    if (!hero || !canvas) return;
     const root = document.documentElement;
     const content = hero.querySelector<HTMLElement>(".hero-content");
     const cue = hero.querySelector<HTMLElement>(".scroll-cue");
@@ -70,11 +82,12 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     let swallowEnd = 0;
     let lastWheel = 0;
     let landedAt = 0;
-    let lastY = window.scrollY;
     let anchorY = 0; // where the page sits under a returning sheet
-    let restTimer = 0;
     let listening = false;
-    let link: string | null = null;
+    let target: string | null = null; // the section a lift lands on (About unless a link says otherwise)
+    let push: string | null = null; // the address to go to when the transition ends
+    let currentHash = location.hash;
+    let startHash = currentHash;
     let pendingLink: string | null = null; // a section link clicked during a transition, honored when it ends
     let samples: { time: number; offset: number }[] = [];
     let drag: { id: number; touch: boolean; mode: Mode; x: number; y: number; base: number; travel: number } | null = null;
@@ -90,16 +103,9 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
 
     const free = () => !root.classList.contains("glass-dialog-open")
       && !(phoneLayout.matches && document.querySelector('.site-header[data-menu-open="true"]'));
-    const ready = () => window.scrollY <= 2 && free();
-    const aboutTop = () => {
-      const about = document.getElementById("about");
-      if (!about) return null;
-      return about.getBoundingClientRect().top + window.scrollY - (parseFloat(getComputedStyle(about).scrollMarginTop) || 0);
-    };
-    const atAbout = () => {
-      const top = aboutTop();
-      return top !== null && Math.abs(window.scrollY - top) <= 2 && free();
-    };
+    const ready = () => getView() === "cover" && free();
+    const atPageTop = () => window.scrollY <= 2;
+    const atTop = () => getView() === "content" && atPageTop() && free();
 
     const pickSource = (): CoverSource | null => {
       const video = hero.querySelector<HTMLVideoElement>("video.hero-video");
@@ -135,7 +141,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         const plan = painter.measure(document.body, {
           width, height: top + viewport, scale, backgroundColor: getComputedStyle(root).backgroundColor,
           ignoreElements: (element) => typeof element.hasAttribute === "function"
-            && (element.hasAttribute("data-liquid-ignore") || element.closest("[data-liquid-ignore]") !== null || standIn(element) || offScreen(element)),
+            && (element === hero || element.hasAttribute("data-liquid-ignore") || element.closest("[data-liquid-ignore]") !== null || standIn(element) || offScreen(element)),
         });
         if (!plan) return null;
         // Paint the viewport only: slide the page up by the scroll and keep a viewport-tall canvas.
@@ -304,30 +310,51 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       offset = 0;
       velocity = 0;
       clear();
-      if (link) linkTarget.current(link);
-      link = null;
+      const href = push;
+      const unmoved = currentHash === startHash; // Back or Forward during the transition outranks its address
+      push = null;
+      target = null;
+      if (href && unmoved) linkTarget.current(href, true);
       landedAt = performance.now();
       syncInput();
       const next = pendingLink;
       pendingLink = null;
-      if (!next) return;
-      // A link clicked mid-transition: chain the next transition from here, or just go there.
-      const chain = next === "home" ? window.scrollY > 2 && free() : ready() && Boolean(document.getElementById(next)?.closest("main"));
-      if (chain) {
-        mode = next === "home" ? "return" : "lift";
-        link = `/#${next}`;
-        begin();
-        commit(SEND);
-      } else linkTarget.current(`/#${next}`);
+      if (next) {
+        // A link clicked mid-transition: chain the next transition from here, or just go there.
+        if (next === "home" ? getView() === "content" && free() : ready() && document.getElementById(next)?.closest("main")) {
+          turn(next === "home" ? "return" : "lift", next === "home" ? null : next, next === "home" ? TO_COVER : `/#${next}`);
+        } else linkTarget.current(next === "home" ? TO_COVER : `/#${next}`, false);
+        return;
+      }
+      if (!(href && unmoved)) followAddress(currentHash);
+    };
+
+    // Turns the page over, in one go, under whatever is on screen at this moment.
+    const land = () => {
+      holdAnchor();
+      if (mode === "return") {
+        setView("cover");
+        hold(coverTop());
+        if (document.activeElement instanceof HTMLElement && document.activeElement.closest("main")) document.activeElement.blur();
+        reset();
+        return null;
+      }
+      setView("content");
+      // Gestures land on About; a link lands on its own section, which then comes in the same way.
+      const section = document.getElementById(target ?? "about");
+      section?.scrollIntoView({ block: "start", behavior: "instant" });
+      const focused = document.activeElement;
+      if (!focused || focused === document.body || hero.contains(focused)) document.getElementById("main-content")?.focus({ preventScroll: true });
+      reset();
+      return section;
     };
 
     const finish = () => {
       phase = "finish";
-      holdAnchor();
-      if (mode === "return") {
+      const returning = mode === "return";
+      const section = land();
+      if (returning) {
         const veil = returnLive ? sheet : pane;
-        window.scrollTo({ top: 0, behavior: "instant" });
-        reset();
         popIn([content?.querySelector("h1"), content?.querySelector(".hero-specialty")].filter((item): item is HTMLElement => Boolean(item)), 1.12);
         cue?.animate({ opacity: [0, 1] }, { duration: 320, delay: 160, easing: settle, fill: "backwards" });
         fadeOut(veil, [{ opacity: 1 }, { opacity: 0 }], finished);
@@ -335,16 +362,40 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       }
       const ghost = hero.dataset.cover === "lift";
       if (ghost) hero.dataset.cover = "ghost";
-      // Gestures land on About; a link lands on its own section, which then comes in the same way.
-      const section = document.getElementById(link ? link.slice(link.indexOf("#") + 1) : "about");
-      section?.scrollIntoView({ block: "start", behavior: "instant" });
-      reset();
       if (section) popIn(section.querySelectorAll<HTMLElement>(POP_IN), 1.22);
       document.querySelector(".site-backdrop")?.animate({ transform: ["scale(1.08)", "none"] },
         { duration: closeMotion.duration + 200, easing: closeMotion.easing });
       if (ghost) fadeOut(canvas, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(1.04)" }], finished);
       else finished();
     };
+
+    const aim = (next: Mode, section: string | null, href: string | null) => {
+      mode = next;
+      target = section;
+      push = href;
+      startHash = currentHash;
+    };
+    // Sends the page over from a standing start.
+    const turn = (next: Mode, section: string | null, href: string | null) => {
+      aim(next, section, href);
+      if (instant()) {
+        phase = "finish";
+        land();
+        finished();
+        return;
+      }
+      begin();
+      commit(SEND);
+    };
+    // The address changed on its own (Back, Forward, a typed fragment): the page follows it.
+    const followAddress = (next: string) => {
+      currentHash = next;
+      if (phase !== "idle" || isCoverHash(next) === (getView() === "cover")) return;
+      for (const dialog of document.querySelectorAll<HTMLDialogElement>("dialog[open]")) dialog.close();
+      if (isCoverHash(next)) turn("return", null, null);
+      else turn("lift", next.slice(1), null);
+    };
+    followHash.current = followAddress;
 
     const step = (dt: number) => {
       if (phase === "settle") {
@@ -367,7 +418,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         remaining -= dt;
       }
       // Touch momentum can carry the page on under a returning sheet; hold it where the sheet started.
-      if (mode === "return" && phase !== "idle" && Math.abs(window.scrollY - anchorY) > 1) window.scrollTo({ top: anchorY, behavior: "instant" });
+      if (mode === "return" && phase !== "idle") hold(anchorY);
       render();
       if (phase === "commit" && offset >= height) { finish(); return; }
       if (phase !== "idle") frame = requestAnimationFrame(tick);
@@ -406,15 +457,6 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (samples.length > 12) samples.shift();
       run();
     };
-    // Brings the cover down from About over the current view, from wherever the page was.
-    const returnFrom = (top: number) => {
-      if (window.scrollY !== top) window.scrollTo({ top, behavior: "instant" });
-      lastY = top;
-      mode = "return";
-      begin();
-      commit(SEND);
-    };
-
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       const delta = event.deltaY * (event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? window.innerHeight : 1);
@@ -436,21 +478,14 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         return;
       }
       if (phase !== "idle") return;
-      if (delta > 0 && ready()) mode = "lift";
-      else if (delta < 0 && atAbout()) mode = "return";
-      else {
-        // A notch that would carry the page up past About stops there and brings the cover down.
-        const top = delta < 0 && free() ? aboutTop() : null;
-        if (top !== null && window.scrollY > top + 2 && window.scrollY + delta < top) {
-          event.preventDefault();
-          returnFrom(top);
-        }
-        return;
-      }
       // One notch or flick sends the cover all the way; only a grab moves it by hand.
-      event.preventDefault();
-      begin();
-      commit(SEND);
+      if (delta > 0 && ready()) {
+        event.preventDefault();
+        turn("lift", null, TO_CONTENT);
+      } else if (delta < 0 && gap > FRESH && atTop()) {
+        event.preventDefault();
+        turn("return", null, TO_COVER);
+      } else if (getView() === "cover") event.preventDefault();
     };
 
     const onTouchStart = (event: TouchEvent) => {
@@ -465,14 +500,16 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       let next: Mode = mode;
       if (!regrab) {
         if (!(event.target instanceof Element) || event.target.closest(".site-header > *")) return;
-        if (ready() && hero.contains(event.target)) next = "lift";
-        else if (atAbout()) next = "return";
+        if (ready()) next = "lift";
+        else if (atTop()) next = "return";
         else return;
       }
       drag = { id: point.identifier, touch: true, mode: next, x: point.clientX, y: point.clientY, base: regrab ? offset : 0, travel: 0 };
       if (regrab) { phase = "drag"; samples = []; }
     };
     const onTouchMove = (event: TouchEvent) => {
+      // Nothing scrolls under the cover.
+      if (getView() === "cover" && event.touches.length === 1 && event.cancelable) event.preventDefault();
       if (!drag?.touch) return;
       const point = Array.from(event.changedTouches).find((item) => item.identifier === drag?.id);
       if (!point) return;
@@ -483,7 +520,13 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         if (Math.abs(travel) < 4 && drift < 4) return;
         // Movement the other way or sideways belongs to the page.
         if (travel <= 0 || drift > travel) { drag = null; return; }
-        mode = drag.mode;
+        const direction = drag.mode;
+        const href = direction === "lift" ? TO_CONTENT : TO_COVER;
+        if (instant()) {
+          if (travel > 40) { drag = null; event.preventDefault(); turn(direction, null, href); }
+          return;
+        }
+        aim(direction, null, href);
         begin();
         phase = "drag";
       }
@@ -505,6 +548,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (!(event.target instanceof Element) || !event.target.closest(".hero-grab")) return;
       if (phase === "idle" && !ready()) return;
       event.preventDefault();
+      if (instant()) { turn("lift", null, TO_CONTENT); return; }
       drag = { id: event.pointerId, touch: false, mode: "lift", x: event.clientX, y: event.clientY, base: regrab ? offset : 0, travel: 0 };
       if (regrab) { phase = "drag"; samples = []; }
     };
@@ -513,7 +557,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const travel = drag.y - event.clientY;
       if (phase !== "drag") {
         if (travel < 4) return;
-        mode = "lift";
+        aim("lift", null, TO_CONTENT);
         begin();
         phase = "drag";
         hero.dataset.coverGrab = "";
@@ -532,20 +576,21 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
       const focus = event.target;
       if (focus instanceof HTMLElement && (focus.isContentEditable || focus.closest("a, button, input, textarea, select, [role='button']"))) return;
-      const down = event.key === "PageDown" || event.key === "ArrowDown" || (event.key === " " && !event.shiftKey);
+      const down = event.key === "PageDown" || event.key === "ArrowDown" || event.key === "End" || (event.key === " " && !event.shiftKey);
       const up = event.key === "PageUp" || event.key === "ArrowUp" || event.key === "Home" || (event.key === " " && event.shiftKey);
       if (phase !== "idle") return;
-      if (down && ready()) mode = "lift";
-      else if (up && atAbout()) mode = "return";
-      else return;
-      event.preventDefault();
-      begin();
-      commit(SEND);
+      if (down && ready()) {
+        event.preventDefault();
+        turn("lift", null, TO_CONTENT);
+      } else if (up && atTop()) {
+        event.preventDefault();
+        turn("return", null, TO_COVER);
+      }
     };
 
-    // From the top, any link to a section of this page lifts the cover first, then lands on that
-    // section; from anywhere below, the Home link brings the cover down over the current view.
-    // Other links behave as before.
+    // On the cover, any link to a section of this page lifts the cover first, then lands on that
+    // section; from anywhere in the content, the Home link brings the cover down over the current
+    // view. Other links behave as before.
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       if (!(event.target instanceof Element)) return;
@@ -560,41 +605,19 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         document.dispatchEvent(new CustomEvent("rg-section-select", { detail: id }));
         return;
       }
-      if (id === "home" && window.scrollY > 2 && free()) mode = "return";
-      else if (id !== "home" && ready()) mode = "lift";
-      else return;
+      const returning = id === "home" && getView() === "content" && free();
+      if (!returning && (id === "home" || !ready())) return;
       event.preventDefault();
       event.stopPropagation();
-      link = `/#${id}`;
       document.dispatchEvent(new CustomEvent("rg-section-select", { detail: id }));
-      begin();
-      commit(SEND);
+      if (returning) turn("return", null, TO_COVER);
+      else turn("lift", id, `/#${id}`);
     };
 
-    // Scrolling up out of About toward the hero, however it was scrolled (wheel inertia, scrollbar,
-    // a Home link from further down), stops at About and brings the cover down from there instead.
+    // The page stays put under the cover and under a returning sheet, however it was asked to move.
     const onScroll = () => {
-      const y = window.scrollY;
-      const top = aboutTop();
-      if (phase === "idle" && top !== null && y > 2 && y < top - 1 && lastY >= top - 1 && free()) {
-        returnFrom(top);
-        return;
-      }
-      lastY = y;
-      syncInput();
-      window.clearTimeout(restTimer);
-      restTimer = window.setTimeout(settled, 180);
-    };
-    // The page must never rest part-way into the hero (a scrollbar drag, a key, a scroll during a
-    // fade, a restored scroll position): once it stops there, show the hero whole or park at About.
-    const settled = () => {
-      restTimer = 0;
-      if (phase !== "idle" || !free()) return;
-      const top = aboutTop();
-      const y = window.scrollY;
-      if (top === null || y <= 2 || y >= top - 1) return;
-      window.scrollTo({ top: y < top / 2 ? 0 : top, behavior: "instant" });
-      lastY = window.scrollY;
+      if (getView() === "cover") hold(coverTop());
+      else if (mode === "return" && phase !== "idle") hold(anchorY);
       syncInput();
     };
     const onImageLoad = (event: Event) => {
@@ -602,12 +625,10 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     };
 
     // Wheel and touch-move listeners that can cancel scrolling make every scroll wait for the
-    // main thread, so they are only on while the cover can respond: at the top, from About to a
-    // screen below it (where a notch can carry the page up past it), or during a gesture.
+    // main thread, so they are only on while there is something to respond to: on the cover, at
+    // the top of the content, or during a gesture.
     const syncInput = () => {
-      const top = aboutTop();
-      const nearAbout = top !== null && window.scrollY >= top - 2 && window.scrollY <= top + window.innerHeight;
-      const wanted = phase !== "idle" || window.scrollY <= 2 || nearAbout;
+      const wanted = phase !== "idle" || getView() === "cover" || atPageTop();
       if (wanted === listening) return;
       listening = wanted;
       if (wanted) {
@@ -618,8 +639,11 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         window.removeEventListener("touchmove", onTouchMove);
       }
     };
-    // Elsewhere a passive wheel listener still catches a notch that would cross About.
-    const onWheelPassive = (event: WheelEvent) => { if (!listening) onWheel(event); };
+    // Below the top a passive listener keeps the wheel's timing, so the turn that follows a scroll
+    // up to the top can tell whether it is still the same stream.
+    const onWheelPassive = () => { if (!listening) lastWheel = performance.now(); };
+    const keepInPlace = () => { if (getView() === "cover") hold(coverTop()); };
+    const stopView = onViewChange(syncInput);
 
     window.addEventListener("wheel", onWheelPassive, { passive: true });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -633,12 +657,15 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     document.addEventListener("click", onClick, true);
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("load", onImageLoad, true);
+    window.addEventListener("resize", keepInPlace);
+    window.addEventListener("pageshow", keepInPlace);
     syncInput();
-    restTimer = window.setTimeout(settled, 400);
+    keepInPlace();
     return () => {
       disposed = true;
+      followHash.current = () => {};
+      stopView();
       window.clearTimeout(warm);
-      window.clearTimeout(restTimer);
       window.clearTimeout(anchorTimer);
       cancelAnimationFrame(frame);
       window.removeEventListener("wheel", onWheelPassive);
@@ -655,11 +682,15 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("load", onImageLoad, true);
+      window.removeEventListener("resize", keepInPlace);
+      window.removeEventListener("pageshow", keepInPlace);
       root.style.removeProperty("overflow-anchor");
       delete hero.dataset.coverGrab;
       clear();
       sheet.remove();
       pane.remove();
     };
-  }, [heroRef, canvasRef, enabled]);
+  }, [heroRef, canvasRef]);
+
+  useEffect(() => { followHash.current(hash); }, [hash]);
 }

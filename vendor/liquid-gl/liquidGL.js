@@ -1951,13 +1951,18 @@ const liquidGL = (() => {
       const ignore = opts.ignoreElements || null;
 
       pending = [];
-      const root = buildNode(element, null, [], ignore);
-      if (!root) return null;
-      if (opts.rootOpacity != null) root.opacity = opts.rootOpacity;
-
-      const stack = newStack(root);
-      collect(root, stack, ignore);
-
+      opts.beforeMeasure?.();
+      let root;
+      let stack;
+      try {
+        root = buildNode(element, null, [], ignore);
+        if (!root) return null;
+        if (opts.rootOpacity != null) root.opacity = opts.rootOpacity;
+        stack = newStack(root);
+        collect(root, stack, ignore);
+      } finally {
+        opts.afterMeasure?.();
+      }
       const ops = [];
       emitStack(stack, ops);
 
@@ -5781,6 +5786,7 @@ fn fs() -> @location(0) vec4<f32> {
               return true;
             }
             return (
+              element.hasAttribute("data-liquid-skip") ||
               element.hasAttribute("data-liquid-ignore") ||
               element.closest("[data-liquid-ignore]")
             );
@@ -5812,6 +5818,9 @@ fn fs() -> @location(0) vec4<f32> {
               scale: scale,
               backgroundColor,
               ignoreElements: naughtyIgnore,
+              // The content is hidden under the homepage cover but belongs in the picture.
+              beforeMeasure: () => document.documentElement.setAttribute("data-snapshot", ""),
+              afterMeasure: () => document.documentElement.removeAttribute("data-snapshot"),
             },
           );
 
@@ -7277,6 +7286,24 @@ fn fs() -> @location(0) vec4<f32> {
         this._videoFrameState.set(vid, frameState);
         updatedRects.push(rect);
       });
+    }
+
+    /* ----------------------------- */
+    /* Puts back the snapshot where a video was last drawn over it near the top of the page. */
+    restoreSnapshotBand(cssHeight = 240) {
+      if (!this.hasTexture || !this.staticSnapshotCanvas || !this.backend) return;
+      const width = this.textureWidth;
+      const height = Math.min(this.textureHeight, Math.ceil(cssHeight * this.scaleFactor));
+      if (this._tmpCanvas.width !== width || this._tmpCanvas.height !== height) {
+        this._tmpCanvas.width = width;
+        this._tmpCanvas.height = height;
+      }
+      this._tmpCtx.clearRect(0, 0, width, height);
+      this._tmpCtx.drawImage(this.staticSnapshotCanvas, 0, 0, width, height, 0, 0, width, height);
+      this.backend.uploadRegion(0, 0, this._tmpCanvas);
+      if (this._videoFrameState) this._videoFrameState = new WeakMap();
+      this._renderSignature = null;
+      this.render();
     }
 
     /* ----------------------------- */

@@ -6,11 +6,13 @@ import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, 
 import { fullGlass } from "../ui/glassQuality";
 import { lensMap } from "../ui/lensMap";
 import { preparePreview } from "../ui/ImageLightbox";
+import { InlineText } from "../ui/InlineText";
+import { TransparentVideo } from "../ui/TransparentVideo";
 import "../../styles/glass-dialog.css";
 
 type Selection = { project: ShowcaseItem; origin: HTMLElement | null };
 
-// Projects: three large cards. Portfolio: four smaller cards in the Honors grid, same glass hover and detail sheet.
+// Projects: three large cards. Portfolio: four smaller cards in the Honors grid, same card and detail sheet.
 const variants = {
   projects: {
     grid: "showcase-grid", label: "Selected projects", open: "Open project", close: "Close project", track: "project",
@@ -24,32 +26,32 @@ const variants = {
 type Variant = (typeof variants)[keyof typeof variants];
 
 // Memoised so opening or closing the dialog does not re-render every glass card.
-const ProjectCard = memo(function ProjectCard({ item, variant, onOpen }: { item: ShowcaseItem; variant: Variant; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
-  const prepare = () => { void preparePreview(item.detailSources?.src ?? item.detailImage); };
+// The whole card opens the project; the button inside is what keyboards and screen readers reach.
+const ProjectCard = memo(function ProjectCard({ item, variant, paused, onOpen }: { item: ShowcaseItem; variant: Variant; paused: boolean; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
+  const prepare = () => { if (!item.film) void preparePreview(item.detailSources?.src ?? item.detailImage); };
   return (
-    <article className="showcase-card" data-track-item={`${variant.track}:${item.id}`}>
-      <button
-        className="showcase-image"
-        type="button"
-        onPointerEnter={prepare}
-        onFocus={prepare}
-        onPointerDown={prepare}
-        onClick={(event) => onOpen(item, event.currentTarget.closest<HTMLElement>(".showcase-card"))}
-        aria-label={`${variant.open}: ${item.title}`}
-        aria-haspopup="dialog"
-        data-fit={item.imageFit || "cover"}
-      >
-        <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet} sizes={variant.sizes}
-          alt={item.title} loading="lazy" decoding="async" />
-      </button>
-      <div className="showcase-overlay" aria-hidden="true">
-        <GlassSurface material="overlay" className="showcase-glass" tone={item.id === "lego-bus" ? "dark" : "light"}>
-          <span className="showcase-overlay-content">
-            <span className="showcase-title">{item.title}</span>
-            <span className="showcase-summary">{item.summary}</span>
-            <ArrowUpRight size={22} />
-          </span>
-        </GlassSurface>
+    <article className="showcase-card" data-track-item={`${variant.track}:${item.id}`} onClick={(event) => onOpen(item, event.currentTarget)}>
+      <GlassSurface material="media" className="showcase-media" padding="0px">
+        <button
+          className="showcase-image"
+          type="button"
+          onPointerEnter={prepare}
+          onFocus={prepare}
+          onPointerDown={prepare}
+          aria-label={`${variant.open}: ${item.title}`}
+          aria-haspopup="dialog"
+          data-fit={item.imageFit || "cover"}
+        >
+          {item.film
+            ? <TransparentVideo className="showcase-film" src={item.film.card} poster={item.film.poster} alt={item.title} active={!paused} />
+            : <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet} sizes={variant.sizes}
+                alt={item.title} loading="lazy" decoding="async" />}
+        </button>
+      </GlassSurface>
+      <div className="showcase-caption">
+        <span className="showcase-title">{item.title}</span>
+        <ArrowUpRight className="showcase-arrow" size={20} aria-hidden="true" />
+        <span className="showcase-summary">{item.summary}</span>
       </div>
     </article>
   );
@@ -120,7 +122,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
   return (
     <>
       <div className={variant.grid} aria-label={variant.label}>
-        {items.map((item) => <ProjectCard key={item.id} item={item} variant={variant} onOpen={openProject} />)}
+        {items.map((item) => <ProjectCard key={item.id} item={item} variant={variant} paused={Boolean(item.film && selection)} onOpen={openProject} />)}
       </div>
       <dialog className="glass-dialog project-dialog" ref={dialogRef} data-liquid-ignore=""
         aria-labelledby={project ? `${variant.track}-${project.id}-title` : undefined}
@@ -139,16 +141,31 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
             <span className="glass-sheet-optics" aria-hidden="true" />
             <span className="glass-sheet-tint" aria-hidden="true" />
             <article className="project-detail" ref={contentRef}>
+              {project.film
+                ? <div className="project-detail-media" data-kind="film">
+                    {/* Phones already hold the card's file, sharp enough at their width. */}
+                    <TransparentVideo className="project-film" src={matchMedia("(max-width: 640px)").matches ? project.film.card : project.film.detail}
+                      poster={project.film.poster} alt={project.title} posterWhileLoading={false} />
+                  </div>
+                : <div className="project-detail-media" data-kind="image">
+                    <img className="project-detail-image" src={project.detailSources?.src ?? project.detailImage}
+                      srcSet={project.detailSources?.srcSet} width={project.detailSources?.width} height={project.detailSources?.height}
+                      alt={project.title} />
+                  </div>}
               <header className="project-detail-heading">
                 <h2 id={`${variant.track}-${project.id}-title`}>{project.title}</h2>
                 <button className="glass-close project-close" type="button" onClick={requestClose} aria-label={variant.close} title={variant.close} autoFocus>
                   <X size={22} strokeWidth={1.8} aria-hidden="true" />
                 </button>
               </header>
-              <p>{project.body}</p>
-              <img className="project-detail-image" src={project.detailSources?.src ?? project.detailImage}
-                srcSet={project.detailSources?.srcSet} width={project.detailSources?.width} height={project.detailSources?.height}
-                style={{ height: "auto" }} alt={project.title} />
+              {project.points
+                ? <>
+                    <p className="project-detail-lead">{project.summary}</p>
+                    <ul className="project-detail-points">
+                      {project.points.map((point, index) => <li key={index}><InlineText parts={point} /></li>)}
+                    </ul>
+                  </>
+                : <p>{project.body}</p>}
               {project.video && <div className="video-frame">
                 <iframe src={project.video} title={`${project.title} video`} loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
