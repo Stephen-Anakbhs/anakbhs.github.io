@@ -13,12 +13,15 @@ const ACTIVE_WINDOW_MS = 15_000;   // counts as active time this long after the 
 const MAX_EVENTS = 300;            // per view
 const MAX_ERRORS = 5;
 const SCROLL_MARKS = [25, 50, 75, 90, 100];
+const SEG_MIN_MS = 1_500;          // a section passed on the way to another is not a stop
+const SETTLE_MS = 1_500;           // the page is still laying out before this; scroll depth means nothing yet
 
 type Ev = { t: number; type: string; target?: string; label?: string; context?: string; value?: number; extra?: string };
 type Dwell = { kind: string; label: string; ms: number };
+type Seg = { place: string; t: number; ms: number; activeMs: number };
 type View = {
   pid: string; vid: string; start: number; visibleSince: number | null; visibleMs: number; activeMs: number;
-  scroll: number; events: Ev[]; logged: number; errors: number; dwell: Map<string, Dwell>; lastSent: string;
+  scroll: number; events: Ev[]; logged: number; errors: number; dwell: Map<string, Dwell>; seg: Seg | null; lastSent: string;
 };
 
 let current: View | null = null;
@@ -49,11 +52,29 @@ function send(payload: Record<string, unknown>) {
   fetch(ENDPOINT, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(() => {});
 }
 
-function push(event: Omit<Ev, "t">) {
+function push(event: Omit<Ev, "t"> & { t?: number }) {
   if (!current || current.logged >= MAX_EVENTS) return;
   current.logged++;
   current.events.push({ t: Date.now() - current.start, ...event });
   if (current.events.length >= 25) flush();
+}
+
+// The visitor's path: one event each time they leave a section, with when they got there, how long they stayed
+// (value, seconds) and how much of that with some input (extra, seconds).
+function closeSeg(view: View) {
+  const seg = view.seg;
+  view.seg = null;
+  if (seg && seg.ms >= SEG_MIN_MS) {
+    push({ t: seg.t, type: "seg", target: seg.place, value: Math.round(seg.ms / 1000), extra: String(Math.round(seg.activeMs / 1000)) });
+  }
+}
+
+function settle(view: View, place: string, delta: number, active: boolean) {
+  if (view.seg && view.seg.place !== place) closeSeg(view);
+  if (!place) return;
+  if (!view.seg) view.seg = { place, t: Date.now() - delta - view.start, ms: 0, activeMs: 0 };
+  view.seg.ms += delta;
+  if (active) view.seg.activeMs += delta;
 }
 
 // Visible seconds, active seconds, deepest scroll, events and per-target dwell since the last flush.
@@ -61,6 +82,7 @@ function flush(final = false) {
   const view = current;
   if (!view) return;
   tick();
+  if (final) closeSeg(view);
   if (final && view.visibleSince !== null) {
     view.visibleMs += Date.now() - view.visibleSince;
     view.visibleSince = null;
@@ -109,29 +131,33 @@ function tick() {
   lastTick = now;
   if (!view || document.visibilityState !== "visible" || delta <= 0) return;
   syncDialogs();
-  if (now - lastInteraction < ACTIVE_WINDOW_MS) view.activeMs += delta;
+  const active = now - lastInteraction < ACTIVE_WINDOW_MS;
+  if (active) view.activeMs += delta;
   const add = (target: string, kind: string, label: string) => {
     const entry = view.dwell.get(target) ?? { kind, label, ms: 0 };
     entry.ms += delta;
     view.dwell.set(target, entry);
   };
   if (openDialogs.size) {
+    closeSeg(view); // an open dialog has its own open and close events
     openDialogs.forEach((dialog) => add(`dialog:${dialog.kind}:${dialog.label}`.slice(0, 160), "dialog", dialog.label));
     return;
   }
   if (innerHeight <= 0) return;
   // The content lies laid out but hidden under the homepage cover.
-  if (document.documentElement.dataset.view === "cover") { add("section:home", "section", "home"); return; }
+  if (document.documentElement.dataset.view === "cover") { add("section:home", "section", "home"); settle(view, "section:home", delta, active); return; }
   const middle = innerHeight * 0.4;
   const sections = document.querySelectorAll<HTMLElement>("#main-content > section, #main-content section[id], .site-footer");
+  let place = "";
   for (const section of sections) {
     const box = section.getBoundingClientRect();
     if (box.top <= middle && box.bottom > middle) {
       const id = sectionOf(section);
-      if (id) add(`section:${id}`, "section", id);
+      if (id) { add(`section:${id}`, "section", id); place = `section:${id}`; }
       break;
     }
   }
+  settle(view, place, delta, active);
   document.querySelectorAll<HTMLElement>("[data-publication-id], [data-track-item]").forEach((element) => {
     const box = element.getBoundingClientRect();
     const shown = Math.min(box.bottom, innerHeight) - Math.max(box.top, 0);
@@ -148,6 +174,8 @@ function onScroll() {
   if (!view) return;
   const height = document.documentElement.scrollHeight;
   if (height <= 0 || innerHeight <= 0) return; // not laid out yet (prerender, hidden webview)
+  // Depth only means something once the content is on screen and laid out.
+  if (document.documentElement.dataset.view === "cover" || Date.now() - view.start < SETTLE_MS) return;
   const percent = Math.min(100, Math.round(((scrollY + innerHeight) / height) * 100));
   if (percent <= view.scroll) return;
   for (const mark of SCROLL_MARKS) if (view.scroll < mark && percent >= mark) push({ type: "scroll", value: mark });
@@ -291,6 +319,7 @@ function start() {
     if (!current) return;
     if (document.visibilityState === "hidden") {
       tick();
+      closeSeg(current);
       if (current.visibleSince !== null) { current.visibleMs += Date.now() - current.visibleSince; current.visibleSince = null; }
       push({ type: "hide" });
       flush();
@@ -319,7 +348,7 @@ export async function trackPageView(path: string) {
     }
     const now = Date.now();
     current = { pid: randomId(), vid, start: now, visibleSince: document.visibilityState === "visible" ? now : null, visibleMs: 0,
-      activeMs: 0, scroll: 0, events: [], logged: 0, errors: 0, dwell: new Map(), lastSent: "" };
+      activeMs: 0, scroll: 0, events: [], logged: 0, errors: 0, dwell: new Map(), seg: null, lastSent: "" };
     lastTick = now;
     lastInteraction = now;
     start();
@@ -336,6 +365,5 @@ export async function trackPageView(path: string) {
       lang: navigator.language, screen: `${screen.width}x${screen.height}`,
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone, env: environment(ch),
     });
-    onScroll();
   } catch { /* the log must never break the site */ }
 }
