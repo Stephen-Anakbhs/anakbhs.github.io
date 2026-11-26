@@ -24,14 +24,22 @@
   -webkit-backdrop-filter: blur(4px) saturate(1.15);
   backdrop-filter: blur(4px) saturate(1.15);
 }
-/* iOS: the page stays scrollable under a dialog (global.css), so one-finger pans on the dialog are refused here;
-   two fingers still zoom, and the project sheet's own text still scrolls. The veil runs under the status bar and
-   the toolbar the way the wallpaper does (site-background.css): a fixed layer moved by translate is not cut off
-   at the layout viewport. */
+/* iOS Safari 26 fills the strips under its status bar and toolbar with one flat color, in place of the page,
+   while a fixed box about the size of the screen stands at the screen's edge, and an open dialog is one (WebKit
+   samples the edges for such boxes: LocalFrameView::fixedContainerEdges). A box larger than the screen is passed
+   over. Transparent borders make the dialog that large, and translate puts its inside back on the layout
+   viewport, where its contents measure from. The veil runs under the bars as the wallpaper does
+   (site-background.css). */
 @supports (-webkit-touch-callout: none) {
-  .glass-dialog { touch-action: pinch-zoom; }
+  .glass-dialog {
+    box-sizing: content-box;
+    inset: 0 auto auto 0;
+    border: solid transparent;
+    border-width: var(--runway) 5vw var(--toolbar-bleed);
+    overflow: visible;
+    translate: -5vw calc(-1 * var(--runway));
+  }
   .glass-veil {
-    position: fixed;
     bottom: auto;
     height: calc(100lvh + var(--runway) + var(--toolbar-bleed));
     translate: 0 calc(-1 * var(--runway));

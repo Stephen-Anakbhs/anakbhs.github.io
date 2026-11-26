@@ -37,6 +37,39 @@ function ScrollPosition() {
     else if (target) target.scrollIntoView({ block: "start", behavior: samePage && !reducedMotion() ? "smooth" : "instant" });
     else window.scrollTo({ top: pageTop(), behavior: "instant" });
   }, [pathname, hash, key]);
+  // iOS Safari throws a page it has just loaded back to its very top a moment after the scroll above, then returns
+  // it to the section a second or more later, unless the smooth scroll back to the runway (keepPageAtRest) gets
+  // there first (iOS 26.2 and 26.5). While the page is still loading (no touch, wheel or key yet, first ten
+  // seconds), a page opened at a section, or redirected to one, goes straight back. A scroll that travels to the
+  // top, such as a tap on the status bar, is left alone. Elsewhere the page never rests below its top.
+  const loading = useRef(true);
+  useEffect(() => {
+    loading.current = true;
+    const inputs = ["touchstart", "wheel", "keydown", "pointerdown"];
+    const loaded = () => {
+      loading.current = false;
+      window.clearTimeout(timer);
+      for (const type of inputs) window.removeEventListener(type, loaded, true);
+    };
+    const timer = window.setTimeout(loaded, 10_000);
+    for (const type of inputs) window.addEventListener(type, loaded, { capture: true, passive: true });
+    return loaded;
+  }, []);
+  useEffect(() => {
+    const section = hash ? document.getElementById(hash.slice(1)) : null;
+    const top = pageTop();
+    if (!loading.current || !top || !section?.closest("main") || getView() !== "content") return;
+    let last = Infinity;
+    const restore = () => {
+      if (!loading.current) return window.removeEventListener("scroll", restore);
+      const thrown = window.scrollY < top / 2 && last > top * 2;
+      last = window.scrollY;
+      if (thrown && section.getBoundingClientRect().top > 40) section.scrollIntoView({ block: "start", behavior: "instant" });
+    };
+    window.addEventListener("scroll", restore, { passive: true });
+    restore();
+    return () => window.removeEventListener("scroll", restore);
+  }, [key]); // a new hash always comes with a new key
   return null;
 }
 

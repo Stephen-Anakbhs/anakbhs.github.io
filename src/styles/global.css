@@ -20,6 +20,7 @@
 :root {
   --runway: 0px;
   --toolbar-bleed: 0px;
+  --tail: 0px;
   color-scheme: light;
   --bg: #f7f8fa;
   --bg-soft: #eef0f3;
@@ -56,12 +57,7 @@ html {
   scrollbar-gutter: stable;
 }
 
-/* The page holds still under an open dialog. Not this way on iOS: while the root cannot scroll, Safari there stops
-   drawing the page under its status bar and toolbar and leaves two flat bands around the dialog (iOS 26.2 and 26.5).
-   There the dialog refuses one-finger pans instead (glass-dialog.css) and glassMorph.ts holds the page in place. */
-@supports not (-webkit-touch-callout: none) {
-  html.glass-dialog-open { overflow: hidden; }
-}
+html.glass-dialog-open { overflow: hidden; }
 
 /* Keep native dragging and keyboard scrolling; only change the chrome. */
 @media (pointer: fine) {
@@ -353,15 +349,21 @@ html[data-view="content"] .hero:not([data-cover="ghost"]) { visibility: hidden; 
 
 /* iOS Safari shows the page behind its status bar only once the document is scrolled that far: at the very
    top of a document the bar stands on a flat color, with a hard edge under it (measured on iOS 26.2).
-   So on iOS every page rests a little way down the document (keepPageTop in lib/siteView.ts). A fixed
+   So on iOS every page rests a little way down the document (keepPageAtRest in lib/siteView.ts). A fixed
    layer also stops at the layout viewport, so the cover is part of the document there, a little taller
    than the screen, and its picture runs under the Dynamic Island and the toolbar; nothing can scroll it
-   away, useCoverSheet holds the page in place. The wallpaper does the same (site-background.css). */
+   away, useCoverSheet holds the page in place. The wallpaper does the same (site-background.css).
+   The toolbar likewise stands on a flat color past the end of a document (iOS 26.2 and 26.5), so the
+   document runs on beyond its footer (--tail) and rests where the footer meets the toolbar; a short page
+   is tall enough for that too. */
 @supports (-webkit-touch-callout: none) {
-  :root { --runway: 80px; --toolbar-bleed: 70px; }
+  :root { --runway: 80px; --toolbar-bleed: 70px; --tail: 140px; }
   .hero { position: absolute; }
   .hero[data-cover="ghost"] { position: fixed; top: calc(-1 * var(--runway)); }
-  .site-shell { padding-top: var(--runway); }
+  .site-shell {
+    min-height: calc(100svh + var(--runway) + var(--tail));
+    padding-block: var(--runway) var(--tail);
+  }
 }
 
 /* Nothing of the content shows or takes focus under the cover. It stays laid out, so the first lift has

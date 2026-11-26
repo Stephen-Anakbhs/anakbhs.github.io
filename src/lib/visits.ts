@@ -4,6 +4,7 @@
 // Only on the live domain (or a local endpoint given by VITE_VISITS_ENDPOINT), so ordinary dev runs are not logged.
 // Open https://renjun.one/?me once in a browser to mark it as the owner's (hidden in the log by default).
 import { inLookEditor } from "./lookEditor";
+import { pageTail } from "./siteView";
 
 const LOCAL_ENDPOINT = import.meta.env.VITE_VISITS_ENDPOINT as string | undefined;
 const ENDPOINT = LOCAL_ENDPOINT || "https://stats.renjun.one/v";
@@ -172,7 +173,8 @@ function onScroll() {
   lastInteraction = Date.now();
   const view = current;
   if (!view) return;
-  const height = document.documentElement.scrollHeight;
+  // On iOS the end rests short of the document's last stretch (--tail), so depth counts to the resting end.
+  const height = document.documentElement.scrollHeight - pageTail();
   if (height <= 0 || innerHeight <= 0) return; // not laid out yet (prerender, hidden webview)
   // Depth only means something once the content is on screen and laid out.
   if (document.documentElement.dataset.view === "cover" || Date.now() - view.start < SETTLE_MS) return;

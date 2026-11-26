@@ -45,18 +45,28 @@ export function useContentShown() {
 
 /** Where the top of the page rests: 0, except on iOS (see --runway in global.css). */
 export const pageTop = () => parseFloat(getComputedStyle(root).getPropertyValue("--runway")) || 0;
+/** How far the document runs on past where its end rests: 0, except on iOS (see --tail in global.css). */
+export const pageTail = () => parseFloat(getComputedStyle(root).getPropertyValue("--tail")) || 0;
 
-/** On iOS the document may overshoot its resting top like a rubber band; it comes back once let go. */
-export function keepPageTop() {
+/** On iOS the document may overshoot its resting top or end like a rubber band; it comes back once let go. */
+export function keepPageAtRest() {
   if (!pageTop()) return;
   let timer = 0;
   let touching = false;
+  // Where the page belongs instead, or null while it rests between its two ends.
+  const restingY = () => {
+    const top = pageTop();
+    if (window.scrollY < top - 1) return top;
+    const end = root.scrollHeight - window.innerHeight - pageTail();
+    return end > top && window.scrollY > end + 1 ? end : null;
+  };
   const settle = () => {
-    if (!touching && window.scrollY < pageTop() - 1) window.scrollTo({ top: pageTop(), behavior: "smooth" });
+    const y = touching ? null : restingY();
+    if (y !== null) window.scrollTo({ top: y, behavior: "smooth" });
   };
   const later = () => {
     window.clearTimeout(timer);
-    if (window.scrollY < pageTop() - 1) timer = window.setTimeout(settle, 120);
+    if (restingY() !== null) timer = window.setTimeout(settle, 120);
   };
   window.addEventListener("scroll", later, { passive: true });
   window.addEventListener("touchstart", () => { touching = true; }, { passive: true });
