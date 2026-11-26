@@ -1,0 +1,11 @@
+/* Loaded only with HeroScene.tsx, so it ships only if the scene is used. */
+.hero-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.hero-scene canvas {
+  display: block;
+}
