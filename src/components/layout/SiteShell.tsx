@@ -183,6 +183,8 @@ export function SiteShell({ children }: PropsWithChildren) {
       <footer className="site-footer">
         <span>Renjun Gao &copy; {new Date().getFullYear()}. All rights reserved.</span>
       </footer>
+      {/* The veil of an open dialog as the page draws it; shown on iOS only (glass-dialog.css). */}
+      <div className="page-veil" aria-hidden="true" />
     </div>
   );
 }

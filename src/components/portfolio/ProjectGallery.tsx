@@ -2,7 +2,7 @@ import { memo, useCallback, useId, useLayoutEffect, useRef, useState, type CSSPr
 import { ArrowUpRight, X } from "lucide-react";
 import type { ShowcaseItem } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
-import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, type Box } from "../ui/glassMorph";
+import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, veils, type Box } from "../ui/glassMorph";
 import { fullGlass } from "../ui/glassQuality";
 import { lensMap } from "../ui/lensMap";
 import { preparePreview } from "../ui/ImageLightbox";
@@ -97,7 +97,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
     const { easing, duration } = openMotion;
     const from = sourceBox(selection.origin) ?? shrink(target);
     void run([
-      veilRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }),
+      ...veils(veilRef.current!).map(veil => veil.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" })),
       sheet.animate([{ transform: flip(from, target) }, { transform: "none" }], { duration, easing }),
       contentRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: duration * 0.4, easing: "ease-out", fill: "backwards" }),
     ]).then(completed => { if (completed && !cancelled && !state.current.closing) dialog.dataset.settled = ""; });
@@ -115,7 +115,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
       const to = sourceBox(state.current.origin) ?? shrink(home);
       const transform = currentTransform(sheet);
       return [
-        veilRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" }),
+        ...veils(veilRef.current!).map(veil => veil.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" })),
         sheet.animate([{ transform }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" }),
         contentRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-in", fill: "forwards" }),
       ];

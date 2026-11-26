@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { X } from "lucide-react";
-import { boxOf, closeMotion, containBox, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, type Box } from "./glassMorph";
+import { boxOf, closeMotion, containBox, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, veils, type Box } from "./glassMorph";
 import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 import "../../styles/glass-dialog.css";
@@ -204,7 +204,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         element.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 220, delay: duration * 0.4, easing: "ease-out", fill: "backwards" });
       const from = source ?? { frame: shrink(next.sheet), paper: shrink(next.card), figure: shrink(next.card) };
       void run([
-        veilRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }),
+        ...veils(veilRef.current!).map(veil => veil.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" })),
         grow(sheetRef.current!, from.frame, next.sheet),
         grow(paperRef.current!, from.paper, next.card),
         grow(picture, from.figure, next.card),
@@ -327,7 +327,7 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
         element.animate([{ transform }, { transform: flip(to, home) }], { duration, easing, fill: "forwards" });
       const fadeOut = (element: Element) => element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-in", fill: "forwards" });
       return [
-        veilRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" }),
+        ...veils(veilRef.current!).map(veil => veil.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" })),
         shrinkTo(sheetRef.current!, sheetTransform, source.frame, target.sheet),
         shrinkTo(paperRef.current!, paperTransform, source.paper, target.card),
         shrinkTo(picture, figureTransform, source.figure, target.card),

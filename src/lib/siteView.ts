@@ -52,6 +52,8 @@ export const pageTail = () => parseFloat(getComputedStyle(root).getPropertyValue
 export function keepPageAtRest() {
   if (!pageTop()) return;
   let timer = 0;
+  let check = 0;
+  let tries = 0;
   let touching = false;
   // Where the page belongs instead, or null while it rests between its two ends.
   const restingY = () => {
@@ -62,14 +64,21 @@ export function keepPageAtRest() {
   };
   const settle = () => {
     const y = touching ? null : restingY();
-    if (y !== null) window.scrollTo({ top: y, behavior: "smooth" });
+    if (y === null || tries >= 3) return;
+    tries += 1;
+    window.scrollTo({ top: y, behavior: "smooth" });
+    // At the end of a page Safari brings its toolbar back and can drop this scroll (iOS 26.2): look again.
+    window.clearTimeout(check);
+    check = window.setTimeout(later, 700);
   };
   const later = () => {
     window.clearTimeout(timer);
-    if (restingY() !== null) timer = window.setTimeout(settle, 120);
+    if (restingY() === null) tries = 0;
+    else timer = window.setTimeout(settle, 120);
   };
   window.addEventListener("scroll", later, { passive: true });
-  window.addEventListener("touchstart", () => { touching = true; }, { passive: true });
+  window.addEventListener("resize", later, { passive: true });
+  window.addEventListener("touchstart", () => { touching = true; tries = 0; }, { passive: true });
   const release = () => { touching = false; later(); };
   window.addEventListener("touchend", release, { passive: true });
   window.addEventListener("touchcancel", release, { passive: true });

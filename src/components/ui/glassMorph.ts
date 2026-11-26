@@ -54,6 +54,12 @@ export function containBox(frame: Box, width: number, height: number): Box {
 /** Starts transform keyframes from the element's current (possibly mid-animation) transform. */
 export const currentTransform = (element: Element) => getComputedStyle(element).transform;
 
+/** A dialog's veil and, where the page draws one too (iOS, glass-dialog.css), the page's: they fade together. */
+export function veils(own: HTMLElement): HTMLElement[] {
+  const page = document.querySelector<HTMLElement>(".page-veil");
+  return page && getComputedStyle(page).display !== "none" ? [own, page] : [own];
+}
+
 const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.finished.catch(() => undefined)));
 
 const openDialogs = new Set<HTMLDialogElement>();

@@ -17,33 +17,34 @@
 }
 .glass-dialog::backdrop { background: transparent; }
 
-.glass-veil {
+.glass-veil,
+.page-veil {
   position: absolute;
   inset: 0;
   background: rgba(228, 232, 236, 0.3);
   -webkit-backdrop-filter: blur(4px) saturate(1.15);
   backdrop-filter: blur(4px) saturate(1.15);
 }
+.page-veil { display: none; }
 /* iOS Safari 26 fills the strips under its status bar and toolbar with one flat color, in place of the page,
    while a fixed box about the size of the screen stands at the screen's edge, and an open dialog is one (WebKit
    samples the edges for such boxes: LocalFrameView::fixedContainerEdges). A box larger than the screen is passed
    over. Transparent borders make the dialog that large, and translate puts its inside back on the layout
-   viewport, where its contents measure from. The veil runs under the bars as the wallpaper does
-   (site-background.css). */
+   viewport, where its contents measure from.
+   WebKit also cuts every fixed layer off at the layout viewport (RenderLayerBacking's viewport clipping layer),
+   the dialog's veil with it, so there the page draws the veil (SiteShell.tsx, faded with the dialog's own by
+   glassMorph.ts veils()). Safari shows the page under its bars; the dialog's veil only catches taps (end of file). */
 @supports (-webkit-touch-callout: none) {
   .glass-dialog {
     box-sizing: content-box;
     inset: 0 auto auto 0;
     border: solid transparent;
     border-width: var(--runway) 5vw var(--toolbar-bleed);
-    overflow: visible;
     translate: -5vw calc(-1 * var(--runway));
   }
-  .glass-veil {
-    bottom: auto;
-    height: calc(100lvh + var(--runway) + var(--toolbar-bleed));
-    translate: 0 calc(-1 * var(--runway));
-  }
+  html.glass-dialog-open .site-shell { position: relative; }
+  .page-veil { display: block; z-index: 30; pointer-events: none; opacity: 0; }
+  html.glass-dialog-open .page-veil { opacity: 1; }
 }
 
 .glass-sheet {
@@ -217,7 +218,7 @@
 
 /* Lite devices skip the full-screen veil blur, the most expensive layer on a phone GPU, and
    without lens refraction the sheet itself frosts instead, so the page never shows through it. */
-:root[data-glass-quality="lite"] .glass-veil {
+:root[data-glass-quality="lite"] :is(.glass-veil, .page-veil) {
   background: rgba(222, 226, 230, 0.62);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -236,7 +237,7 @@
 @keyframes glass-dialog-fade { from { opacity: 0; } }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .glass-veil { background: rgba(20, 24, 28, 0.82); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  :is(.glass-veil, .page-veil) { background: rgba(20, 24, 28, 0.82); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .glass-sheet-optics, .glass-sheet::after { display: none; }
   .glass-sheet-tint, .project-sheet .glass-sheet-tint { background: #f4f5f6; box-shadow: none; }
   .lightbox-caption { color: #111; }
@@ -244,9 +245,14 @@
 }
 
 @media (forced-colors: active) {
-  .glass-veil { background: Canvas; }
+  :is(.glass-veil, .page-veil) { background: Canvas; }
   .glass-sheet-optics, .glass-sheet-tint, .glass-sheet::after { display: none; }
   .glass-sheet { border: 1px solid CanvasText; background: Canvas; }
   .lightbox-caption { color: CanvasText; }
   .glass-close { color: ButtonText; background: ButtonFace; border: 1px solid ButtonText; }
+}
+
+/* iOS: the page's veil shows instead (see the iOS rules above). */
+@supports (-webkit-touch-callout: none) {
+  :root .glass-dialog .glass-veil { background: transparent; }
 }
