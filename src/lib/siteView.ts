@@ -55,8 +55,9 @@ export function keepPageAtRest() {
   let check = 0;
   let tries = 0;
   let touching = false;
-  // Where the page belongs instead, or null while it rests between its two ends.
+  // Where the page belongs instead, or null while it rests between its two ends or holds still under a dialog.
   const restingY = () => {
+    if (root.classList.contains("glass-dialog-open")) return null;
     const top = pageTop();
     if (window.scrollY < top - 1) return top;
     const end = root.scrollHeight - window.innerHeight - pageTail();
