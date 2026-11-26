@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "../../lib/reducedMotion";
 import { getView, onViewChange } from "../../lib/siteView";
 
 type TypewriterLineProps = {

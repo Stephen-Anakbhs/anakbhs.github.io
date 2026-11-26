@@ -300,11 +300,13 @@ function start() {
     if (frame instanceof HTMLIFrameElement) push({ type: "iframe", target: clip(frame.src, 300), label: clip(frame.title, 120), context: contextOf(frame) });
   }, 0));
   addEventListener("error", (event) => {
-    if (!current || current.errors >= MAX_ERRORS) return;
+    // The browser's own note that layout changed inside a resize callback: harmless, and not the page's error.
+    if (!current || current.errors >= MAX_ERRORS || /^ResizeObserver loop/.test(event.message ?? "")) return;
     current.errors++;
-    const element = event.target as HTMLElement | null;
+    const element = event.target as (HTMLElement & { currentSrc?: string; src?: string; href?: string; error?: MediaError | null }) | null;
     if (element && element !== (window as unknown) && "tagName" in element) {
-      push({ type: "error", target: clip((element as HTMLImageElement).currentSrc || (element as HTMLImageElement).src, 300), label: `${element.tagName.toLowerCase()} failed to load` });
+      push({ type: "error", target: clip(element.currentSrc || element.src || element.href, 300), label: `${element.tagName.toLowerCase()} failed to load`,
+        extra: element.error ? `media error ${element.error.code}` : undefined });
     } else {
       push({ type: "error", target: clip(`${event.filename}:${event.lineno}`, 300), label: clip(event.message, 200) });
     }

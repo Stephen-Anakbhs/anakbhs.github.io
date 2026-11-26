@@ -1,11 +1,46 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import { site } from "../../content/site";
 import type { LiquidLens } from "liquid-gl";
 import { useGlassProfile } from '../../content/glassStore';
 import { rgba, type GlassProfile } from '../../content/glassSchema';
 import { getView } from '../../lib/siteView';
+import { useReducedMotion } from '../../lib/reducedMotion';
+
+type Bounds = { left: number; width: number };
+
+// The selection lens slides to the active link on a spring (stiffness 300, damping 24, mass 0.9) and keeps its
+// speed when a new destination interrupts it. It rests within 0.5 px and 2 px/s, then snaps into place.
+function createSpring(apply: (bounds: Bounds) => void) {
+  const now: Bounds = { left: 4, width: 0 };
+  const speed: Bounds = { left: 0, width: 0 };
+  let target: Bounds = { ...now };
+  let frame = 0;
+  let last = 0;
+  const step = (time: number) => {
+    let remaining = Math.min(time - last, 64) / 1000; // a stalled tab does not throw the lens across the bar
+    last = time;
+    while (remaining > 0) {
+      const dt = Math.min(remaining, 1 / 240);
+      remaining -= dt;
+      for (const key of ["left", "width"] as const) {
+        speed[key] += ((-300 * (now[key] - target[key]) - 24 * speed[key]) / 0.9) * dt;
+        now[key] += speed[key] * dt;
+      }
+    }
+    const resting = (["left", "width"] as const).every((key) => Math.abs(now[key] - target[key]) < 0.5 && Math.abs(speed[key]) < 2);
+    if (resting) { Object.assign(now, target); Object.assign(speed, { left: 0, width: 0 }); }
+    apply(now);
+    frame = resting ? 0 : requestAnimationFrame(step);
+  };
+  const stop = () => { cancelAnimationFrame(frame); frame = 0; };
+  return {
+    stop,
+    jump(bounds: Bounds) { stop(); Object.assign(now, bounds); target = { ...bounds }; Object.assign(speed, { left: 0, width: 0 }); apply(now); },
+    to(bounds: Bounds) { target = { ...bounds }; if (!frame) { last = performance.now(); frame = requestAnimationFrame(step); } },
+    get: () => ({ ...now }),
+  };
+}
 
 function lensSettings(p: GlassProfile) {
   return { refraction: Number(p.refraction), frost: Number(p.frost), aberration: Number(p.aberration),
@@ -26,15 +61,20 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   openState.current = open;
   const wakeRenderer = useRef<() => void>(() => {});
   const id = `navigation-lens-${useId().replace(/:/g, "")}`;
-  const destination = useRef<{ left: number; width: number } | null>(null);
+  const destination = useRef<Bounds | null>(null);
+  const lensElement = useRef<HTMLSpanElement>(null);
   const { pathname } = useLocation();
   const reduceMotion = useReducedMotion();
   const profile = useGlassProfile('selection');
   const profileRef = useRef(profile);
   profileRef.current = profile;
   const [simpleMaterial, setSimpleMaterial] = useState(false);
-  const left = useMotionValue(4);
-  const width = useMotionValue(0);
+  const spring = useRef<ReturnType<typeof createSpring> | null>(null);
+  spring.current ??= createSpring(({ left, width }) => {
+    const element = lensElement.current;
+    if (element) { element.style.left = `${left}px`; element.style.width = `${width}px`; }
+    lens.current?.renderer?.invalidate();
+  });
 
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active)");
@@ -47,9 +87,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
   const positionLens = useCallback(() => {
     const active = nav.current?.querySelector<HTMLElement>('a[aria-current]');
     if (!active) {
-      left.stop();
-      width.stop();
-      width.set(0);
+      spring.current?.jump({ left: spring.current.get().left, width: 0 });
       destination.current = null;
       return;
     }
@@ -58,17 +96,9 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     if (destination.current?.left === next.left && destination.current.width === next.width) return;
     const immediate = !destination.current || reduceMotion;
     destination.current = next;
-    left.stop();
-    width.stop();
-    if (immediate) {
-      left.set(next.left);
-      width.set(next.width);
-    } else {
-      const spring = { type: "spring" as const, stiffness: 300, damping: 24, mass: 0.9 };
-      animate(left, next.left, spring);
-      animate(width, next.width, spring);
-    }
-  }, [left, width, reduceMotion]);
+    if (immediate) spring.current?.jump(next);
+    else spring.current?.to(next);
+  }, [reduceMotion]);
 
   useLayoutEffect(() => {
     positionLens();
@@ -78,8 +108,8 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     if (!nav.current) return;
     const observer = new ResizeObserver(() => positionLens());
     observer.observe(nav.current);
-    return () => { observer.disconnect(); left.stop(); width.stop(); };
-  }, [positionLens, left, width]);
+    return () => { observer.disconnect(); spring.current?.stop(); };
+  }, [positionLens]);
 
   useEffect(() => {
     let disposed = false;
@@ -157,13 +187,10 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
     const header = nav.current?.closest('.site-header');
     header?.addEventListener('pointermove', onPointer, { passive: true });
     header?.addEventListener('pointerleave', onPointer, { passive: true });
-    const stopLeft = left.on('change', () => lens.current?.renderer?.invalidate());
-    const stopWidth = width.on('change', () => lens.current?.renderer?.invalidate());
     const initialize = async () => {
       const { default: liquidGL } = await import("liquid-gl");
       await document.fonts.ready;
       if (disposed || !nav.current) return;
-      const material = getComputedStyle(nav.current);
       // Keep the original navigation shader and its fluid interaction intact.
       const instance = liquidGL({
         target: `#${id}`, snapshot: "body", content: false, resolution: 0.85, frameloop: "demand",
@@ -209,12 +236,11 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
       document.removeEventListener('close', onDialogClose, true);
       header?.removeEventListener('pointermove', onPointer);
       header?.removeEventListener('pointerleave', onPointer);
-      stopLeft(); stopWidth();
       wakeRenderer.current = () => {};
       lens.current?.destroy();
       lens.current = null;
     };
-  }, [id, reduceMotion, simpleMaterial, left, width]);
+  }, [id, reduceMotion, simpleMaterial]);
 
   useEffect(() => {
     lens.current?.renderer?.setSuspended(false);
@@ -252,7 +278,7 @@ export function LiquidNavigation({ tone, activeSection, onSelect, open }: {
           <span className="nav-label" data-liquid-ignore="">{item.label}</span>
         </Link>
       ))}
-      <motion.span id={id} className="nav-lens" style={{ left, width }} aria-hidden="true" data-liquid-ignore="" data-glass-type="selection" />
+      <span ref={lensElement} id={id} className="nav-lens" style={{ left: 4, width: 0 }} aria-hidden="true" data-liquid-ignore="" data-glass-type="selection" />
     </nav>
   );
 }

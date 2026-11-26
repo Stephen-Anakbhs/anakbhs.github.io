@@ -4,6 +4,7 @@ import { site, type HonorHighlight } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
 import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
 import { Emoji } from "../ui/InlineText";
+import { reducedMotion } from "../../lib/reducedMotion";
 
 type Award = (typeof site.awards)[number];
 
@@ -22,7 +23,7 @@ function useSlideshow(count: number, frame: RefObject<HTMLElement | null>) {
     return () => observer.disconnect();
   }, [count]);
   useEffect(() => {
-    if (count < 2 || !visible || held || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (count < 2 || !visible || held || reducedMotion()) return;
     // Hold still while a viewer is open, so closing it lands on the photo it shows.
     const timer = window.setInterval(() => {
       if (!document.documentElement.classList.contains("glass-dialog-open")) setIndex((current) => (current + 1) % count);

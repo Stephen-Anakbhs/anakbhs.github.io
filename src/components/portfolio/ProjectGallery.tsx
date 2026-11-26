@@ -2,12 +2,14 @@ import { memo, useCallback, useId, useLayoutEffect, useRef, useState, type CSSPr
 import { ArrowUpRight, X } from "lucide-react";
 import type { ShowcaseItem } from "../../content/site";
 import { GlassSurface } from "../ui/GlassSurface";
-import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, useMorphDialog, type Box } from "../ui/glassMorph";
+import { boxOf, closeMotion, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, type Box } from "../ui/glassMorph";
 import { fullGlass } from "../ui/glassQuality";
 import { lensMap } from "../ui/lensMap";
 import { preparePreview } from "../ui/ImageLightbox";
 import { InlineText } from "../ui/InlineText";
 import { TransparentVideo } from "../ui/TransparentVideo";
+import { useContentShown } from "../../lib/siteView";
+import { retryOnce } from "../../lib/retryImage";
 import "../../styles/glass-dialog.css";
 
 type Selection = { project: ShowcaseItem; origin: HTMLElement | null };
@@ -27,7 +29,8 @@ type Variant = (typeof variants)[keyof typeof variants];
 
 // Memoised so opening or closing the dialog does not re-render every glass card.
 // The whole card opens the project; the button inside is what keyboards and screen readers reach.
-const ProjectCard = memo(function ProjectCard({ item, variant, paused, onOpen }: { item: ShowcaseItem; variant: Variant; paused: boolean; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
+// Under the cover the pictures wait (see useContentShown); the card keeps its shape meanwhile.
+const ProjectCard = memo(function ProjectCard({ item, variant, paused, load, onOpen }: { item: ShowcaseItem; variant: Variant; paused: boolean; load: boolean; onOpen: (item: ShowcaseItem, origin: HTMLElement | null) => void }) {
   const prepare = () => { if (!item.film) void preparePreview(item.detailSources?.src ?? item.detailImage); };
   return (
     <article className="showcase-card" data-track-item={`${variant.track}:${item.id}`} onClick={(event) => onOpen(item, event.currentTarget)}>
@@ -43,9 +46,9 @@ const ProjectCard = memo(function ProjectCard({ item, variant, paused, onOpen }:
           data-fit={item.imageFit || "cover"}
         >
           {item.film
-            ? <TransparentVideo className="showcase-film" src={item.film.card} poster={item.film.poster} alt={item.title} active={!paused} />
-            : <img src={item.imageSources?.src ?? item.image} srcSet={item.imageSources?.srcSet} sizes={variant.sizes}
-                alt={item.title} loading="lazy" decoding="async" />}
+            ? load && <TransparentVideo className="showcase-film" src={item.film.card} poster={item.film.poster} alt={item.title} active={!paused} />
+            : <img src={load ? item.imageSources?.src ?? item.image : undefined} srcSet={load ? item.imageSources?.srcSet : undefined} sizes={variant.sizes}
+                alt={item.title} loading="lazy" decoding="async" onError={retryOnce} />}
         </button>
       </GlassSurface>
       <div className="showcase-caption">
@@ -68,13 +71,13 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
   const mapRef = useRef<SVGFEImageElement>(null);
   const filterId = `project-lens-${useId().replace(/:/g, "")}`;
   const project = selection?.project;
+  const load = useContentShown();
 
   const sourceBox = (origin: HTMLElement | null | undefined): Box | null => {
     if (!origin?.isConnected) return null;
     const box = boxOf(origin);
     return box.width > 0 && box.y + box.height > 0 && box.y < innerHeight ? box : null;
   };
-  const near = (box: Box): Box => ({ x: box.x + box.width * 0.04, y: box.y + box.height * 0.04, width: box.width * 0.92, height: box.height * 0.92 });
 
   useLayoutEffect(() => {
     if (!selection) return;
@@ -92,7 +95,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
     const dialog = dialogRef.current!;
     if (reducedMotion()) { dialog.dataset.settled = ""; return cleanup; }
     const { easing, duration } = openMotion;
-    const from = sourceBox(selection.origin) ?? near(target);
+    const from = sourceBox(selection.origin) ?? shrink(target);
     void run([
       veilRef.current!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }),
       sheet.animate([{ transform: flip(from, target) }, { transform: "none" }], { duration, easing }),
@@ -109,7 +112,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
     void close(() => {
       const home = boxOf(sheet);
       const { easing, duration } = closeMotion;
-      const to = sourceBox(state.current.origin) ?? near(home);
+      const to = sourceBox(state.current.origin) ?? shrink(home);
       const transform = currentTransform(sheet);
       return [
         veilRef.current!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.8, easing: "ease-in", fill: "forwards" }),
@@ -122,7 +125,7 @@ export function ProjectGallery({ items, kind = "projects" }: { items: ShowcaseIt
   return (
     <>
       <div className={variant.grid} aria-label={variant.label}>
-        {items.map((item) => <ProjectCard key={item.id} item={item} variant={variant} paused={Boolean(item.film && selection)} onOpen={openProject} />)}
+        {items.map((item) => <ProjectCard key={item.id} item={item} variant={variant} paused={Boolean(item.film && selection)} load={load} onOpen={openProject} />)}
       </div>
       <dialog className="glass-dialog project-dialog" ref={dialogRef} data-liquid-ignore=""
         aria-labelledby={project ? `${variant.track}-${project.id}-title` : undefined}

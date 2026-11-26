@@ -5,7 +5,6 @@ const notify = () => document.dispatchEvent(new Event('hero-media-change'));
 
 /** Reuse the original file without palette conversion or frame removal. */
 export default function AnimatedHeroFallback({ src }: { src: string }) {
-  const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const resumeTime = useRef(0);
   const [active, setActive] = useState(false);
@@ -47,7 +46,7 @@ export default function AnimatedHeroFallback({ src }: { src: string }) {
 
   useEffect(() => { if (!active) setReady(false); notify(); }, [ready, active, mode]);
 
-  return <div ref={host} className="hero-fallback-layer" data-mode={mode} aria-hidden="true">
+  return <div className="hero-fallback-layer" data-mode={mode} aria-hidden="true">
     {active && mode === 'canvas' && <canvas ref={canvas} className="hero-fallback" width={1920} height={1080}
       data-media-ready={ready} />}
   </div>;

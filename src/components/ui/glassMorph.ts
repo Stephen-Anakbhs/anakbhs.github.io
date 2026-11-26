@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { reducedMotion } from "../../lib/reducedMotion";
 
 // Shared motion for glass sheets that grow out of the element that opened them.
 // Everything animates transform/opacity through Web Animations with a sampled
@@ -10,7 +11,10 @@ export const boxOf = (element: Element): Box => {
   return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
 };
 
-export const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+export { reducedMotion };
+
+/** The box drawn in by 4% on each side: where a sheet starts when its card is off screen. */
+export const shrink = (box: Box): Box => ({ x: box.x + box.width * 0.04, y: box.y + box.height * 0.04, width: box.width * 0.92, height: box.height * 0.92 });
 
 /** Samples a damped spring (unit mass) into a CSS linear() easing and its settle time. */
 export function springTiming(stiffness: number, damping: number) {
@@ -48,10 +52,7 @@ export function containBox(frame: Box, width: number, height: number): Box {
 }
 
 /** Starts transform keyframes from the element's current (possibly mid-animation) transform. */
-export function currentTransform(element: Element) {
-  const value = getComputedStyle(element).transform;
-  return value === "none" ? "none" : value;
-}
+export const currentTransform = (element: Element) => getComputedStyle(element).transform;
 
 const finished = (animations: Animation[]) => Promise.all(animations.map(a => a.finished.catch(() => undefined)));
 

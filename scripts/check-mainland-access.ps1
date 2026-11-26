@@ -8,7 +8,7 @@ $checks = @(
   @{name='https-home';protocol='HTTPS';path='/'},
   @{name='publications';protocol='HTTPS';path='/publications/'},
   @{name='entry-script';protocol='HTTPS';path=$js},
-  @{name='font';protocol='HTTPS';path='/fonts/inter-variable.woff2'},
+  @{name='font';protocol='HTTPS';path='/fonts/inter-latin.woff2'},
   @{name='video-first-megabyte';protocol='HTTPS';path='/media/hero-background-1080p.mp4';range='bytes=0-1048575'}
 )
 $records = @()

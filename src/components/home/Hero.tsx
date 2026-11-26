@@ -1,21 +1,20 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { site } from "../../content/site";
 import { getView, onViewChange } from "../../lib/siteView";
+import { useReducedMotion } from "../../lib/reducedMotion";
 import { GlassTextLayer, useGlassText } from "../hero/GlassText";
 import { TypewriterLine } from "../hero/TypewriterLine";
 import { useCoverSheet } from "./useCoverSheet";
+import AnimatedHeroFallback from "./AnimatedHeroFallback";
 import "../../styles/hero-video.css";
 import "../../styles/cover-sheet.css";
 import "../../styles/hero-glass.css";
 
-const HeroScene = lazy(() => import("../../scenes/hero/HeroScene").then((module) => ({ default: module.HeroScene })));
-const AnimatedHeroFallback = lazy(() => import("./AnimatedHeroFallback"));
-
 export function Hero() {
-  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const reduceMotion = useReducedMotion();
   const heroRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const sheetRef = useRef<HTMLCanvasElement>(null);
@@ -28,14 +27,6 @@ export function Hero() {
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
-
-  useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReduceMotion(preference.matches);
-    preference.addEventListener('change', update);
-    update();
-    return () => preference.removeEventListener('change', update);
-  }, []);
 
   useCoverSheet(heroRef, sheetRef, hash, (href, landed) => navigate(href, landed ? { state: { landed } } : undefined));
 
@@ -203,10 +194,7 @@ export function Hero() {
           }}
           onError={() => { setVideoFailed(true); setVideoReady(false); }} />
       )}
-      {site.hero.media.video && !reduceMotion && fallbackReason && (
-        <Suspense fallback={null}><AnimatedHeroFallback src={site.hero.media.video} /></Suspense>
-      )}
-      {!reduceMotion && !site.hero.media.video && <Suspense fallback={null}><HeroScene /></Suspense>}
+      {site.hero.media.video && !reduceMotion && fallbackReason && <AnimatedHeroFallback src={site.hero.media.video} />}
       <div className="hero-overlay" aria-hidden="true" />
       <canvas ref={sheetRef} className="cover-sheet" aria-hidden="true" data-liquid-ignore="" />
       <div className="hero-content">

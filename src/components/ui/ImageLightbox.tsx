@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { X } from "lucide-react";
-import { boxOf, closeMotion, containBox, currentTransform, flip, openMotion, reducedMotion, useMorphDialog, type Box } from "./glassMorph";
+import { boxOf, closeMotion, containBox, currentTransform, flip, openMotion, reducedMotion, shrink, useMorphDialog, type Box } from "./glassMorph";
 import { fullGlass } from "./glassQuality";
 import { lensMap } from "./lensMap";
 import "../../styles/glass-dialog.css";
@@ -99,7 +99,6 @@ const place = (element: HTMLElement, box: Box) => {
 };
 
 // Without a visible source, grow from a slightly smaller copy of the final frame.
-const shrink = (box: Box): Box => ({ x: box.x + box.width * 0.04, y: box.y + box.height * 0.04, width: box.width * 0.92, height: box.height * 0.92 });
 
 export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; onClose: () => void }) {
   const { dialogRef, state, show, run, close, handleClose } = useMorphDialog(onClose);
@@ -293,15 +292,21 @@ export function ImageLightbox({ image, onClose }: { image: PreviewImage | null; 
     const full = fullRef.current;
     if (!picture || !full) return;
     let cancelled = false;
-    void full.decode().then(() => {
+    const reveal = () => {
       if (cancelled || state.current.closing) return;
       full.style.opacity = "1";
       if (reducedMotion()) { picture.style.backgroundImage = "none"; return; }
       const fade = full.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "linear" });
       revealRef.current = fade;
       void fade.finished.then(() => { if (!cancelled) picture.style.backgroundImage = "none"; }, () => undefined);
-    }, () => { full.style.opacity = "1"; });
-    return () => { cancelled = true; };
+    };
+    const decode = () => void full.decode().then(reveal, () => { if (!cancelled && !state.current.closing) full.style.opacity = "1"; });
+    // Firefox resolves decode() at once with the previous photo while the new one is still downloading, so the
+    // photo is shown only once the element holds it (a <picture> with sources picks its own URL: decode as before).
+    const wanted = new URL(full.getAttribute("src") ?? "", location.href).href;
+    if (picture.querySelector("source") || (full.complete && full.naturalWidth > 0 && full.currentSrc === wanted)) decode();
+    else full.addEventListener("load", decode, { once: true });
+    return () => { cancelled = true; full.removeEventListener("load", decode); };
   }, [index]);
 
   const requestClose = () => {

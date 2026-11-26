@@ -9,15 +9,10 @@
     ".": {
       "import": "./liquidGL.js",
       "default": "./liquidGL.js"
-    },
-    "./liquidGL-helper.js": {
-      "import": "./liquidGL-helper.js",
-      "default": "./liquidGL-helper.js"
     }
   },
   "files": [
     "liquidGL.js",
-    "liquidGL-helper.js",
     "README.md",
     "LICENSE"
   ],

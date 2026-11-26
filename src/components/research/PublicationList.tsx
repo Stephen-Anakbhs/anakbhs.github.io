@@ -4,6 +4,8 @@ import { authorHomepages, emoji, type Publication, type PublicationAuthor } from
 import { GlassSurface } from "../ui/GlassSurface";
 import { Emoji } from "../ui/InlineText";
 import { ImageLightbox, preparePreview, type PreviewImage } from "../ui/ImageLightbox";
+import { useContentShown } from "../../lib/siteView";
+import { retryOnce } from "../../lib/retryImage";
 
 // Apple WebKit advertises AVIF but can lose animated alpha (WebKit bug 275906).
 // iOS Chrome/Firefox also use this decoder; keep their transparent WebP fallback.
@@ -52,10 +54,11 @@ type OpenPreview = (preview: PreviewImage) => void;
 
 // Every entry lists its links in the same order.
 const LINK_ORDER = ["Website", "Paper", "Code"];
-const linkRank = (label: string) => (LINK_ORDER.indexOf(label) + LINK_ORDER.length + 1) % (LINK_ORDER.length + 1);
+const linkRank = (label: string) => { const rank = LINK_ORDER.indexOf(label); return rank < 0 ? LINK_ORDER.length : rank; };
 
 // Memoised so opening or closing the lightbox does not re-render every glass surface.
-const PublicationItem = memo(function PublicationItem({ publication, Heading, onPreview }: { publication: Publication; Heading: HeadingTag; onPreview: OpenPreview }) {
+// The animated figures weigh megabytes; under the cover they wait (see useContentShown).
+const PublicationItem = memo(function PublicationItem({ publication, Heading, onPreview, load }: { publication: Publication; Heading: HeadingTag; onPreview: OpenPreview; load: boolean }) {
   const primaryLink = publication.links?.find((link) => link.label === "Website" || link.label === "Paper");
   const image = publication.preview;
   const prepare = () => { if (image && !image.avifFull) void preparePreview(image.full); };
@@ -79,8 +82,8 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
           })}
         >
           <picture>
-            {preferAnimatedAvif && image?.avifThumb && <source type="image/avif" srcSet={image.avifThumb} />}
-            <img src={image?.thumb ?? publication.image} srcSet={image?.thumbSrcSet}
+            {load && preferAnimatedAvif && image?.avifThumb && <source type="image/avif" srcSet={image.avifThumb} />}
+            <img src={load ? image?.thumb ?? publication.image : undefined} srcSet={load ? image?.thumbSrcSet : undefined}
               sizes="(max-width: 640px) calc(100vw - 64px), (max-width: 740px) min(416px, calc(100vw - 72px)), 276px"
               style={image ? {
                 margin: "auto",
@@ -88,7 +91,7 @@ const PublicationItem = memo(function PublicationItem({ publication, Heading, on
                 height: image.width / image.height >= 504 / 300 ? "auto" : "100%",
                 aspectRatio: `${image.width} / ${image.height}`, objectFit: "fill"
               } : undefined}
-              alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" />
+              alt={`Visual for ${publication.title}`} loading="lazy" decoding="async" onError={retryOnce} />
           </picture>
         </button>
       </GlassSurface>
@@ -126,11 +129,12 @@ export function PublicationList({ publications, headingLevel = 3 }: { publicatio
   const [preview, setPreview] = useState<PreviewImage | null>(null);
   const closePreview = useCallback(() => setPreview(null), []);
   const Heading: HeadingTag = headingLevel === 2 ? "h2" : "h3";
+  const load = useContentShown();
   return (
     <div className="publication-list">
       <p className="publication-legend"><span><sup>*</sup> Equal contribution</span><span><sup>{"\u2020"}</sup> Corresponding author</span></p>
       {publications.map((publication) => (
-        <PublicationItem key={publication.id} publication={publication} Heading={Heading} onPreview={setPreview} />
+        <PublicationItem key={publication.id} publication={publication} Heading={Heading} onPreview={setPreview} load={load} />
       ))}
       <ImageLightbox image={preview} onClose={closePreview} />
     </div>

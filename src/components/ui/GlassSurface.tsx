@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ComponentProps, type CSSProperties, type HTMLAttributes, type PropsWithChildren, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type CSSProperties, type HTMLAttributes, type PropsWithChildren, type RefObject } from "react";
 import LiquidGlass from "liquid-glass-react";
 import { type GlassAppearance, type GlassMaterial, type GlassTone } from "../../content/appearance";
 import { observeGlassVisibility } from "./glassVisibility";
@@ -7,19 +7,18 @@ import { lensMap } from "./lensMap";
 import { surfaceAppearance, useGlassProfile } from '../../content/glassStore';
 import type { GlassType } from '../../content/glassSchema';
 import { useScene } from '../../content/scenes';
+import { reducedMotion } from "../../lib/reducedMotion";
 
 // Supplying both positions disables the library's per-mousemove state updates.
 const staticPointer = { x: 0, y: 0 };
 const pressableTypes: ReadonlySet<GlassType> = new Set(["control", "social"]);
-type PointerOptions = Pick<ComponentProps<typeof LiquidGlass>, "mouseContainer" | "globalMousePos" | "mouseOffset">;
-export type GlassSurfaceProps = PropsWithChildren<
-  HTMLAttributes<HTMLDivElement> & Partial<GlassAppearance> & PointerOptions & {
-    material?: GlassMaterial;
-    tone?: GlassTone;
-    enabled?: boolean;
-    glassType?: GlassType;
-  }
->;
+type GlassSurfaceProps = PropsWithChildren<HTMLAttributes<HTMLDivElement> & {
+  material?: GlassMaterial;
+  tone?: GlassTone;
+  glassType?: GlassType;
+  /** Replaces the profile's inner padding. */
+  padding?: string;
+}>;
 
 // Hover makes the glass behave like a liquid lens without React renders: the rim
 // light turns toward the pointer and the bezel refraction swells, then relaxes.
@@ -27,7 +26,7 @@ function useLiquidHover(surface: RefObject<HTMLDivElement | null>, active: boole
   useEffect(() => {
     const element = surface.current;
     if (!element || !active || !matchMedia("(hover: hover)").matches) return;
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const still = reducedMotion();
     let frame = 0;
     let swellFrame = 0;
     let swell = 0;
@@ -92,32 +91,26 @@ function useLiquidHover(surface: RefObject<HTMLDivElement | null>, active: boole
   }, [surface, active, lensScale]);
 }
 
-export function GlassSurface({
-  children, className = "", style, material = "control", tone = "dark", enabled = true, glassType,
-  blurPx, saturation, displacementScale, aberrationIntensity, elasticity, cornerRadius, mode, overLight,
-  fill, ink, hoverFill, highlightOpacity, shadow, padding, mouseContainer, globalMousePos, mouseOffset,
-  ...attributes
-}: GlassSurfaceProps) {
+export function GlassSurface({ children, className = "", style, material = "control", tone = "dark", glassType, padding, ...attributes }: GlassSurfaceProps) {
   const surface = useRef<HTMLDivElement>(null);
   const componentType = glassType ?? material;
-  // Over a dark scene, glass that sits on the page (not on a photo, like the project overlays) turns dark.
+  // Over a dark scene, light glass turns dark.
   const darkScene = useScene().mode === "dark";
-  if (darkScene && tone === "light" && material !== "overlay") tone = "dark";
+  if (darkScene && tone === "light") tone = "dark";
   useGlassProfile(componentType);
   const appearance = surfaceAppearance(componentType, tone);
-  const explicit = { blurPx, saturation, displacementScale, aberrationIntensity, elasticity, cornerRadius, mode, overLight, fill, ink, hoverFill, highlightOpacity, shadow, padding };
-  Object.assign(appearance, Object.fromEntries(Object.entries(explicit).filter(([, v]) => v !== undefined)));
-  const lens = enabled && appearance.mode === "lens";
+  if (padding !== undefined) appearance.padding = padding;
+  const lens = appearance.mode === "lens";
   // Lite devices keep the lens styling but skip the per-pixel refraction pass.
   const refract = lens && fullGlass;
   const radius = appearance.cornerRadius;
   const lensDisplacement = useCallback((width: number, height: number) => lensMap(width, height, radius), [radius]);
-  const pressable = enabled && pressableTypes.has(componentType);
+  const pressable = pressableTypes.has(componentType);
   useLiquidHover(surface, pressable, refract ? appearance.displacementScale : 0);
   useEffect(() => {
-    if (surface.current && enabled) return observeGlassVisibility(surface.current);
-  }, [enabled]);
-  const trackPointer = appearance.elasticity > 0 || mouseContainer != null;
+    if (surface.current) return observeGlassVisibility(surface.current);
+  }, []);
+  const trackPointer = appearance.elasticity > 0;
   const variables = {
     "--glass-blur": `${appearance.blurPx}px`, "--glass-saturation": `${appearance.saturation}%`,
     "--glass-ink": appearance.ink, "--glass-fill": appearance.fill, "--glass-hover": appearance.hoverFill,
@@ -128,9 +121,9 @@ export function GlassSurface({
   } as CSSProperties;
   return (
     <div {...attributes} ref={surface} className={`liquid-surface ${className}`} data-tone={tone}
-      data-material={material} data-glass-type={componentType} data-glass-enabled={enabled} data-glass-over-light={appearance.overLight}
+      data-material={material} data-glass-type={componentType} data-glass-enabled="true" data-glass-over-light={appearance.overLight}
       data-glass-optics={lens ? "lens" : undefined} data-glass-pressable={pressable || undefined} style={variables}>
-      {enabled ? <LiquidGlass
+      <LiquidGlass
         blurAmount={Math.max(0, (appearance.blurPx - (appearance.overLight ? 12 : 4)) / 32)}
         saturation={appearance.saturation}
         cornerRadius={appearance.cornerRadius}
@@ -141,13 +134,12 @@ export function GlassSurface({
         displacementMap={refract ? lensDisplacement : undefined}
         rims={lens || material === "navigation" ? 0 : 1}
         overLight={appearance.overLight}
-        mouseContainer={mouseContainer}
-        globalMousePos={globalMousePos ?? (trackPointer ? undefined : staticPointer)}
-        mouseOffset={mouseOffset ?? (trackPointer ? undefined : staticPointer)}
+        globalMousePos={trackPointer ? undefined : staticPointer}
+        mouseOffset={trackPointer ? undefined : staticPointer}
         className="liquid-engine"
         padding={appearance.padding}
         style={{ position: "relative", top: "auto", left: "auto" }}
-      >{children}</LiquidGlass> : <div className="glass-plain-content">{children}</div>}
+      >{children}</LiquidGlass>
     </div>
   );
 }

@@ -9,11 +9,10 @@ type GlassIconLinkProps = {
   href: string;
   label: string;
   icon: LucideIcon | string;
-  tone?: "light" | "dark";
   brand?: string;
 };
 
-export function GlassIconLink({ href, label, icon: Icon, tone = "light", brand }: GlassIconLinkProps) {
+export function GlassIconLink({ href, label, icon: Icon, brand }: GlassIconLinkProps) {
   const tooltip = useRef<HTMLSpanElement>(null);
   const filterId = `tooltip-lens-${useId().replace(/:/g, "")}`;
   const [lens, setLens] = useState<{ width: number; height: number; map: string } | null>(null);
@@ -31,7 +30,7 @@ export function GlassIconLink({ href, label, icon: Icon, tone = "light", brand }
 
   return (
     <span className="icon-control" data-brand={brand} onPointerEnter={prepareTooltip} onFocus={prepareTooltip}>
-      <GlassSurface className="social-glass" tone={tone} glassType="social">
+      <GlassSurface className="social-glass" tone="light" glassType="social">
         <a className="glass-action glass-icon" href={href} aria-label={label}
           {...(href.startsWith("mailto:") ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
           {typeof Icon === "string"

@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import type liquidGL from "liquid-gl";
-import { closeMotion, openMotion } from "../ui/glassMorph";
+import { closeMotion, openMotion, reducedMotion } from "../ui/glassMorph";
 import { getView, isCoverHash, onViewChange, pageTop, setView } from "../../lib/siteView";
-import { coverBox, createCoverRenderer, type CoverRenderer, type CoverSource } from "./coverSheetRenderer";
+import { coverBox, createCoverRenderer, releaseCoverRenderer, type CoverRenderer, type CoverSource } from "./coverSheetRenderer";
 
 // The way between the homepage's two pages, the cover and the content (siteView.ts). The hero
 // behaves like a lock-screen cover: drag, swipe, scroll or page down and it lifts on a glass edge
@@ -35,7 +35,6 @@ const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, v
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const pixelScale = () => Math.min(window.devicePixelRatio || 1, 2);
-const instant = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const hold = (y: number) => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "instant" }); };
 
 /** `onLink` receives where a finished transition landed (`landed`), or a place still to be scrolled to. */
@@ -242,7 +241,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const shade = (name: string, fallback: number) => parseFloat(style?.getPropertyValue(name) ?? "") || fallback;
       const source = pickSource();
       renderer?.layout({
-        width: box.width, height, scale: pixelScale(), source, live: true, seeThrough: false,
+        width: box.width, height, scale: pixelScale(), source, live: !(source instanceof HTMLImageElement), seeThrough: false,
         cover: source ? coverBox(source, box.width, height) : [0, 0, box.width, height],
         shade: [shade("--shade-start", 0.83), shade("--shade-mid", 0.36), shade("--shade-end", 0.2)],
       });
@@ -320,6 +319,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       fade.finished.then(() => { done(); fade.cancel(); }, done);
     };
     const finished = () => {
+      if (disposed) return;
       phase = "idle";
       mode = "lift";
       offset = 0;
@@ -329,7 +329,10 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const unmoved = currentHash === startHash; // Back or Forward during the transition outranks its address
       push = null;
       target = null;
-      if (href && unmoved) linkTarget.current(href, true);
+      if (href && unmoved) {
+        currentHash = href.includes("#") ? href.slice(href.indexOf("#")) : "";
+        linkTarget.current(href, true);
+      }
       landedAt = performance.now();
       syncInput();
       const next = pendingLink;
@@ -393,7 +396,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
     // Sends the page over from a standing start.
     const turn = (next: Mode, section: string | null, href: string | null) => {
       aim(next, section, href);
-      if (instant()) {
+      if (reducedMotion()) {
         phase = "finish";
         land();
         finished();
@@ -537,7 +540,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
         if (travel <= 0 || drift > travel) { drag = null; return; }
         const direction = drag.mode;
         const href = direction === "lift" ? TO_CONTENT : TO_COVER;
-        if (instant()) {
+        if (reducedMotion()) {
           if (travel > 40) { drag = null; event.preventDefault(); turn(direction, null, href); }
           return;
         }
@@ -570,7 +573,7 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       if (!(event.target instanceof Element) || !event.target.closest(".hero-grab")) return;
       if (phase === "idle" && !ready()) return;
       event.preventDefault();
-      if (instant()) { turn("lift", null, TO_CONTENT); return; }
+      if (reducedMotion()) { turn("lift", null, TO_CONTENT); return; }
       drag = { id: event.pointerId, touch: false, mode: "lift", x: event.clientX, y: event.clientY, base: regrab ? offset : 0, travel: 0 };
       if (regrab) { phase = "drag"; samples = []; }
     };
@@ -619,13 +622,23 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       const href = event.target.closest("a[href]")?.getAttribute("href") ?? "";
       const id = /^\/?#([\w-]+)$/.exec(href)?.[1];
       if (!id || !(id === "home" || document.getElementById(id)?.closest("main"))) return;
-      if (phase !== "idle") {
+      if (phase === "drag") { event.preventDefault(); event.stopPropagation(); return; }
+      if (phase === "commit" || phase === "finish") {
         // Mid-transition, the page must not scroll under the sheet: keep the link for the end.
         event.preventDefault();
         event.stopPropagation();
         pendingLink = id;
         document.dispatchEvent(new CustomEvent("rg-section-select", { detail: id }));
         return;
+      }
+      if (phase === "settle") {
+        // A cover springing back after a short drag gives way to the link at once.
+        cancelAnimationFrame(frame);
+        frame = 0;
+        phase = "idle";
+        offset = 0;
+        velocity = 0;
+        clear();
       }
       const returning = id === "home" && getView() === "content" && free();
       if (!returning && (id === "home" || !ready())) return;
@@ -712,6 +725,9 @@ export function useCoverSheet(heroRef: RefObject<HTMLElement | null>, canvasRef:
       clear();
       sheet.remove();
       pane.remove();
+      releaseCoverRenderer(sheet);
+      // The hero's canvas outlives a development remount; its context goes once the hero has left the page.
+      window.setTimeout(() => { if (!canvas.isConnected) releaseCoverRenderer(canvas); });
     };
   }, [heroRef, canvasRef]);
 

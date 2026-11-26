@@ -9,6 +9,16 @@ import { applyScene } from "./content/scenes";
 import { initGlassCursor } from "./lib/glassCursor";
 import { keepPageTop } from "./lib/siteView";
 
+// A tab left open across a deploy asks for files the new build no longer has: load the new build, once.
+addEventListener("vite:preloadError", (event) => {
+  try {
+    if (Date.now() - Number(sessionStorage.getItem("rg-reloaded")) < 30_000) return;
+    sessionStorage.setItem("rg-reloaded", String(Date.now()));
+  } catch { return; }
+  event.preventDefault();
+  location.reload();
+});
+
 initSiteLook();
 applyScene();
 initGlassCursor();

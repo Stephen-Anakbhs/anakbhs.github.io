@@ -1,19 +1,4 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  Atom,
-  BookOpenText,
-  Bot,
-  Boxes,
-  BusFront,
-  Cpu,
-  GraduationCap,
-  Hand,
-  Mail,
-  Orbit,
-  PenTool,
-  Satellite,
-  Sparkles
-} from "lucide-react";
+import { Mail, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   id: string;
@@ -27,13 +12,6 @@ export type SocialItem = {
   icon: LucideIcon | string;
   /** Selects the platform color the glass takes on when hovered (liquid-glass.css). */
   brand: "scholar" | "github" | "linkedin" | "bilibili" | "youtube" | "email";
-};
-
-export type FeatureItem = {
-  label: string;
-  title: string;
-  body: string;
-  icon: LucideIcon;
 };
 
 export type InlineLink = { label: string; href: string };
@@ -170,11 +148,6 @@ export const emoji = {
 export const site = {
   name: "Renjun Gao",
   shortName: "Renjun Gao",
-  domain: "renjun.one",
-  github: "https://github.com/Stephen-Anakbhs",
-  linkedin: "https://www.linkedin.com/in/renjun-gao/",
-  scholar: scholarProfile,
-  emailHref: "mailto:renjgao@gmail.com",
   hero: {
     media: {
       poster: "/media/hero-video-poster.webp",
@@ -363,69 +336,6 @@ export const site = {
     { date: "Nov. 2023", lead: "Awarded the", title: "O Man Cheong Scholarship", detail: "at MUST." },
     { date: "Sep. 2023", lead: "Named to the", title: "Dean's Honor List", detail: "with a scholarship; ranked first in my cohort." },
     { date: "Jul. 2023", lead: "Won the", title: "Best Group Presentation Award", detail: "at HKU Summer Institute." }
-  ],
-  architecture: [
-    {
-      label: "01",
-      title: "Academic signal first",
-      body: "The site keeps publications, research roles, and project evidence scannable, even when the first screen is cinematic.",
-      icon: GraduationCap
-    },
-    {
-      label: "02",
-      title: "Three.js as atmosphere",
-      body: "The 3D layer adds depth and motion behind the hero image, while the text and routes remain normal, fast, and accessible.",
-      icon: Orbit
-    },
-    {
-      label: "03",
-      title: "Visual project archive",
-      body: "Robotics, LEGO mechanisms, and research figures are presented as an image-led portfolio instead of a plain resume list.",
-      icon: Boxes
-    },
-    {
-      label: "04",
-      title: "Markdown blog",
-      body: "Blog posts are file-backed Markdown entries, ready for research notes, project logs, essays, and design writing.",
-      icon: BookOpenText
-    }
-  ] satisfies FeatureItem[],
-  focusAreas: [
-    {
-      title: "Humanoid whole-body teleoperation",
-      body:
-        "At USC, I worked on a Unitree G1 teleoperation stack using AMASS retargeting, multi-contact trajectory optimization, weighted IK, MuJoCo validation, and Apple Vision Pro sim-to-real deployment.",
-      image: "/media/g1-teleoperation.png",
-      icon: Bot
-    },
-    {
-      title: "Phase-field computational methods",
-      body:
-        "In MUST PF_CFD, I developed and co-developed energy-stable Allen-Cahn phase-field schemes for 3D narrow volume reconstruction, shell reconstruction, shape transformation, and image segmentation.",
-      image: "/media/pf-reconstruction.png",
-      icon: Atom
-    },
-    {
-      title: "Wheel-legged robot mechanism and control",
-      body:
-        "At Tsinghua AIR DISCOVER Lab, I led a LEGO-based five-link wheel-legged robot prototype integrating CAD, PCB, ESP32 control, IMU feedback, Kalman filtering, and PID stabilization.",
-      image: "/media/wheel-robot.png",
-      icon: Cpu
-    },
-    {
-      title: "Remote sensing under uncertainty",
-      body:
-        "At HKUST, I contributed to LC4-DViT and MVT, two IGARSS 2026 accepted works on land-cover classification and taxonomy-aligned land-cover tagging.",
-      image: "/media/lc4dvit.png",
-      icon: Satellite
-    },
-    {
-      title: "LEGO dexterous manipulation",
-      body:
-        "ShiftHand is a 100% LEGO Technic tendon-driven dexterous hand with a contact-triggered automatic two-speed transmission for adaptive grasping.",
-      image: "/media/shifthand.png",
-      icon: Hand
-    }
   ],
   publications: [
     {
@@ -695,31 +605,4 @@ export const site = {
   /** Exhibition photos and stories under Membership, four per row; the section stays hidden while this is empty.
    *  Same fields as a project: `image` is the card, `detailImage` and `body` fill the detail sheet. */
   portfolio: [] as ShowcaseItem[],
-  projectTracks: [
-    {
-      title: "Research workspace",
-      body: "Papers, research projects, figures, code, and project logs."
-    },
-    {
-      title: "Interactive systems",
-      body: "Robotics, mechanisms, embedded systems, and Three.js-based public demos."
-    },
-    {
-      title: "Writing archive",
-      body: "Blog posts, research notes, design references, and long-form reflections."
-    }
-  ],
-  designPrinciples: [
-    { title: "Cinematic, but readable", icon: Sparkles },
-    { title: "Academic, not resume-only", icon: PenTool },
-    { title: "Physical systems as identity", icon: BusFront },
-    { title: "Interactive layer, stable content", icon: Orbit }
-  ],
-  video: {
-    title: "LEGO TECHNIC BUS MOC (KINGLONG KLQ6115GQ / Macau Bus 51A)",
-    href: "https://www.youtube.com/watch?v=_EOPROm5bpk&t=178s",
-    embed: "https://www.youtube.com/embed/_EOPROm5bpk?start=178",
-    body:
-      "The bus is the visual anchor of the site: an eight-month, 4,000+ piece all-LEGO Technic system with real mechanical functions and public AFOL festival validation."
-  }
 };

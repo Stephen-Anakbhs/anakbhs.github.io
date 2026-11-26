@@ -104,8 +104,6 @@
   backdrop-filter: none !important;
   filter: none !important;
 }
-.liquid-surface[data-glass-enabled="false"] { box-shadow: none; }
-.glass-plain-content { padding: var(--glass-padding); }
 .nav-lens > .liquid-surface { display: block; width: 100%; height: 100%; }
 .liquid-surface[data-material="selection"] .liquid-engine,
 .liquid-surface[data-material="selection"] .glass,

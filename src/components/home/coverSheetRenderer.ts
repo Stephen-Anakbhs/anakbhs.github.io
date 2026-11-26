@@ -138,6 +138,10 @@ export function createCoverRenderer(canvas: HTMLCanvasElement) {
 
   const renderer: CoverRenderer = {
     get lost() { return lost; },
+    release() {
+      lost = true;
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    },
     layout(next: CoverLayout) {
       layout = next;
       uploaded = null;
@@ -179,8 +183,16 @@ export function createCoverRenderer(canvas: HTMLCanvasElement) {
   return renderer;
 }
 
+// A context the page no longer draws with still counts toward the browser's limit (about 16) until it is
+// collected; past the limit the oldest is lost, often the navigation lens. Give it back at once.
+export function releaseCoverRenderer(canvas: HTMLCanvasElement) {
+  renderers.get(canvas)?.release();
+  renderers.delete(canvas);
+}
+
 export type CoverRenderer = {
   readonly lost: boolean;
+  release(): void;
   layout(next: CoverLayout): void;
   draw(edge: number, glass: number, clear: number): boolean;
 };

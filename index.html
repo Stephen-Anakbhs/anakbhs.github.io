@@ -9,24 +9,33 @@
       history.scrollRestoration = "manual";
     </script>
     <style>html { background: #d2d4d4; } html[data-view="cover"] { background: #05080a; }</style>
-    <meta
-      name="description"
-      content="Renjun Gao's academic homepage, research profile, blog, portfolio, and interactive personal archive."
-    />
-    <meta property="og:title" content="Renjun Gao · Personal Homepage" />
-    <meta
-      property="og:description"
-      content="Robotics, computational methods, LEGO Technic systems, publications, projects, and writing."
-    />
-    <meta property="og:type" content="website" />
+    <title>Renjun Gao</title>
+    <meta name="description" content="I'm Renjun (Stephen) Gao (高仁俊). I'm passionate about robotics, and I'm a professional LEGO Technic MOC (My Own Creation) designer in China." />
+    <meta name="robots" content="max-image-preview:large" />
+    <meta property="og:title" content="Renjun Gao" />
+    <meta property="og:description" content="I'm Renjun (Stephen) Gao (高仁俊). I'm passionate about robotics, and I'm a professional LEGO Technic MOC (My Own Creation) designer in China." />
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="Renjun Gao" />
     <meta property="og:url" content="https://renjun.one/" />
-    <meta property="og:image" content="https://renjun.one/media/hero-bus.jpg" />
+    <meta property="og:image" content="https://renjun.one/media/renjun-gao.png" />
+    <meta property="og:image:width" content="800" />
+    <meta property="og:image:height" content="800" />
+    <script type="application/ld+json">
+      {"@context": "https://schema.org", "@graph": [
+        {"@type": "WebSite", "@id": "https://renjun.one/#website", "url": "https://renjun.one/", "name": "Renjun Gao"},
+        {"@type": "Person", "@id": "https://renjun.one/#person", "name": "Renjun Gao", "alternateName": ["Stephen Gao", "高仁俊"],
+          "url": "https://renjun.one/", "image": "https://renjun.one/media/renjun-gao.png",
+          "sameAs": ["https://scholar.google.com/citations?user=qM5-vjQAAAAJ", "https://github.com/Stephen-Anakbhs", "https://www.linkedin.com/in/renjun-gao/",
+            "https://space.bilibili.com/162983506", "https://www.youtube.com/@anakbhs2782"]},
+        {"@type": "ProfilePage", "@id": "https://renjun.one/#page", "url": "https://renjun.one/", "name": "Renjun Gao",
+          "isPartOf": {"@id": "https://renjun.one/#website"}, "mainEntity": {"@id": "https://renjun.one/#person"},
+          "primaryImageOfPage": {"@type": "ImageObject", "url": "https://renjun.one/media/renjun-gao.png", "width": 800, "height": 800}}
+      ]}
+    </script>
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" as="image" href="/media/cold-stone.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/media/hero-video-poster.webp" fetchpriority="high" />
-    <title>Renjun Gao · Personal Homepage</title>
   </head>
   <body>
     <div id="root"></div>

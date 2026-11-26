@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { reducedMotion } from "../../lib/reducedMotion";
 import { getView, onViewChange } from "../../lib/siteView";
 import "../../styles/transparent-video.css";
 
@@ -108,7 +109,7 @@ export function TransparentVideo({ src, poster, alt, className = "", active = tr
     const element = video.current;
     const box = host.current;
     if (!element || !box) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion()) return;
     // A canvas keeps its WebGL context for life and the page may only hold a few at once, so each run
     // gets its own canvas and gives the context back when it ends.
     const surface = document.createElement("canvas");

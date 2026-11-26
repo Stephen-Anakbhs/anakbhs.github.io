@@ -4,6 +4,8 @@
 // two. Both stay in one document so the navigation and wallpaper persist across the transition and the
 // content is already laid out when the cover lifts. The first value is set by a script in index.html,
 // before the first paint.
+import { useEffect, useState } from "react";
+
 export type SiteView = "cover" | "content";
 
 const root = document.documentElement;
@@ -22,6 +24,23 @@ export function setView(view: SiteView) {
 export function onViewChange(listener: () => void) {
   document.addEventListener(EVENT, listener);
   return () => document.removeEventListener(EVENT, listener);
+}
+
+// The content lies under the cover at the top of the document, so lazy images there count as on screen and
+// would all download while the visitor is still watching the cover's film. Heavy ones wait for the content.
+let contentShown = getView() === "content";
+onViewChange(() => { contentShown ||= getView() === "content"; });
+
+/** True once the content page has been shown in this visit. */
+export function useContentShown() {
+  const [shown, setShown] = useState(contentShown);
+  useEffect(() => {
+    if (shown) return;
+    const update = () => { if (contentShown) setShown(true); };
+    update();
+    return onViewChange(update);
+  }, [shown]);
+  return shown;
 }
 
 /** Where the top of the page rests: 0, except on iOS (see --runway in global.css). */
