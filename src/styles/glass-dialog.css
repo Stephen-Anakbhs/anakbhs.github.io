@@ -43,8 +43,7 @@
     translate: -5vw calc(-1 * var(--runway));
   }
   html.glass-dialog-open .site-shell { position: relative; }
-  .page-veil { display: block; z-index: 30; pointer-events: none; opacity: 0; }
-  html.glass-dialog-open .page-veil { opacity: 1; }
+  html.glass-dialog-open .page-veil { display: block; z-index: 30; pointer-events: none; }
 }
 
 .glass-sheet {
