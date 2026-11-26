@@ -56,7 +56,12 @@ html {
   scrollbar-gutter: stable;
 }
 
-html.glass-dialog-open { overflow: hidden; }
+/* The page holds still under an open dialog. Not this way on iOS: while the root cannot scroll, Safari there stops
+   drawing the page under its status bar and toolbar and leaves two flat bands around the dialog (iOS 26.2 and 26.5).
+   There the dialog refuses one-finger pans instead (glass-dialog.css) and glassMorph.ts holds the page in place. */
+@supports not (-webkit-touch-callout: none) {
+  html.glass-dialog-open { overflow: hidden; }
+}
 
 /* Keep native dragging and keyboard scrolling; only change the chrome. */
 @media (pointer: fine) {

@@ -60,9 +60,15 @@ const openDialogs = new Set<HTMLDialogElement>();
 // Whether the last input was a keyboard: focus handed back after a pointer-driven close gets
 // no ring (WebKit shows one for scripted focus), a keyboard user keeps theirs.
 let keyboardInput = false;
+// Where the page stood when the first dialog opened. On iOS the page stays scrollable under a dialog (global.css),
+// so a tap on the status bar or a trackpad could otherwise move it; nothing on the site scrolls it meanwhile.
+let heldY = 0;
 if (typeof window !== "undefined") {
   window.addEventListener("keydown", (event) => { if (!event.metaKey && !event.ctrlKey && !event.altKey) keyboardInput = true; }, true);
   window.addEventListener("pointerdown", () => { keyboardInput = false; }, true);
+  window.addEventListener("scroll", () => {
+    if (openDialogs.size && Math.abs(window.scrollY - heldY) > 1) window.scrollTo({ top: heldY, behavior: "instant" });
+  }, { passive: true });
 }
 const releaseScrollLock = (dialog: HTMLDialogElement) => {
   if (!openDialogs.delete(dialog)) return;
@@ -95,6 +101,7 @@ export function useMorphDialog(onClosed: () => void) {
           ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     }
     delete dialog.dataset.settled;
+    if (!openDialogs.size) heldY = window.scrollY;
     openDialogs.add(dialog);
     document.documentElement.classList.add("glass-dialog-open");
     if (!dialog.open) {

@@ -24,6 +24,19 @@
   -webkit-backdrop-filter: blur(4px) saturate(1.15);
   backdrop-filter: blur(4px) saturate(1.15);
 }
+/* iOS: the page stays scrollable under a dialog (global.css), so one-finger pans on the dialog are refused here;
+   two fingers still zoom, and the project sheet's own text still scrolls. The veil runs under the status bar and
+   the toolbar the way the wallpaper does (site-background.css): a fixed layer moved by translate is not cut off
+   at the layout viewport. */
+@supports (-webkit-touch-callout: none) {
+  .glass-dialog { touch-action: pinch-zoom; }
+  .glass-veil {
+    position: fixed;
+    bottom: auto;
+    height: calc(100lvh + var(--runway) + var(--toolbar-bleed));
+    translate: 0 calc(-1 * var(--runway));
+  }
+}
 
 .glass-sheet {
   position: absolute;
