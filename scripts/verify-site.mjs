@@ -22,6 +22,8 @@ const check = (target, name, ok, detail = "") => {
 // Third-party embeds (the YouTube player in a project sheet) log their own cookie notices.
 // Headless WebKit on Windows often gets no GPU device, so its WebGL contexts are lost at once.
 const expected = (text) => /hero-background-1080p\.mp4|MEDIA_ERR|Failed to load resource: the server responded with a status of 206|youtube\.com|Cookie “|WebGL: context lost|Shader error null/.test(text);
+// The not-found check asks for this address on purpose; GitHub Pages answers it with a 404 status.
+const deliberate = (url = "") => url.endsWith("/no-such-page");
 
 for (const [target, engine, options] of targets) {
   const browser = await engine.launch();
@@ -29,9 +31,9 @@ for (const [target, engine, options] of targets) {
   const page = await context.newPage();
   const errors = [], broken = [], requested = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => { if (message.type() === "error" && !expected(message.text())) errors.push(message.text().slice(0, 200)); });
+  page.on("console", (message) => { if (message.type() === "error" && !expected(message.text()) && !deliberate(message.location().url)) errors.push(message.text().slice(0, 200)); });
   page.on("request", (request) => requested.push(request.url()));
-  page.on("response", (response) => { if (response.status() >= 400) broken.push(`${response.status()} ${response.url()}`); });
+  page.on("response", (response) => { if (response.status() >= 400 && !deliberate(response.url())) broken.push(`${response.status()} ${response.url()}`); });
   page.on("requestfailed", (request) => {
     const failure = request.failure()?.errorText || "";
     // Requests the page itself abandons (a film paused, a dialog closed) are not failures.
