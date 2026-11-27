@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - probe/ios-safari
+      - probe/ios-safari-old
 
 jobs:
   ios:
@@ -13,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         runtime: ["26.2", "newest"]
-        part: ["light", "other"]
+        part: ["liftexp"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,19 +25,4 @@ jobs:
         if: always()
         with:
           name: ios-${{ matrix.runtime }}-${{ matrix.part }}
-          path: output/probe/
-
-  mac-safari:
-    runs-on: macos-26
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: bash probe/safari.sh
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: mac-safari
           path: output/probe/

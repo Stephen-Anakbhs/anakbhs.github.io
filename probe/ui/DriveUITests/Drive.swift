@@ -314,12 +314,27 @@ final class Drive: XCTestCase {
         shot("e-runway-tail-bottom")
     }
 
+    /// How often the first swipe on a freshly loaded cover lifts it (the log shows view and touch end or cancel).
+    func liftexp() {
+        for i in 0..<6 {
+            open(i % 2 == 0 ? "/?scene=stone" : "/?scene=night-sea", wait: 14)
+            if i == 0 {
+                safari.activate()
+                sleep(2)
+            }
+            drag(0.78, 0.3)
+            sleep(6)
+            shot("x-lift-\(i)")
+        }
+    }
+
     func testWalk() {
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .portrait
         switch ProcessInfo.processInfo.environment["PART"] ?? "light" {
         case "exp": exp()
         case "exp2": exp2()
+        case "liftexp": liftexp()
         case "other": darkAndLandscape()
         default: light()
         }
