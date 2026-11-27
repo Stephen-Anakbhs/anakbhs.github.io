@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Probe control</title>
+<script src="/beacon.js"></script>
+<!-- A page with no fixed boxes: yellow root, red and blue stripes in the document. Under a bar, stripes mean
+     Safari shows the page there; yellow means it fills the strip with the root color whatever the page does. -->
+<style>
+  html { background: #ff0; }
+  body { margin: 0; height: 4000px; background: repeating-linear-gradient(180deg, #e00 0 20px, #00e 20px 40px); }
+</style>
+</head>
+<body>
+<script>addEventListener('load', () => setTimeout(() => scrollTo(0, 400), 300));</script>
+</body>
+</html>

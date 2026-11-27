@@ -1,0 +1,35 @@
+name: Drive
+options:
+  bundleIdPrefix: one.renjun.probe
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  Host:
+    type: application
+    platform: iOS
+    sources: [Host]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
+        SWIFT_VERSION: "5.0"
+  DriveUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [DriveUITests]
+    dependencies:
+      - target: Host
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
+        SWIFT_VERSION: "5.0"
+schemes:
+  Drive:
+    build:
+      targets:
+        Host: all
+        DriveUITests: [test]
+    test:
+      targets: [DriveUITests]

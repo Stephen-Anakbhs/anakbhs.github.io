@@ -1,0 +1,42 @@
+name: Safari probe
+
+on:
+  push:
+    branches:
+      - probe/ios-safari
+
+jobs:
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: ["26.2", "newest"]
+        part: ["light", "other"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bash probe/run.sh ${{ matrix.runtime }} ${{ matrix.part }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-${{ matrix.runtime }}-${{ matrix.part }}
+          path: output/probe/
+
+  mac-safari:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bash probe/safari.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-safari
+          path: output/probe/
